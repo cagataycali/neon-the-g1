@@ -1,0 +1,35 @@
+# Keep build context small — these are either rebuilt inside the image,
+# regenerated at runtime, or just dev cruft.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+.gitmodules
+logs/
+*.log
+.pytest_cache/
+
+# SDK is cloned fresh inside the image (host path is for bare-metal dev only)
+unitree_sdk2_python/
+
+# Generated assets
+realsense_*.jpg
+telegram_events/
+whatsapp_events/
+site/
+
+# OS
+.DS_Store
+
+# Docs source (not needed at runtime)
+docs/*
+!docs/dashboard
+mkdocs.yml
+requirements-docs.txt
+
+# Recording scratch
+docs/dashboard/frontend/node_modules
+docs/dashboard/**/__pycache__

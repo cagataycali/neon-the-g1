@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 180" width="560" height="180"
+     role="img" aria-label="neon — vision language action" preserveAspectRatio="xMidYMid meet">
+
+  <!-- transparent bg -->
+  <rect width="560" height="180" fill="transparent"/>
+
+  <g transform="translate(280,90)">
+
+    <!-- ── mark: terracotta chip with 'n' + signal dot ── -->
+    <g transform="translate(-186,-46)">
+      <rect x="0" y="0" width="92" height="92" rx="24" fill="#cc5a3a"/>
+      <circle cx="70" cy="22" r="6.5" fill="#fff" opacity="0.92">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="2.6s" repeatCount="indefinite"/>
+      </circle>
+      <text x="46" y="67" text-anchor="middle"
+            font-family="'Inter','SF Pro Display',system-ui,sans-serif"
+            font-size="66" font-weight="650" letter-spacing="-4" fill="#fff">n</text>
+    </g>
+
+    <!-- ── wordmark ── -->
+    <text x="-70" y="8" text-anchor="start"
+          font-family="'Inter','SF Pro Display',system-ui,sans-serif"
+          font-size="82" font-weight="700" letter-spacing="-4" fill="#1c1a17">neon</text>
+
+    <!-- ── tagline ── -->
+    <text x="-66" y="42" text-anchor="start"
+          font-family="'JetBrains Mono','SF Mono',ui-monospace,monospace"
+          font-size="12" font-weight="400" letter-spacing="5" fill="#8a847a">VISION · LANGUAGE · ACTION</text>
+  </g>
+</svg>

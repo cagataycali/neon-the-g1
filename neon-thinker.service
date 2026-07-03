@@ -1,0 +1,23 @@
+[Unit]
+Description=G1 NEON — slow-thinker reflective loop (every 30s)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+EnvironmentFile=-/home/unitree/neon-the-g1/.env
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=PYTHONPATH=/home/unitree/neon-the-g1/unitree_sdk2_python
+Environment=G1_NETWORK_INTERFACE=eth0
+Environment=THINKER_INTERVAL=30
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/thinker_loop.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

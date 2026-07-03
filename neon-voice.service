@@ -1,0 +1,25 @@
+[Unit]
+Description=G1 NEON — bidirectional voice listener (Brio mic → G1 chest speaker)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+EnvironmentFile=-/home/unitree/neon-the-g1/.env
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=PYTHONPATH=/home/unitree/neon-the-g1/unitree_sdk2_python
+Environment=VOICE_PROVIDER=openai
+Environment=G1_NETWORK_INTERFACE=eth0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/g1_speech_listener.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

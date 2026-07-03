@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neon-the-g1"
+version = "0.1.0"
+description = "NEON — a Strands agent driving a Unitree G1+ : vision · language · action, fusing live DDS control with strands-robots sim + VLA policies."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Cagatay Cali" }]
+keywords = ["robotics", "unitree", "g1", "strands", "agent", "vla", "humanoid", "dds"]
+
+# Core deps — the agent stack + strands-robots (sim/VLA/dataset/mesh layer).
+# strands-robots is pulled from source via [tool.uv.sources] below (until on PyPI).
+dependencies = [
+    "strands-agents>=1.0.0,<2.0.0",
+    "strands-agents-tools",
+    "strands-robots",
+    "requests",
+    "python-dotenv",
+    "numpy",
+    "opencv-python-headless",
+]
+
+[project.optional-dependencies]
+# Voice personas (bidi audio → G1 chest speaker)
+voice   = ["strands-agents[bidi]", "pyaudio", "webrtcvad", "sounddevice", "google-genai", "websockets"]
+# strands-robots simulation (MuJoCo, CPU — no GPU needed)
+sim     = ["strands-robots[sim-mujoco]"]
+# LeRobot hardware/network driver path for Robot("g1", mode="real")
+lerobot = ["strands-robots[lerobot]"]
+# Zenoh fleet mesh coordination
+mesh    = ["strands-robots[mesh]"]
+# On-robot hardware extras (aarch64/Jetson — DDS + LiDAR + SLAM + RealSense)
+robot   = ["pyrealsense2", "kiss-icp", "open3d", "ultralytics", "spotipy"]
+# WebXR teleop bridge (Quest 3 → G1). IK/DDS stack via xr_teleoperate (see docs).
+teleop  = ["websockets>=12.0", "numpy"]
+# Everything for a dev box
+all     = ["neon-the-g1[voice,sim,lerobot,mesh,teleop]"]
+dev     = ["pytest", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/cagataycali/neon-the-g1"
+Documentation = "https://cagataycali.github.io/neon-the-g1"
+Repository = "https://github.com/cagataycali/neon-the-g1"
+
+[project.scripts]
+neon = "neon.__main__:main"
+
+# strands-robots from source until published to PyPI.
+# uv reads this; pip users: `pip install git+https://github.com/strands-labs/robots.git` first.
+[tool.uv.sources]
+strands-robots = { git = "https://github.com/strands-labs/robots.git" }
+
+[tool.hatch.build.targets.wheel]
+# Ship the agent package + the flat tool/entry modules the personas import.
+packages = ["neon", "tools"]
+include = [
+    "g1.py",
+    "g1_remote.py",
+    "agent.py",
+    "thinker_loop.py",
+    "telegram_listener.py",
+    "g1_speech_listener.py",
+    "docs/teleop/index.html",
+    "prompts/base.md",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true

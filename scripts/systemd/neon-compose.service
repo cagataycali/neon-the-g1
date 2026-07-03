@@ -1,0 +1,16 @@
+[Unit]
+Description=NEON G1 — docker compose stack (agent + dashboard + telegram + thinker)
+After=network-online.target docker.service graphical.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/unitree/neon-the-g1
+# bring the whole stack up; --remove-orphans keeps it clean
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose stop
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target

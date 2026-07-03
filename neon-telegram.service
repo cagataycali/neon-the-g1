@@ -1,0 +1,22 @@
+[Unit]
+Description=G1 NEON — Telegram listener (multi-turn agent + voice control)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+EnvironmentFile=-/home/unitree/neon-the-g1/.env
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=PYTHONPATH=/home/unitree/neon-the-g1/unitree_sdk2_python
+Environment=G1_NETWORK_INTERFACE=eth0
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/telegram_listener.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

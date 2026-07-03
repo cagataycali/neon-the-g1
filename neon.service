@@ -1,0 +1,20 @@
+[Unit]
+Description=G1 Agent (neon Strands REPL)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=PYTHONPATH=/home/unitree/neon-the-g1/unitree_sdk2_python
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/agent.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/g1-agent.log
+StandardError=append:/var/log/g1-agent.log
+
+[Install]
+WantedBy=multi-user.target
