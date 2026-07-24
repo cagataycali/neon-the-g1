@@ -7,7 +7,7 @@ name = "neon-the-g1"
 version = "0.1.1"
 description = "NEON — a Strands agent driving a Unitree G1+ : vision · language · action, fusing live DDS control with strands-robots sim + VLA policies."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Cagatay Cali" }]
 keywords = ["robotics", "unitree", "g1", "strands", "agent", "vla", "humanoid", "dds"]
