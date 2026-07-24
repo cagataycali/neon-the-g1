@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "neon-the-g1"
-version = "0.1.0"
+version = "0.1.1"
 description = "NEON — a Strands agent driving a Unitree G1+ : vision · language · action, fusing live DDS control with strands-robots sim + VLA policies."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,11 +13,11 @@ authors = [{ name = "Cagatay Cali" }]
 keywords = ["robotics", "unitree", "g1", "strands", "agent", "vla", "humanoid", "dds"]
 
 # Core deps — the agent stack + strands-robots (sim/VLA/dataset/mesh layer).
-# strands-robots is pulled from source via [tool.uv.sources] below (until on PyPI).
+# strands-robots + strands-mcp-server are on PyPI — installed directly.
 dependencies = [
     "strands-agents>=1.0.0,<2.0.0",
     "strands-agents-tools",
-    "strands-robots",
+    "strands-robots>=0.4.1",
     "requests",
     "python-dotenv",
     "numpy",
@@ -39,7 +39,7 @@ robot   = ["pyrealsense2", "kiss-icp", "open3d", "ultralytics", "spotipy"]
 teleop  = ["websockets>=12.0", "numpy"]
 # Everything for a dev box
 # MCP server — expose the full NEON toolset over Model Context Protocol
-mcp     = ["strands-mcp-server"]
+mcp     = ["strands-mcp-server>=0.1.4"]
 all     = ["neon-the-g1[voice,sim,lerobot,mesh,teleop,mcp]"]
 dev     = ["pytest", "ruff"]
 
@@ -52,25 +52,24 @@ Repository = "https://github.com/cagataycali/neon-the-g1"
 neon = "neon.__main__:main"
 neon-mcp = "neon.mcp:main"
 
-# strands-robots from source until published to PyPI.
-# uv reads this; pip users: `pip install git+https://github.com/strands-labs/robots.git` first.
-[tool.uv.sources]
-strands-robots = { git = "https://github.com/strands-labs/robots.git" }
-strands-mcp-server = { git = "https://github.com/cagataycali/strands-mcp-server.git" }
 
 [tool.hatch.build.targets.wheel]
 # Ship the agent package + the flat tool/entry modules the personas import.
 packages = ["neon", "tools"]
-include = [
-    "g1.py",
-    "g1_remote.py",
-    "agent.py",
-    "thinker_loop.py",
-    "telegram_listener.py",
-    "g1_speech_listener.py",
-    "docs/teleop/index.html",
-    "prompts/base.md",
-]
+
+# `include` alone does NOT place top-level .py modules into the wheel root for
+# hatchling — they get dropped, breaking `from g1 import ...` in installed use
+# (e.g. `uvx neon-the-g1 neon-mcp`). `force-include` maps each source path to
+# its wheel destination so g1.py & friends are importable as top-level modules.
+[tool.hatch.build.targets.wheel.force-include]
+"g1.py" = "g1.py"
+"g1_remote.py" = "g1_remote.py"
+"agent.py" = "agent.py"
+"thinker_loop.py" = "thinker_loop.py"
+"telegram_listener.py" = "telegram_listener.py"
+"g1_speech_listener.py" = "g1_speech_listener.py"
+"docs/teleop/index.html" = "docs/teleop/index.html"
+"prompts/base.md" = "prompts/base.md"
 
 [tool.hatch.metadata]
 allow-direct-references = true
