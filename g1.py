@@ -36,6 +36,7 @@ from tools.telegram import telegram, format_history_for_prompt
 from tools.dispatch import dispatch
 from tools.manage_messages import manage_messages
 from tools.manage_tools import manage_tools as manage_tools_tool
+from tools.make import make
 from tools.prompts import prompts, get_override as _prompt_override
 from tools.vision import take_photo  # bidi-aware (OpenAI patch applied at import)
 
@@ -60,7 +61,7 @@ def build_tools(include_telegram: bool = True, include_robot: bool = True) -> li
     """Single source of truth for what tools NEON exposes."""
     t = [
         memory, shell, environment, image_reader,
-        prompts, manage_messages, manage_tools_tool,
+        prompts, manage_messages, manage_tools_tool, make,
         voice_say, take_photo, dispatch,
     ]
     if include_telegram:
@@ -96,7 +97,7 @@ def build_voice_tools() -> list:
 
     tools = [
         # Cross-persona infrastructure (always-on)
-        memory, shell, prompts, manage_messages, manage_tools_tool,
+        memory, shell, prompts, manage_messages, manage_tools_tool, make,
         voice_say, take_photo, dispatch, telegram,
         # State
         g1_get_state, g1_read_lowstate,

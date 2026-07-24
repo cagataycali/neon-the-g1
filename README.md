@@ -283,6 +283,38 @@ def g1_mytool(param: int = 0, network_interface: str = "eth0") -> dict:
 
 Export from `tools/__init__.py`. [→ extending guide](https://cagataycali.github.io/neon-the-g1/guide/extending/)
 
+## 🔌 MCP server — drive NEON from Claude Code / Desktop / Cursor
+
+Expose the **full NEON toolset** (53 FSM-gated G1 robot tools + memory +
+telegram + voice_say + take_photo + dispatch) over the Model Context Protocol,
+so any MCP client can drive the robot:
+
+```bash
+# zero-install via uvx (recommended — no venv needed)
+uvx --from neon-the-g1 neon-mcp --safe        # stdio, no walking (recommended)
+uvx --from neon-the-g1 neon-mcp --http --port 8022   # HTTP multi-client
+
+# or pip-installed
+pip install "neon-the-g1[mcp]"
+neon-mcp                       # stdio (Claude Code / Desktop) — default
+neon-mcp --safe                # drop locomotion (no walking) — recommended
+neon-mcp --http --port 8022    # HTTP multi-client
+neon-mcp --no-robot            # cross-persona stack only (no DDS)
+```
+
+**Claude Code:** `claude mcp add neon -- uvx --from neon-the-g1 neon-mcp --safe`
+
+**Claude Desktop:**
+```json
+{"mcpServers": {"neon": {"command": "uvx", "args": ["--from", "neon-the-g1", "neon-mcp", "--safe"]}}}
+```
+
+> ⚠️  Without `--safe`, the remote client can invoke locomotion — the robot can
+> **walk**. Run on a gantry / clear space and read [`AGENTS.md`](AGENTS.md)
+> safety rules first. Same shim technique as
+> [strands-transformers](https://github.com/cagataycali/strands-transformers),
+> built on [strands-mcp-server](https://github.com/cagataycali/strands-mcp-server).
+
 ## 📚 more
 
 - `make help` - full target list (47 verbs)

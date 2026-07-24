@@ -33,6 +33,9 @@ except Exception:
     _CV2 = False
 
 try:
+    import os as _os_rs
+    if _os_rs.getenv("NEON_NO_REALSENSE", "").lower() in ("1", "true", "yes"):
+        raise ImportError("RealSense disabled via NEON_NO_REALSENSE")
     import pyrealsense2 as rs
     _RS = True
 except Exception:
@@ -88,12 +91,31 @@ class _SharedRealSense:
     def acquire(self):
         with self._plock:
             if self._pipe is None:
-                pipe = rs.pipeline()
-                cfg = rs.config()
-                cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
-                cfg.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, self.fps)
-                pipe.start(cfg)
-                self._pipe = pipe
+                # pipe.start() is a blocking C call that can HANG forever if the
+                # D435i USB is in a bad power state. Time-box it in a worker
+                # thread so a wedged camera can never deadlock the dashboard.
+                import threading as _t
+                result = {"pipe": None, "err": None}
+                def _do_start():
+                    try:
+                        pipe = rs.pipeline()
+                        cfg = rs.config()
+                        cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
+                        cfg.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, self.fps)
+                        pipe.start(cfg)
+                        result["pipe"] = pipe
+                    except Exception as e:
+                        result["err"] = e
+                th = _t.Thread(target=_do_start, daemon=True, name="rs-start")
+                th.start()
+                th.join(timeout=8.0)
+                if th.is_alive():
+                    log.warning("📷 RealSense pipe.start() timed out (8s) — camera unavailable")
+                    return False
+                if result["err"] is not None:
+                    log.warning(f"📷 RealSense start failed: {result['err']}")
+                    return False
+                self._pipe = result["pipe"]
                 log.info("📷 shared RealSense pipeline started (color+depth)")
             self._refs += 1
             return True

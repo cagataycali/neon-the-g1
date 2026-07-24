@@ -38,7 +38,9 @@ robot   = ["pyrealsense2", "kiss-icp", "open3d", "ultralytics", "spotipy"]
 # WebXR teleop bridge (Quest 3 → G1). IK/DDS stack via xr_teleoperate (see docs).
 teleop  = ["websockets>=12.0", "numpy"]
 # Everything for a dev box
-all     = ["neon-the-g1[voice,sim,lerobot,mesh,teleop]"]
+# MCP server — expose the full NEON toolset over Model Context Protocol
+mcp     = ["strands-mcp-server"]
+all     = ["neon-the-g1[voice,sim,lerobot,mesh,teleop,mcp]"]
 dev     = ["pytest", "ruff"]
 
 [project.urls]
@@ -48,11 +50,13 @@ Repository = "https://github.com/cagataycali/neon-the-g1"
 
 [project.scripts]
 neon = "neon.__main__:main"
+neon-mcp = "neon.mcp:main"
 
 # strands-robots from source until published to PyPI.
 # uv reads this; pip users: `pip install git+https://github.com/strands-labs/robots.git` first.
 [tool.uv.sources]
 strands-robots = { git = "https://github.com/strands-labs/robots.git" }
+strands-mcp-server = { git = "https://github.com/cagataycali/strands-mcp-server.git" }
 
 [tool.hatch.build.targets.wheel]
 # Ship the agent package + the flat tool/entry modules the personas import.

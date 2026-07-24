@@ -104,9 +104,32 @@ class MuteState:
         self._stop.set()
 
 
-# ─── Brio mic auto-pick ───────────────────────────────────────────────────
-def autopick_brio(p: pyaudio.PyAudio) -> Optional[int]:
-    """Find the Logitech Brio direct (USB) input device on this Jetson."""
+# ─── Mic auto-pick (generalized: DJI / Brio / any USB mic) ─────────────────
+# Priority of name substrings to match, highest first. Override with
+# VOICE_MIC_NAME (comma-separated substrings, case-insensitive).
+DEFAULT_MIC_KEYWORDS = ["DJI", "Logi", "Brio", "USB", "Mic"]
+
+
+def _mic_keywords() -> list:
+    """Ordered list of name substrings to match a preferred input device."""
+    import os as _o
+    env = _o.getenv("VOICE_MIC_NAME", "").strip()
+    if env:
+        return [k.strip() for k in env.split(",") if k.strip()]
+    return DEFAULT_MIC_KEYWORDS
+
+
+def autopick_mic(p: pyaudio.PyAudio) -> Optional[int]:
+    """Find the preferred input device on this Jetson.
+
+    Matches VOICE_MIC_NAME substrings (or DEFAULT_MIC_KEYWORDS) in priority
+    order, case-insensitive. Falls back to the first device with input
+    channels. Works for DJI receiver, Logitech Brio, or any USB mic.
+    """
+    keywords = [k.lower() for k in _mic_keywords()]
+
+    # Collect all input-capable devices once.
+    inputs = []
     for i in range(p.get_device_count()):
         try:
             d = p.get_device_info_by_index(i)
@@ -114,34 +137,104 @@ def autopick_brio(p: pyaudio.PyAudio) -> Optional[int]:
             continue
         if d.get("maxInputChannels", 0) <= 0:
             continue
-        name = str(d.get("name", ""))
-        if any(k in name for k in ("Logi", "Brio", "BRIO", "logi")):
-            return i
+        inputs.append((i, str(d.get("name", ""))))
+
+    # Priority match: earlier keyword wins.
+    for kw in keywords:
+        for i, name in inputs:
+            if kw in name.lower():
+                log.info(f"autopick_mic: matched '{name}' (idx={i}) via '{kw}'")
+                return i
+
+    # No keyword hit. Prefer PulseAudio 'pulse'/'default' virtual sources over
+    # raw Tegra APE routing devices (which aren't usable capture endpoints).
+    for pref in ("pulse", "default"):
+        for i, name in inputs:
+            if name.strip().lower() == pref:
+                log.info(f"autopick_mic: no keyword match, using PA '{name}' (idx={i})")
+                return i
+
+    # Last resort: skip Tegra APE/HDA virtual devices if a non-Tegra input exists.
+    non_tegra = [(i, n) for i, n in inputs
+                 if "tegra" not in n.lower() and "ape" not in n.lower()
+                 and "hda" not in n.lower()]
+    pool = non_tegra or inputs
+    if pool:
+        i, name = pool[0]
+        log.info(f"autopick_mic: no keyword match, using '{name}' (idx={i})")
+        return i
     return None
 
 
-def activate_brio_via_pa():
-    """Best-effort: set Brio as PA default-source, unmute, raise gain."""
+# Backward-compat alias — old callers still work.
+def autopick_brio(p: pyaudio.PyAudio) -> Optional[int]:
+    return autopick_mic(p)
+
+
+# Candidate capture rates to try, in order. Brio supports 16k directly;
+# DJI Mic Mini (USB) only supports 48k. We open at whatever the device
+# accepts, then downsample to 16k for AEC + the model pipeline.
+CAPTURE_RATE_CANDIDATES = [16000, 48000, 44100, 32000]
+
+
+def pick_capture_rate(p: pyaudio.PyAudio, device_index: Optional[int],
+                      channels: int) -> int:
+    """Return the first supported input rate for the device (default 48000)."""
+    for rate in CAPTURE_RATE_CANDIDATES:
+        try:
+            if p.is_format_supported(
+                rate,
+                input_device=device_index,
+                input_channels=channels,
+                input_format=pyaudio.paInt16,
+            ):
+                return rate
+        except Exception:
+            continue
+    return 48000  # safe fallback for USB mics
+
+
+def activate_mic_via_pa():
+    """Best-effort: set preferred mic as PA default-source, unmute, raise gain.
+
+    Matches VOICE_MIC_NAME substrings (or defaults) against `pactl` sources.
+    """
     import shutil
     import subprocess
     if not shutil.which("pactl"):
         return
+    keywords = [k.lower() for k in _mic_keywords()]
     try:
         out = subprocess.check_output(
             ["pactl", "list", "sources", "short"], text=True, timeout=2
         )
-        brio = None
+        rows = []
         for line in out.splitlines():
-            if "Logi" in line or "Brio" in line or "logi" in line:
-                brio = line.split("\t")[1]
+            parts = line.split("\t")
+            if len(parts) >= 2 and ".monitor" not in parts[1]:
+                rows.append(parts[1])  # source name
+
+        target = None
+        for kw in keywords:
+            for name in rows:
+                if kw in name.lower():
+                    target = name
+                    break
+            if target:
                 break
-        if not brio:
+        if not target:
             return
-        subprocess.run(["pactl", "set-default-source", brio], check=False, timeout=2)
-        subprocess.run(["pactl", "set-source-mute", brio, "0"], check=False, timeout=2)
-        subprocess.run(["pactl", "set-source-volume", brio, "60000"], check=False, timeout=2)
+        log.info(f"activate_mic_via_pa: selecting PA source '{target}'")
+        subprocess.run(["pactl", "set-default-source", target], check=False, timeout=2)
+        subprocess.run(["pactl", "set-source-mute", target, "0"], check=False, timeout=2)
+        subprocess.run(["pactl", "set-source-volume", target, "60000"], check=False, timeout=2)
     except Exception as e:
-        log.debug(f"PA brio activation failed: {e}")
+        log.debug(f"PA mic activation failed: {e}")
+
+
+# Backward-compat alias.
+def activate_brio_via_pa():
+    return activate_mic_via_pa()
 
 
 # ─── G1 chest speaker writer (DDS, with POST-PlayStream AEC ref feed) ─────
@@ -288,12 +381,26 @@ class _MicInput(BidiInput):
 
         self._buffer.start()
         self._audio = pyaudio.PyAudio()
+
+        # Detect the device's supported capture rate. Brio → 16k, DJI USB → 48k.
+        self._capture_rate = pick_capture_rate(
+            self._audio, self._device_index, self._channels
+        )
+        # Downsample state: capture_rate → 16k (for AEC + pipeline).
+        self._downsample_state = None
+        # frames_per_buffer scaled so each callback ≈ one 10ms/16k FRAME_SIZE.
+        fpb = int(PYAUDIO_FRAMES * self._capture_rate / MIC_RATE)
+        log.info(
+            f"_MicInput: device={self._device_index} "
+            f"capture_rate={self._capture_rate} target_rate={self._target_rate} "
+            f"fpb={fpb}"
+        )
         self._stream = self._audio.open(
             channels=self._channels,
             format=pyaudio.paInt16,
-            frames_per_buffer=PYAUDIO_FRAMES,
+            frames_per_buffer=fpb,
             input=True,
-            rate=MIC_RATE,
+            rate=self._capture_rate,
             input_device_index=self._device_index,
             stream_callback=self._callback,
         )
@@ -320,6 +427,13 @@ class _MicInput(BidiInput):
 
     def _callback(self, in_data: bytes, frame_count: int, *_: Any):
         try:
+            # If capturing above 16k (e.g. DJI USB @48k), downsample to 16k
+            # first so AEC and the rest of the pipeline stay at 16k.
+            if getattr(self, "_capture_rate", MIC_RATE) != MIC_RATE:
+                in_data, self._downsample_state = audioop.ratecv(
+                    in_data, 2, self._channels, self._capture_rate,
+                    MIC_RATE, self._downsample_state
+                )
             near = np.frombuffer(in_data, dtype=np.int16)
             try:
                 arr = np.abs(near.astype(np.int32))
@@ -483,7 +597,7 @@ class G1BidiAudioIO:
         )
 
         # Pick mic up front (best-effort PA activation)
-        activate_brio_via_pa()
+        activate_mic_via_pa()
 
         # Allow explicit override via BRIO_DEVICE_INDEX (Docker-friendly)
         env_idx = _os.getenv("BRIO_DEVICE_INDEX", "").strip()
@@ -493,7 +607,7 @@ class G1BidiAudioIO:
         else:
             p = pyaudio.PyAudio()
             try:
-                self._device_index = autopick_brio(p)
+                self._device_index = autopick_mic(p)
                 if self._device_index is None:
                     try:
                         self._device_index = p.get_default_input_device_info()["index"]

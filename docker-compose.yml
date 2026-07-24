@@ -32,6 +32,7 @@ services:
       - ./.memory:/app/.memory          # lookout-style stack: memory + agent_log + voice_bridge + tg_history
       - ./telegram_events:/app/telegram_events
       - ./whatsapp_events:/app/whatsapp_events
+      - ./tools:/app/tools   # live tools (camera dashboard-proxy fix) without rebuild
     environment:
       - G1_IFACE=eth0
       - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
@@ -46,6 +47,7 @@ services:
       - NEON_NO_SPEECH
       - VOICE_PROVIDER         # openai | nova_sonic | gemini (default: openai)
       - VOICE_NAME             # provider-specific voice (alloy / tiffany / Kore)
+      - VOICE_MIC_NAME         # comma-sep mic name substrings (DJI,MINI,Brio) for autopick_mic
       - VOICE_MODEL            # only for openai (gpt-realtime / gpt-realtime-mini)
       - VOICE_NO_AEC           # 1 = disable WebRTC AEC (NOT recommended)
       - VOICE_RESTART_DELAY    # seconds between auto-restart attempts
@@ -60,6 +62,8 @@ services:
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
       - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
     stdin_open: true             # interactive REPL
     tty: true
     restart: unless-stopped
@@ -153,6 +157,8 @@ services:
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
       - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
     entrypoint: ["python", "thinker_loop.py"]
     restart: unless-stopped
 
@@ -197,5 +203,7 @@ services:
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
       - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
     entrypoint: ["python", "telegram_listener.py"]
     restart: unless-stopped

@@ -740,22 +740,31 @@ async def _telemetry_loop():
         await asyncio.sleep(1.0 / max(HZ, 0.1))
 
 
-@app.on_event("startup")
-async def _startup():
-    _load_tools()
-    # Background collector thread refreshes the DDS snapshot off the event loop.
-    threading.Thread(target=_collector_loop, daemon=True, name="g1-collector").start()
-    # Pre-warm cameras + lidar so first request has frames ready.
+def _prewarm_sensors():
+    """Prewarm cameras + lidar in a background thread so a blocking DDS/RealSense
+    init can NEVER stall uvicorn from binding the port (fixes startup deadlock)."""
     try:
         if _get_cam_mgr is not None:
             _get_cam_mgr().start_all()
+            log.info("📷 camera prewarm done")
     except Exception as e:
         log.debug(f"camera prewarm: {e}")
     try:
         if _get_lidar is not None:
             _get_lidar().start()
+            log.info("📡 lidar prewarm done")
     except Exception as e:
         log.debug(f"lidar prewarm: {e}")
+
+
+@app.on_event("startup")
+async def _startup():
+    _load_tools()
+    # Background collector thread refreshes the DDS snapshot off the event loop.
+    threading.Thread(target=_collector_loop, daemon=True, name="g1-collector").start()
+    # Pre-warm cameras + lidar OFF the event loop (blocking DDS/RealSense init
+    # must not prevent uvicorn from binding the port).
+    threading.Thread(target=_prewarm_sensors, daemon=True, name="sensor-prewarm").start()
     asyncio.create_task(_telemetry_loop())
     log.info(f"🌐 Dashboard up. iface={IFACE} hz={HZ} dist={DIST} "
              f"(exists={DIST.exists()})")

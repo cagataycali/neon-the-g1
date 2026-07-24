@@ -568,6 +568,11 @@ def use_camera(
             resolved_source = "realsense"
         elif _find_logitech_main() is not None:
             resolved_source = "logitech"
+        elif os.getenv("NEON_CAMERA_PROXY", "").strip():
+            # No local device, but a dashboard camera proxy is configured —
+            # resolve to realsense so the proxy-first fallback below serves
+            # the shared frame (dashboard owns the single-owner RealSense).
+            resolved_source = "realsense"
         else:
             result["message"] = "no cameras available (no RealSense, no Logitech)"
             return result

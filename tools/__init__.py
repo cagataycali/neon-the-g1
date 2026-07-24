@@ -53,6 +53,7 @@ from .g1_joints import g1_joint_reference, g1_joint_name, g1_joint_index
 
 # Sensing / perception
 from .use_camera import use_camera
+from .vision import capture_camera
 
 # DDS escape hatches
 from .g1_dds import (
@@ -110,7 +111,7 @@ G1_DDS_TOOLS = [
 ]
 
 G1_SENSING_TOOLS = (
-    [use_camera]
+    [use_camera, capture_camera]
     + G1_LIDAR_TOOLS + G1_SLAM_TOOLS + G1_DDS_TOOLS
 )
 
@@ -162,10 +163,11 @@ from .vision import take_photo
 from .prompts import prompts
 from .manage_messages import manage_messages
 from .manage_tools import manage_tools
+from .make import make
 
 # Curated bundle for callers
 G1_LOOKOUT_TOOLS = [
     memory, voice_say, dispatch, telegram, take_photo,
-    prompts, manage_messages, manage_tools,
+    prompts, manage_messages, manage_tools, make,
 ]
 
