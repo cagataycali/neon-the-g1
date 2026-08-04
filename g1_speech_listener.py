@@ -65,6 +65,20 @@ def main():
     signal.signal(signal.SIGINT, _sig)
     signal.signal(signal.SIGTERM, _sig)
 
+    # Boot-time camera readiness gate: wait for the dashboard to own the
+    # cameras AND start streaming before we bring voice up (else take_photo
+    # 401s until manual restart). Also self-heals a stale proxy token.
+    # Skip with NEON_VOICE_NO_CAMERA_WAIT=1.
+    if os.getenv("NEON_VOICE_NO_CAMERA_WAIT", "").lower() not in ("1", "true", "yes"):
+        try:
+            from tools.camera_ready import wait_for_cameras
+            wait_for_cameras(
+                timeout=float(os.getenv("CAMERA_READY_TIMEOUT", "120")),
+                poll=float(os.getenv("CAMERA_READY_POLL", "3")),
+            )
+        except Exception as e:
+            print(f"[voice] camera readiness gate skipped: {e}", file=sys.stderr)
+
     while not stop["flag"]:
         try:
             asyncio.run(run_once())

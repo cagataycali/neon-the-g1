@@ -145,6 +145,18 @@ def main():
     signal.signal(signal.SIGINT, _sig)
     signal.signal(signal.SIGTERM, _sig)
 
+    # 🎥 Wait for dashboard cameras to stream before first cycle (avoids the
+    # boot race where the thinker's first take_photo hits a cold camera proxy).
+    if os.getenv("NEON_THINKER_NO_CAMERA_WAIT", "").lower() not in ("1", "true", "yes"):
+        try:
+            from tools.camera_ready import wait_for_cameras
+            wait_for_cameras(
+                timeout=float(os.getenv("CAMERA_READY_TIMEOUT", "120")),
+                poll=float(os.getenv("CAMERA_READY_POLL", "3")),
+            )
+        except Exception as e:
+            print(f"[thinker] camera readiness gate skipped: {e}", flush=True)
+
     # Build agent once (we'll clear messages each cycle).
     try:
         agent = _build()
