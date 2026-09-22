@@ -372,6 +372,10 @@ auth-clear: ## wipe passkeys → dashboard reopens "create passkey" setup (auto-
 	@sleep 3
 	@$(MAKE) --no-print-directory token-refresh
 
+.PHONY: tiny-enroll
+tiny-enroll: ## 🔥 enrol Neon on tiny.technology as endpoint neon-the-g1 (service JWT → npx tiny-tech enroll --endpoint; pairing code if no session)
+	@python3 scripts/tiny_enroll.py
+
 .PHONY: token-refresh
 token-refresh: ## re-sync NEON_CAMERA_PROXY_TOKEN into .env + restart camera consumers
 	@$(PY) scripts/refresh_token.py
