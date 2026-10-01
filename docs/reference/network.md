@@ -49,9 +49,10 @@ that sees the motor bus.
 
 ```bash
 ssh unitree@192.168.123.164            # over ethernet (static route)
+ssh unitree@ubuntu.local               # over WiFi, any network
 ```
 
-Default password: `123` (yes really).
+Change the factory password on first login.
 
 ### WiFi
 

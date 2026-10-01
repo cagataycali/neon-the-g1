@@ -11,10 +11,11 @@ make run
 ```
 
 `make run` builds the Docker image (if needed), brings up the compose stack,
-and attaches you to the `agent.py` REPL — auto-starting bidirectional voice
-(`g1_speak`). For a bare-metal venv instead (DEV only), use `make run-bare`,
-which clones the Unitree SDK (the pip wheel is broken) and exports
-`CYCLONEDDS_URI` + `PYTHONPATH`.
+and attaches you to the `agent.py` REPL, auto-starting bidirectional voice
+(`g1_speak`). The [cockpit](../guide/dashboard.md) is up at the same time on
+`https://<robot>:8080`. For a bare-metal venv instead (DEV only), use
+`make run-bare`, which clones the Unitree SDK (the pip wheel is broken) and
+exports `CYCLONEDDS_URI` + `PYTHONPATH`.
 
 ## 2 / pick a model
 

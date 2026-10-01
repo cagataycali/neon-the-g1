@@ -14,27 +14,26 @@ the robot, which runs IK and publishes to the arm controller over DDS.
 
 ```mermaid
 flowchart LR
-    Q["🥽 Quest 3 browser<br/>native WebXR"]
+    Q["Quest 3 browser<br/>native WebXR"]
       -- "WSS · Vuer-format<br/>column-major SE(3) 4×4" --> B
-    subgraph ROBOT["🤖 G1 / Jetson"]
+    subgraph ROBOT["G1 / Jetson"]
         B["xr_bridge<br/>WSS :8012 + HTTPS :8013"] --> PS["WebXRPoseSource"]
         PS --> TV["televuer wrapper"] --> IK["xr_teleoperate IK"] --> DDS["ArmController → DDS"]
     end
 ```
 
-**Why it works without Vuer:** the WebXR API returns each pose as a column-major
-`Float32Array(16)` in the OpenXR basis — *exactly* what Unitree's `televuer`
-consumes. We emit the identical wire format, so the upstream transform + IK run
-**unchanged**. We just swap the transport: native WebXR-over-WSS.
+**Why it works without Vuer:** WebXR hands out each pose as a column-major
+`Float32Array(16)` in the OpenXR basis, exactly what Unitree's `televuer`
+consumes, so the upstream transform and IK run unchanged over our WSS transport.
 
 ## you need
 
 | | |
 |---|---|
-| 🥽 | Quest 3 / Pro / 3S — hand-tracking enabled |
-| 🤖 | G1 (29/23 DoF) reachable over DDS (`eth0`, `192.168.123.x`) |
-| 🌐 | Quest + robot on the same LAN |
-| 🔐 | TLS cert (WebXR needs a secure context) — `make xr-cert` |
+| headset | Quest 3 / Pro / 3S, hand tracking enabled |
+| robot | G1 (29/23 DoF) reachable over DDS (`eth0`, `192.168.123.x`) |
+| network | Quest and robot on the same LAN |
+| TLS | `make xr-cert` (WebXR needs a secure context) |
 
 ## robot camera in-headset (downlink)
 
@@ -48,7 +47,7 @@ each half to one eye — stereo parallax for free.
 | **AR passthrough** | robot view floats as a panel in your room |
 
 Paste teleimager's `/offer` URL (auto-filled to `https://<host>:60001/offer`).
-**📹 Test robot camera** shows a 2D preview before you enter XR.
+**Test robot camera** shows a 2D preview before you enter XR.
 
 ## setup
 
@@ -75,15 +74,13 @@ python -m neon.teleop.xr_bridge --input-mode controller --motion --network-inter
 
 1. Quest Browser → `https://<robot-ip>:8013/`, accept the cert once.
 2. Pick input (hand/controller) + send rate (30–90 Hz).
-3. **▶ Enter XR & Teleop**, grant tracking.
+3. **Enter XR & Teleop**, grant tracking.
 4. Wrist poses drive the arms; **pinch** (hands) / **trigger** (controllers) = gripper.
 
 ## wire format
 
-Three JSON message types over WS: `HAND_MOVE` (25 joints × 16 floats/hand +
-pinch state), `CONTROLLER_MOVE` (16-float grip + buttons/axes), `CAMERA_MOVE`
-(head matrix). `WebXRPoseSource` decodes them into the exact surface
-`televuer.TeleVuer` exposes, so IK runs as-is.
+Three JSON messages over WS, `HAND_MOVE`, `CONTROLLER_MOVE`, `CAMERA_MOVE`,
+decoded by `WebXRPoseSource` into the surface `televuer.TeleVuer` exposes.
 
 ## safety
 

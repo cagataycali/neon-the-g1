@@ -7,22 +7,8 @@ anything moves.
 
 ## MotionSwitcher mode vs FSM id
 
-```mermaid
-flowchart LR
-  MS["🎛️ MotionSwitcher mode<br/>which controller owns the robot"]
-  FSM["🔢 FSM id<br/>what pose inside that controller"]
-  MS2["mode = #quot;ai#quot;<br/>(only one installed)"]
-  S["ZeroTorque · Damp · Sit · StandUp<br/>Start (500) · Walk (501)<br/>BalanceExpert (801) · ..."]
-
-  MS --> FSM
-  MS -.-> MS2
-  FSM -.->|"10 states"| S
-
-  classDef switch stroke:#007a3d,stroke-width:1.5px
-  classDef detail stroke:#666464,stroke-width:1.5px
-  class MS,FSM switch
-  class MS2,S detail
-```
+The **MotionSwitcher mode** says which controller owns the robot (`ai` is the
+only one installed); the **FSM id** says which pose that controller is in.
 
 `mode="ai"` alone is NOT enough — the FSM also has to be in the right state for
 the action you want.
