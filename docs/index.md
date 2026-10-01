@@ -34,6 +34,11 @@ hide:
 <span class="line"><span class="prompt">neon&nbsp;&gt;</span> Waved 👋 — I see a person at a desk.<span class="cur"></span></span>
 </div>
 
+<figure class="shot sr-wide" markdown>
+<a href="guide/dashboard/"><img src="assets/dashboard/cockpit.png" alt="The neon cockpit: live RealSense colour feed in the centre, controller, posture and telemetry cards around it, the agent composer along the bottom" loading="lazy"></a>
+<figcaption>the cockpit at neon.cagatay.my, live from the G1 (camera frame blurred for the people in the office). <a href="guide/dashboard/">more views</a></figcaption>
+</figure>
+
 ---
 
 <div class="tour" markdown>
@@ -113,7 +118,7 @@ flowchart LR
 ??? abstract "everything else"
     **Start** · [docker](start/docker.md) · [systemd](start/systemd.md)<br>
     **Tools** · [catalog](tools/catalog.md) · [use_unitree](tools/use-unitree.md) · [use_dds](tools/use-dds.md) · [composed](tools/composed.md) · [sensing](tools/sensing.md)<br>
-    **Guide** · [safety](guide/safety.md) · [architecture](guide/architecture.md) · [troubleshooting](guide/troubleshooting.md) · [cli](guide/cli.md) · [extending](guide/extending.md) · [strands-robots](guide/strands-robots.md) · [WebXR teleop](guide/webxr-teleop.md) · [voice](voice-architecture.md)<br>
+    **Guide** · [safety](guide/safety.md) · [architecture](guide/architecture.md) · [troubleshooting](guide/troubleshooting.md) · [cli](guide/cli.md) · [extending](guide/extending.md) · [strands-robots](guide/strands-robots.md) · [WebXR teleop](guide/webxr-teleop.md) · [dashboard](guide/dashboard.md) · [voice](voice-architecture.md)<br>
     **Reference** · [FSM + errors](reference/fsm.md) · [DDS topics](reference/dds-topics.md) · [joints](reference/joints.md) · [network](reference/network.md)
 
 ---

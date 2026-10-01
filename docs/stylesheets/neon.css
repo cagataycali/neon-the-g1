@@ -140,6 +140,9 @@
   .md-sidebar { top: 3.4rem; width: 14rem; }
   .md-sidebar--primary { margin-left: 0.6rem; }
   .md-content__inner > :not(.sr-pagehead), .sr-lede { max-width: 44rem; }
+  /* The home page hides both sidebars: its reading column is centred like strandsagents.com, not pinned to the left rule. */
+  .md-content:has(.hero) .md-content__inner > :not(.sr-pagehead) { margin-inline: auto; }
+  .md-content:has(.hero) .md-content__inner > .sr-wide { max-width: 58rem; }
   }
 .sr-brand { display: flex; padding: 0.3rem 0.2rem; }
 .sr-wordmark svg { display: block; height: 1.15rem; width: auto; fill: var(--sr-accent); }
@@ -395,3 +398,11 @@
   .md-typeset .hero .buttons .md-button { flex: 1 1 0; min-width: 0; }
   .md-typeset .terminal, .md-typeset .type-demo { font-size: 0.66rem; }
 }
+
+/* Dashboard screenshots: bordered frames on the viewer surface, mono captions, side by side when the column allows. */
+.md-typeset figure.shot { margin: 1.4rem 0; }
+.md-typeset figure.shot img { display: block; width: 100%; background: var(--sr-viewer-bg); }
+.md-typeset figure.shot figcaption { max-width: none; margin: 0.5rem 0 0; font-family: var(--sr-mono); font-size: 0.66rem; letter-spacing: 0.04em; color: var(--sr-muted); text-align: center; }
+.md-typeset .shot-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+.md-typeset .shot-row figure.shot { margin: 0; }
+.md-typeset .shot-row figure.shot img { height: auto; }
