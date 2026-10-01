@@ -97,7 +97,6 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
-    - content.action.edit
     - search.suggest
     - search.highlight
     - search.share

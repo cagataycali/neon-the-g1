@@ -1,12 +1,13 @@
 {% extends "main.html" %}
+{% block site_nav %}{% endblock %}
 {% block content %}
-<div class="hero" markdown>
-  <p class="tagline" style="font-size:3rem;color:var(--neon-cyan);margin-bottom:0;">404</p>
-  <p class="tagline">that page walked off — check its FSM</p>
-  <div class="buttons">
-    <a href="{{ '' | url }}" class="md-button md-button--primary">← home</a>
-    <a href="{{ 'start/quickstart/' | url }}" class="md-button">quickstart</a>
-    <a href="{{ 'tools/catalog/' | url }}" class="md-button">tool catalog</a>
+  <div class="sr-404">
+    <h1>404</h1>
+    <p>Page not found. Check the URL or try the search bar.</p>
+    <div class="buttons">
+      <a href="{{ '' | url }}" class="md-button md-button--primary">Home</a>
+      <a href="{{ 'start/quickstart/' | url }}" class="md-button">Quickstart</a>
+      <a href="{{ 'tools/catalog/' | url }}" class="md-button">Tool catalog</a>
+    </div>
   </div>
-</div>
 {% endblock %}

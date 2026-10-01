@@ -314,6 +314,8 @@
 .md-typeset .tour-num::before { content: "/"; }
 
 /* Read badge: a mono chip at the top of every page. */
+.md-typeset .sr-pagehead .read-badge { margin: 0; }
+.md-typeset .sr-pagehead p { margin: 0; }
 .md-typeset .read-badge { display: inline-block; font-family: var(--sr-mono); font-size: 0.62rem; line-height: 1; letter-spacing: 0.04em; padding: 0.3rem 0.6rem; border: 1px solid var(--sr-pill-border); border-radius: 999px; color: var(--md-default-fg-color--light); background: var(--sr-pill-bg); margin: 0 0 1rem; }
 
 /* Material grid cards and the motion legend in the outlined-card look. */
