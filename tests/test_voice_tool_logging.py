@@ -97,6 +97,42 @@ def test_stream_logs_journal_line_and_agent_log_row(db, capsys):
     assert meta["args"]["token"] == "***" and meta["args"]["distance"] == 0.3
 
 
+def test_logs_even_when_the_consumer_stops_at_the_result_like_the_executor(db, capsys):
+    """strands' ToolExecutor breaks out of tool.stream() at the first ToolResultEvent and never
+    resumes the generator: the log must be written before that yield (bug found live 17:4xZ)."""
+    w = LoggedTool(g1_fake_walk, "voice")
+
+    async def executor_like():
+        gen = w.stream({"toolUseId": "t-exec", "name": "g1_fake_walk", "input": {"distance": 0.3}}, {})
+        async for ev in gen:
+            if getattr(ev, "tool_result", None) is not None or (isinstance(ev, dict) and "status" in ev):
+                break           # exactly what ToolExecutor._stream does
+        await gen.aclose()
+    asyncio.run(executor_like())
+    rows = _rows(db)
+    assert len(rows) == 1 and rows[0][3]["tool"] == "g1_fake_walk" and rows[0][3]["moved"] is False
+    assert "[tool voice] g1_fake_walk(" in capsys.readouterr().err
+
+    # a consumer that abandons the generator before any result still gets one row (from finally)
+    class Slow(AgentTool):
+        tool_name = "slow"
+        tool_spec = {"name": "slow", "description": "x", "inputSchema": {"json": {"type": "object"}}}
+        tool_type = "python"
+
+        async def stream(self, tool_use, invocation_state, **kwargs):
+            yield {"type": "tool_stream", "data": "working"}
+            yield {"status": "success", "content": [{"text": "late"}]}
+
+    async def abandon():
+        gen = LoggedTool(Slow(), "voice").stream({"toolUseId": "t-ab", "name": "slow", "input": {}}, {})
+        async for _ in gen:
+            break
+        await gen.aclose()
+    asyncio.run(abandon())
+    rows = _rows(db)
+    assert len(rows) == 2 and rows[1][3]["tool"] == "slow"
+
+
 def test_exception_is_logged_then_propagates(db, capsys):
     w = LoggedTool(g1_fake_boom, "telegram")
     # strands' @tool catches exceptions and renders an error ToolResult...
