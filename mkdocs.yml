@@ -1,11 +1,11 @@
 site_name: neon
 site_url: https://cagataycali.github.io/neon-the-g1
-site_description: "neon · Strands agent for Unitree G1+ — minimalist, AST-verified, safety-gated."
+site_description: "neon, a Strands agent for the Unitree G1+ humanoid: minimalist, AST-verified, safety-gated, on the edge."
 site_author: Cagatay Cali
 repo_url: https://github.com/cagataycali/neon-the-g1
 repo_name: cagataycali/neon-the-g1
 edit_uri: edit/main/docs/
-copyright: "🌟 neon · Vision · Language · Action — on the Edge"
+copyright: "neon / vision, language, action on the edge"
 
 exclude_docs: |
   dashboard/
@@ -13,11 +13,11 @@ exclude_docs: |
   .docs-revamp.md
 
 extra_css:
-  - stylesheets/neon.css?v=6   # bump on CSS changes to bust browser cache
+  - stylesheets/neon.css?v=7   # bump on CSS changes to bust browser cache
 
 extra_javascript:
-  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
-  - javascripts/mermaid-init.js?v=3
+  # mermaid fences are rendered by Material itself (pre.mermaid), themed by the --md-mermaid-* tokens in neon.css
+  - javascripts/motion.js?v=2
 
 nav:
   - Home: index.md
@@ -62,24 +62,26 @@ theme:
   custom_dir: docs/overrides
   icon:
     repo: fontawesome/brands/github
-  logo: assets/favicon.svg
+  logo: assets/mark.svg
   favicon: assets/favicon.svg
   font:
-    text: Inter
+    text: Space Grotesk
     code: JetBrains Mono
   palette:
-    - scheme: default
-      primary: white
-      accent: deep orange
+    - media: "(prefers-color-scheme: light)"
+      scheme: paper
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
-        name: switch to dark
-    - scheme: slate
-      primary: black
-      accent: deep orange
+        name: Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
-        name: switch to light
+        name: Paper
   features:
     - navigation.instant
     - navigation.instant.prefetch
@@ -89,13 +91,11 @@ theme:
     - navigation.tabs.sticky
     - navigation.top
     - navigation.footer
-    - navigation.sections
     - navigation.indexes
     - toc.follow
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
-    - content.action.edit
     - search.suggest
     - search.highlight
     - search.share

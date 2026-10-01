@@ -2,12 +2,12 @@
 
 {% block site_meta %}
   {{ super() }}
-  <meta name="description" content="neon — a Strands agent driving a Unitree G1+ humanoid on the edge. 53 tools, FSM-gated safety, voice + telegram + REPL." />
-  <meta property="og:title" content="{{ page.title }} · neon" />
-  <meta property="og:description" content="Strands agent driving a Unitree G1+ — 53 safety-gated tools, on the Jetson, zero cloud round-trips. Vision · Language · Action on the edge." />
-  <meta property="og:image" content="{{ 'assets/neon-mark.svg' | url }}" />
+  <meta name="description" content="neon, a Strands agent driving a Unitree G1+ humanoid on the edge: 53 safety-gated tools, FSM gating, voice, Telegram and REPL." />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="theme-color" content="#faf9f7" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1424" />
+  <meta property="og:title" content="{{ page.title if page.title else config.site_name }} | neon" />
+  <meta property="og:description" content="{{ config.site_description }}" />
+  <meta property="og:image" content="{{ 'assets/mark.svg' | url }}" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
 {% endblock %}

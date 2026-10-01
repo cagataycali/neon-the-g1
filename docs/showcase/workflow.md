@@ -1,6 +1,6 @@
 # end-to-end workflow
 
-<span class="read-badge">⏱ 60s</span>
+<span class="read-badge">60s</span>
 
 What actually happens when you text `wave hello` from your phone.
 

@@ -1,6 +1,6 @@
 # architecture
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 How `neon` fits inside the G1's runtime.
 
@@ -33,7 +33,7 @@ flowchart LR
   P --> T["⚡ execute (parallel when independent)"]
   T --> R["💬 synthesize reply"]
   R --> U(["📤 user"])
-  classDef a stroke:#cc5a3a,stroke-width:1.5px
+  classDef a stroke:#007a3d,stroke-width:1.5px
   class I,P,T,R a
 ```
 
@@ -54,8 +54,8 @@ flowchart LR
   D --> DDS
   DDS --> MCU["⚙️ MCU"]
   S --> V["V4L2·ALSA"]
-  classDef safe stroke:#6ee7b7,stroke-width:1.5px
-  classDef raw stroke:#fbbf24,stroke-width:1.5px
+  classDef safe stroke:#007a3d,stroke-width:1.5px
+  classDef raw stroke:#946e00,stroke-width:1.5px
   class C safe
   class D raw
 ```
@@ -74,7 +74,7 @@ flowchart TB
   TG["💬 telegram<br/>listener"] --- MEM
   VC["🎙️ voice<br/>bidi + chest speaker"] --- MEM
   DP["🧵 dispatch<br/>cron sub-agents"] --- MEM
-  classDef p stroke:#cc5a3a,stroke-width:1.5px
+  classDef p stroke:#007a3d,stroke-width:1.5px
   class SH,TG,VC,DP p
 ```
 

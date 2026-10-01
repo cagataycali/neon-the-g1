@@ -1,6 +1,6 @@
 # SLAM-guided walk
 
-<span class="read-badge">⏱ ~8s</span>
+<span class="read-badge">~8s</span>
 
 Walk 1 m, read SLAM pose before/after to **measure real travel**.
 

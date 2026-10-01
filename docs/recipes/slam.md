@@ -1,12 +1,12 @@
 # map a space
 
-<span class="read-badge">⏱ ~5 min record</span>
+<span class="read-badge">~5 min record</span>
 
 Walk a room, save a kiss-icp map, reload + localize next session.
 
 **Prereqs:** lidar spinning, ~5 min clear floor, operator walks alongside (0.2 m/s).
 
-## 1 · record
+## 1 / record
 
 ```
 > start SLAM, I'll guide you around. Save it as 'living-room' when done.
@@ -23,7 +23,7 @@ Then walk it through the space (`walk forward 2m`, `turn 90 right`, …), then:
 > save the map as 'living-room'      →  g1_slam_save(name="living-room")
 ```
 
-## 2 · localize later
+## 2 / localize later
 
 ```
 > load the 'living-room' map and tell me where you are

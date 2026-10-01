@@ -1,6 +1,6 @@
 # cli tips
 
-<span class="read-badge">⏱ 60s</span>
+<span class="read-badge">60s</span>
 
 The stuff you type every day.
 

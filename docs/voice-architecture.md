@@ -1,6 +1,6 @@
-# 🎙️ voice architecture
+# voice architecture
 
-<span class="read-badge">⏱ 2min</span>
+<span class="read-badge">2min</span>
 
 NEON's bidi voice loop is a realtime architecture — with one twist: audio out goes to the **G1 chest speaker via
 DDS** (`AudioClient.PlayStream`), not a PortAudio device.

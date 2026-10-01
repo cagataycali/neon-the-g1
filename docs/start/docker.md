@@ -1,6 +1,6 @@
 # docker
 
-<span class="read-badge">⏱ 30s</span>
+<span class="read-badge">30s</span>
 
 Same image on your laptop (no hardware) and on the Jetson.
 

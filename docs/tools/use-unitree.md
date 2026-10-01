@@ -1,6 +1,6 @@
 # use_unitree
 
-<span class="read-badge">⏱ 60s · universal</span>
+<span class="read-badge">60s · universal</span>
 
 One tool. The whole SDK.
 

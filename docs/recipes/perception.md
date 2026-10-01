@@ -1,6 +1,6 @@
 # describe the room
 
-<span class="read-badge">⏱ ~3s</span>
+<span class="read-badge">~3s</span>
 
 Camera → multimodal model → one sentence back. No YOLO — the model sees the
 frame directly.

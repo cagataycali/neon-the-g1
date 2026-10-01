@@ -1,6 +1,6 @@
 # telegram control
 
-<span class="read-badge">⏱ setup once</span>
+<span class="read-badge">setup once</span>
 
 Text `wave` from the couch. Robot waves. No SSH, no laptop.
 

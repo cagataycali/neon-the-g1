@@ -1,6 +1,6 @@
 # strands-robots integration
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 NEON drives the G1 through **two control layers**, fused by `neon()` into one
 agent toolset.

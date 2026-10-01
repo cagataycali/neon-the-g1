@@ -1,6 +1,6 @@
 # locomotion
 
-<span class="read-badge">⏱ 45s</span>
+<span class="read-badge">45s</span>
 
 Walking, turning, posture — **the dangerous stuff**. Every command needs
 explicit user approval in the agent loop.
@@ -18,7 +18,7 @@ explicit user approval in the agent loop.
 | lie → stand | `g1_safe_lie_to_stand()` |
 | damp (safe) | `g1_set_fsm(1)` |
 
-## 🎙 voice-driven walking, live
+## voice-driven walking, live
 
 Strands **bidirectional speech-to-speech** → `g1_move_velocity` → the G1 steps.
 Spoken command in, motion out, in real time.

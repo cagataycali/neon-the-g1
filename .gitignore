@@ -45,3 +45,4 @@ docs/dashboard/frontend/vite.config.js
 docs/dashboard/frontend/dist/
 
 *.bak
+.venv-docs/

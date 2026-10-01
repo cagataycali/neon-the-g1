@@ -1,6 +1,6 @@
 # safety model
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 Seven gates between a user message and a motor torque. Any one refuses → the
 motor stays idle.
@@ -19,9 +19,9 @@ flowchart TD
   L6 --> L7["⑦ approval (walking)"]
   L7 -->|"no"| R4["🛑 cancelled"]
   L7 -->|"yes"| OK2(["✅"])
-  classDef gate stroke:#2e8b8b,stroke-width:1.5px
-  classDef refuse stroke:#c0506b,stroke-width:1.5px
-  classDef ok stroke:#6ee7b7,stroke-width:1.5px
+  classDef gate stroke:#666464,stroke-width:1.5px
+  classDef refuse stroke:#946e00,stroke-width:1.5px
+  classDef ok stroke:#007a3d,stroke-width:1.5px
   class L1,L2,L4,L5,L6,L7 gate
   class R1,R2,R4 refuse
   class OK1,OK2 ok

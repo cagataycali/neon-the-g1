@@ -1,6 +1,6 @@
 # extending neon
 
-<span class="read-badge">⏱ 60s</span>
+<span class="read-badge">60s</span>
 
 Add a tool, a sensor, a listener, an MCP server — no refactors needed.
 
@@ -71,7 +71,7 @@ All its tools appear in neon automatically.
 
 ## a doc page
 
-1. `docs/section/page.md` (open with a `<span class="read-badge">⏱ …</span>`)
+1. `docs/section/page.md` (open with a `<span class="read-badge">…</span>`)
 2. add to `nav:` in `mkdocs.yml`
 3. `python3.11 -m mkdocs serve` to preview
 

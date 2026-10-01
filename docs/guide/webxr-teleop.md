@@ -1,6 +1,6 @@
 # WebXR teleop (Quest 3)
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 Teleoperate the G1 **straight from the Quest 3 browser** — no APK, no sideload.
 A WebXR page tracks your hands/controllers/head and streams poses to a bridge on

@@ -7,7 +7,7 @@
 **Strands agent driving a Unitree G1+** · _vision · language · action · on the edge_
 
 [![status](https://img.shields.io/badge/status-LIVE_on_G1-00ff88?style=flat-square)](#status)
-[![docs](https://img.shields.io/badge/docs-neon.dev-00f0ff?style=flat-square)](https://cagataycali.github.io/neon-the-g1)
+[![docs](https://img.shields.io/badge/docs-github.io-00cc60?style=flat-square)](https://cagataycali.github.io/neon-the-g1)
 [![tools](https://img.shields.io/badge/tools-53-ff2a6d?style=flat-square)](docs/tools/catalog.md)
 [![license](https://img.shields.io/badge/license-MIT-b967ff?style=flat-square)](LICENSE)
 

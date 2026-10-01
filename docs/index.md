@@ -6,7 +6,9 @@ hide:
 
 <div class="hero" markdown>
 
-<img src="assets/neon.svg" alt="neon" class="logo"/>
+<img src="assets/mark.svg" alt="" class="logo"/>
+
+<p class="hero-title">neon</p>
 
 <p class="tagline">a strands agent on the unitree g1+ · on the edge</p>
 
@@ -76,8 +78,8 @@ flowchart LR
     A -.->|"read-only"| S
   end
 
-  classDef brain stroke:#cc5a3a,stroke-width:1.5px
-  classDef io stroke:#2e8b8b,stroke-width:1.5px
+  classDef brain stroke:#007a3d,stroke-width:1.5px
+  classDef io stroke:#666464,stroke-width:1.5px
   class A brain
   class C,M,S io
 ```

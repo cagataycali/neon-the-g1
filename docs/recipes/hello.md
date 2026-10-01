@@ -1,6 +1,6 @@
 # stand → wave → sit
 
-<span class="read-badge">⏱ 12s demo</span>
+<span class="read-badge">12s demo</span>
 
 The canonical first demo. Robot starts in Damp, stands, waves, sits.
 
