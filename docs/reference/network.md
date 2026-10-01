@@ -37,7 +37,7 @@ flowchart LR
 |---|---|---|---|
 | Jetson | `eth0` | `192.168.123.164/24` | our agent runs here |
 | MCU | `eth0` | `192.168.123.161/24` | Unitree embedded — no SSH |
-| Jetson | `wlan0` | DHCP on your LAN | optional WiFi for remote control |
+| Jetson | `wlan0` | DHCP on your LAN, `ubuntu.local` over mDNS | companion WiFi: SSH, dashboard, Telegram |
 | your Mac | `en0` / `en5` | WiFi or static `192.168.123.100` via USB-C → RJ45 | dev machine |
 
 **Always use `network_interface="eth0"` in tools.** It's the only interface
@@ -53,16 +53,15 @@ ssh unitree@192.168.123.164            # over ethernet (static route)
 
 Default password: `123` (yes really).
 
-### change IP / move to WiFi
+### WiFi
 
-See `scripts/change-ip.txt` in the repo for the exact steps. Or manually:
-
-```bash
-ssh unitree@192.168.123.164
-sudo nmcli dev wifi connect "YourSSID" password "YourPassword"
-```
-
-Note the new IP from `hostname -I` and update your SSH target.
+`make wifi` (interactive) or `make wifi SSID=x PASS=y`; `make wifi-status`,
+`make wifi-scan`; the dashboard Configuration drawer has the same picker. The
+hostname `ubuntu.local` follows the robot across networks. When `wlan0` loses
+every known network the `neon-wifi-watchdog.timer` (every minute) connects the
+low-priority fallback profile `neon_net`: create a hotspot with that name on
+your phone and the robot comes back reachable. `scripts/change-ip.txt` has the
+manual `nmcli` steps.
 
 ### mac ethernet setup (dev)
 
@@ -98,23 +97,19 @@ Nothing exposed by default on the robot itself. When the compose stack runs:
 
 | port | service |
 |---|---|
-| 8080 | neon-dashboard (HTTPS · FastAPI telemetry + camera + chat UI) |
+| 8080 | neon-dashboard (HTTPS, self-signed; also published through a Cloudflare tunnel, see [dashboard](../guide/dashboard.md)) |
 | 8012 / 8013 | WebXR teleop bridge (WSS / HTTPS) — only when running |
 | N/A | Telegram uses long-poll (no inbound port) |
 
-## troubleshooting
-
-| symptom | likely cause |
-|---|---|
-| all tools return `rc=3104` | `eth0` down, wrong interface, or `CYCLONEDDS_URI` missing |
-| no DDS topics listed | robot main controller is off, or you're on wrong interface |
-| can ping `.161` but can't SSH | correct — the MCU doesn't run sshd |
-| SLAM / LiDAR silent | lidar not switched on; call `g1_lidar_switch(on=True)` |
+## sanity checks
 
 ```bash
-# sanity checks
 ip link show eth0                           # state UP?
-ping -c 3 192.168.123.161                  # MCU reachable?
+ping -c 3 192.168.123.161                  # MCU reachable? (it has no sshd)
 echo $CYCLONEDDS_URI                        # env set?
 python3 -c "from tools import g1_get_state; print(g1_get_state())"
 ```
+
+Every tool answering `rc=3104` means `eth0` is down, the wrong interface is
+selected, or `CYCLONEDDS_URI` is unset; the symptom table is on
+[troubleshooting](../guide/troubleshooting.md).

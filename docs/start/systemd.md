@@ -1,74 +1,52 @@
 # systemd
 
-<span class="read-badge">30s</span>
+<span class="read-badge">45s</span>
 
-Run `neon` as a system service — auto-start on boot, restart on failure, alive
-without an SSH session.
+What runs at boot on the Jetson, and the one-command shortcut.
 
-## fastest path — one command
+## the units
 
-Fresh SSH into the robot? This gets you from zero to a reboot-persistent
-agent in one command:
+| unit | kind | runs |
+|---|---|---|
+| `neon-compose.service` | user, `scripts/systemd/` | `docker compose up -d`: agent, dashboard, telegram, thinker |
+| `neon-voice.service` | system, `scripts/systemd/` | `g1_speech_listener.py` in the host venv: USB mic and ALSA need the host |
+| `neon-ctl.service` | user, `scripts/systemd/` | `scripts/neon_ctl.py`: the dashboard's host channel (recreate containers, restart voice, refresh the camera token); its sudoers file allows exactly `systemctl restart/status/is-active neon-voice` |
+| `neon-wifi-watchdog.timer` | system, `scripts/systemd/` | every minute, falls back to the `neon_net` hotspot profile when `wlan0` has no known network |
+| `neon-docker.service` | system, repo root | what `make setup` installs: `docker compose up --build -d`, the compose stack alone |
 
-```bash
-cd ~/neon-the-g1
-make setup
-```
-
-`make setup`:
-
-1. copies `.env.example` → `.env` (first run) and asks you to fill in your
-   keys — `AWS_BEARER_TOKEN_BEDROCK`, `OPENAI_API_KEY`, optional
-   `TELEGRAM_BOT_TOKEN`
-2. on the second `make setup` (once `.env` is filled) it **builds + starts**
-   the docker stack detached, then **installs the systemd unit** so it
-   auto-starts on every boot
-
-```
-$ make setup
-📝 created .env from .env.example
-   → EDIT .env now and fill in your secrets …
-   Then re-run:  make setup
-
-# … edit .env …
-
-$ make setup
-✅ .env present — building + starting neon (docker) …
-🔒 persisting to systemd so it survives reboots …
-✅ neon-docker.service installed + enabled
-🎉 neon is live and will auto-start on boot.
-```
-
-Then attach to the REPL any time with `make run`.
-
-
-## install
+`neon-compose` and `neon-voice` are ordered `After=time-sync.target`: the Jetson
+has no RTC battery and boots at 1970, and a dashboard service token minted at
+that clock is refused everywhere (see [docker](docker.md#cameras)).
 
 ```bash
-make install-service          # bare venv  → neon.service
-make install-service-docker   # docker     → supervises `docker compose up`
+mkdir -p ~/.config/systemd/user
+cp scripts/systemd/neon-compose.service scripts/systemd/neon-ctl.service ~/.config/systemd/user/
+loginctl enable-linger "$USER"
+systemctl --user daemon-reload && systemctl --user enable --now neon-compose neon-ctl
+sudo cp scripts/systemd/neon-voice.service /etc/systemd/system/ && sudo systemctl enable --now neon-voice
+sudo install -m 0440 scripts/systemd/neon-ctl.sudoers /etc/sudoers.d/neon-ctl && sudo visudo -c
 ```
 
-`install-service` copies `neon.service` to `/etc/systemd/system/`, runs as
-user `unitree` from this repo, sources `CYCLONEDDS_URI` + `PYTHONPATH`, execs
-`.venv/bin/python agent.py`, and sets `Restart=on-failure · RestartSec=5`.
-Logs append to `/var/log/g1-agent.log`.
+## the shortcut
+
+```bash
+cd ~/neon-the-g1 && make setup
+```
+
+First run creates `.env` and stops for your keys; the second builds, starts the
+stack and installs `neon-docker.service`. Voice and `neon-ctl` are not part of
+it; install them from the table above.
 
 ## manage
 
 ```bash
-sudo systemctl status  neon
-sudo systemctl restart neon
-make service-logs                     # sudo journalctl -u neon -f
-sudo systemctl disable neon
-```
-
-## uninstall
-
-```bash
-make uninstall-service                # disables + removes neon + neon-docker units
+systemctl --user status neon-compose neon-ctl
+sudo systemctl status neon-voice          # journalctl -u neon-voice -f for the voice log
+make ps                                   # every neon process: docker, systemd, bare-metal
+make voice-status                         # muted or live
+make uninstall-service                    # removes neon + neon-docker (the make setup units)
 ```
 
 ## next
 
-[FSM reference](../reference/fsm.md){ .md-button } [network](../reference/network.md){ .md-button }
+[docker](docker.md){ .md-button } [troubleshooting](../guide/troubleshooting.md){ .md-button }

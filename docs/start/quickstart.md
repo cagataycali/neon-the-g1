@@ -23,10 +23,12 @@ the model id can be changed later from the dashboard (Configuration, model)
 without editing files:
 
 ```bash
-export AWS_BEARER_TOKEN_BEDROCK=...        # Bedrock bearer token (preferred)
+export AWS_BEARER_TOKEN_BEDROCK=...        # Bedrock bearer token
 export AWS_DEFAULT_REGION=us-west-2
-export NEON_MODEL_ID={{facts:default_model}}   # the default; any Bedrock model id works
 ```
+
+The default model is `{{facts:default_model}}`; the full variable list is on
+[docker](docker.md#env).
 
 ## 3 / talk to it
 
@@ -66,9 +68,9 @@ app. This hands motor control to neon over DDS.
 
 ## prerequisites
 
-- Unitree G1+ reachable (`192.168.123.161` MCU · `192.168.123.164` Jetson)
+- Unitree G1+ reachable (`192.168.123.161` MCU, `192.168.123.164` Jetson)
 - Interface `eth0` reaches the motor bus
-- Python 3.10+ on the Jetson
+- Docker on the Jetson (or Python 3.10+ for `make run-bare`)
 
 ## next
 

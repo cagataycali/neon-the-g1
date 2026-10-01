@@ -54,17 +54,8 @@ Payload: `{"api_id": int, "parameter": str_json, "priority": int}` → response 
 
 ## discover live
 
-```python
-g1_dds_list_topics()
-# → ["rt/lowstate", "rt/bmsstate", "rt/armsdk", "rt/api/loco/request", ...]
-
-g1_dds_discover()      # no args — scans the whole bus via `cyclonedds ls`
-# → {"ok": True, "count": 12,
-#    "live_topics": ["rt/lowstate", "rt/bmsstate", "rt/armsdk", ...]}
-
-g1_dds_snapshot("rt/lowstate")   # read ONE actual sample from a topic
-# → {"ok": True, "topic": "rt/lowstate", "sample": {...decoded IDL fields...}}
-```
+`g1_dds_list_topics()` is the curated catalog above; `g1_dds_discover()` scans
+the live bus; `g1_dds_snapshot(topic)` decodes one sample. See [use_dds](../tools/use-dds.md).
 
 ## DDS config
 
@@ -75,14 +66,7 @@ g1_dds_snapshot("rt/lowstate")   # read ONE actual sample from a topic
 
 `env.sh` in the repo sets this automatically.
 
-## SDK type reference
+## SDK types
 
-The DDS types live under `unitree_sdk2_python/unitree_sdk2py/idl/`. Useful when
-writing a new subscriber:
-
-```
-unitree_hg::msg::dds_::LowState_   → 29 motors + IMU (also rt/multiplestate "combined state")
-unitree_hg::msg::dds_::BmsState_   → battery
-unitree_hg::msg::dds_::LowCmd_     → motor command (⚠) (also rt/armsdk, rt/user_lowcmd)
-unitree_hg::msg::dds_::HandState_  → Inspire hand state
-```
+IDL types live under `unitree_sdk2_python/unitree_sdk2py/idl/`; `LowState_`,
+`LowCmd_`, `BmsState_`, `HandState_` and `SportModeState_` cover every topic above.

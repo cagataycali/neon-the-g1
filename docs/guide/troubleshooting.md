@@ -10,74 +10,71 @@
 | arm occupied | 7400 | another writer — kill stale process |
 | walking refused | 7302 | `g1_set_fsm(501)` first |
 | SLAM/lidar silent | — | `g1_lidar_switch(on=True)` then `g1_slam_start()` |
+| "the robot did not move" | 0 | `moved=false`: not in FSM 501, or a request under 0.1 m; say `set fsm 501` |
+| no photo, `401` in the log | — | camera token minted at the 1970 boot clock; `make token-refresh` |
+| voice silent, tools work | — | snoozed; `make voice-status`, unmute from the dashboard pill or `make unmute` |
+| model changed, persona still old | — | "Apply to all personas" in Configuration, or `docker compose up -d --force-recreate` |
 
 ## nothing responds (rc=3104) { .danger }
 
-DDS can't reach the motor bus.
-
-```bash
-ip link show eth0                 # must say "state UP"
-ping -c 3 192.168.123.161         # can we reach the MCU?
-echo "$CYCLONEDDS_URI"            # should be a file:// URL
-source env.sh
-python3 -c "from tools import g1_get_state; print(g1_get_state())"
-```
-
-Ping fails → Jetson on wrong network. Re-plug ethernet / check `scripts/change-ip.txt`.
+`ip link show eth0` must say UP, `ping 192.168.123.161` must answer, and
+`CYCLONEDDS_URI` must be set (`source env.sh`). Ping fails: the Jetson is on
+the wrong network, see [network](../reference/network.md).
 
 ## arm issues { .motion }
 
-```python
-g1_arm_action(action="high wave", auto_transition=True)   # 7404: auto-fix FSM
-g1_release_arm()                                          # 7401: release
-```
-
-`7400` (occupied) = competing writer:
-
-```bash
-pgrep -fa "agent.py"
-# docker: docker compose restart neon-agent
-# systemd: sudo systemctl restart neon
-pkill -f agent.py
-```
+`7404` wrong FSM: `g1_arm_action(..., auto_transition=True)` fixes it;
+`7401` holding: `g1_release_arm()`; `7400` occupied: a second writer on
+`rt/armsdk`, find it with `make ps` and restart that persona.
 
 ## telegram not responding { .safe }
 
-1. `docker compose logs neon-telegram` (or `make tg` output)
-2. `docker compose logs neon-telegram | grep -i telegram`
-3. Your ID/username in `TELEGRAM_ALLOWED_USERS`?
-4. Token valid? (regen via @BotFather)
+`docker compose logs neon-telegram`, your id in `TELEGRAM_ALLOWED_USERS`, the
+token still valid at @BotFather.
 
-## voice picks up echo / fan noise { .safe }
+## echo or fan noise in voice { .safe }
 
-```python
-g1_speak(action="start",
-         audio_processing=True,   # WebRTC AEC+NS+AGC (required for speaker)
-         stream_delay_ms=120,     # speaker→mic delay hint
-         vad_threshold=0.7,       # higher = less twitchy
-         silence_duration_ms=700)
-```
+Tune in this order: `stream_delay_ms` (120 for the chest speaker), make sure the
+USB mic was picked (`g1_speak(action="debug")`), then `vad_threshold` 0.7 to
+0.85 and `silence_duration_ms` 700 to 1000. Details on
+[voice architecture](../voice-architecture.md#echo-troubleshooting).
 
-Driving the mic directly? `g1_asr(duration_s=3.0)` sidesteps host noise.
+## cameras { .safe }
+
+The dashboard is the only process that opens the cameras; everyone else pulls
+`GET /api/camera/<id>/snapshot` with a service token. `401`/`403` in a
+consumer log means the token is stale: the Jetson boots at 1970 until NTP and a
+token minted then is dated 1980. `/api/health` reports
+`camera_proxy_token: ok|expired|missing|invalid`; the Configuration env tab has a
+Refresh button, `make token-refresh` does the same from a shell, and
+`use_camera` re-mints once on its own. Still black: `docker compose logs
+neon-dashboard` for the device open, and `ls /dev/video*` after a replug.
+
+## voice is quiet { .safe }
+
+`make voice-status`. Muted gates the mic and the speaker; a snooze clears itself
+at its deadline, unmute earlier from the dashboard pill, `make unmute`, or
+Telegram `/unmute`. Not muted and still quiet: `journalctl -u neon-voice -n 50`
+(provider key, mic not found, `VOICE_MIC_NAME`).
 
 ## slow answers { .safe }
 
-- Point `NEON_MODEL_ID` at a lighter Bedrock model (e.g. a Sonnet id)
-- Too many heavy tool calls → check logs for stray vision calls
-- Context overflow → `manage_messages(action='compact')`
+- Pick a lighter Bedrock model in Configuration (applies to the dashboard at
+  once, "Apply to all personas" recreates the rest)
+- Too many heavy tool calls: check the activity log for stray vision calls
+- Context overflow: `manage_messages(action='compact')`
 
 ## "pip wheel broken" { .safe }
 
-The `unitree_sdk2_python` wheel is missing subpackages. Use the source clone:
-
-```bash
-make sdk    # clones + adds to PYTHONPATH (make run-bare does this automatically)
-```
+The `unitree_sdk2_python` wheel is missing subpackages; `make sdk` clones the
+source (`make run-bare` does it for you).
 
 ## still stuck?
 
 ```bash
-tail -f /tmp/devduck/logs/devduck.log
+make log-show                           # last 30 turns, every persona, tool rows with rc
+journalctl -u neon-voice -f             # the voice process
+docker compose logs -f neon-dashboard   # cameras, auth, the dashboard agent
 ```
 
 Or ask the agent: `"read recent logs and tell me what's wrong"`. Else
