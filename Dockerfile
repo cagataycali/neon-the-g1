@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev libusb-1.0-0-dev python3-dev \
     libasound2-dev libportaudio2 portaudio19-dev \
     libxcb1 libgl1 libglib2.0-0 \
+    android-tools-adb ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
 # ── CycloneDDS 0.10.2 (matches unitree_sdk2py's wire format) ─────────────
@@ -72,9 +73,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 120 --retries 10 -r requirements.txt
 
-# kiss-icp from git (PyPI sdist missing pybind dir on aarch64)
-RUN pip install --no-cache-dir \
-    "kiss-icp @ git+https://github.com/PRBonn/kiss-icp.git@v1.2.3#subdirectory=python"
+# kiss-icp: PyPI now ships working aarch64 wheels (installed via requirements.txt).
+# The old git@v1.2.3 install broke on scikit-build-core>=0.8 (cmake.minimum-version
+# rejected). Verify the wheel imports; only fall back to a compatible git tag if not.
+RUN python -c "import kiss_icp; print('kiss-icp OK', kiss_icp.__version__ if hasattr(kiss_icp,'__version__') else '')" \
+ || pip install --no-cache-dir \
+      "kiss-icp @ git+https://github.com/PRBonn/kiss-icp.git@v1.3.0#subdirectory=python"
 
 # ── unitree_sdk2py (editable — wheel is broken, must use clone) ──────────
 # Cloned fresh into /opt to keep image self-contained. The host-side

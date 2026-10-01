@@ -17,6 +17,8 @@ services:
       dockerfile: Dockerfile
     image: neon
     container_name: neon-agent
+    security_opt:
+      - systempaths=unconfined   # unmask /proc/asound so ALSA sees USB mics (DJI)
     network_mode: host           # required for CycloneDDS multicast on eth0
     devices:
       - /dev/bus/usb:/dev/bus/usb
@@ -33,6 +35,7 @@ services:
       - ./telegram_events:/app/telegram_events
       - ./whatsapp_events:/app/whatsapp_events
       - ./tools:/app/tools   # live tools (camera dashboard-proxy fix) without rebuild
+      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
@@ -45,6 +48,7 @@ services:
       # 🎙️ Speech (g1_speak auto-starts on agent boot)
       - OPENAI_API_KEY
       - NEON_NO_SPEECH
+      - NEON_DASHBOARD_CAM      # take_photo source: realsense_color (brio has no signal)
       - VOICE_PROVIDER         # openai | nova_sonic | gemini (default: openai)
       - VOICE_NAME             # provider-specific voice (alloy / tiffany / Kore)
       - VOICE_MIC_NAME         # comma-sep mic name substrings (DJI,MINI,Brio) for autopick_mic
@@ -57,6 +61,7 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
+      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - TELEGRAM_HISTORY_LIMIT
       # 🎵 Spotify
       - SPOTIFY_CLIENT_ID
@@ -86,6 +91,7 @@ services:
       - /dev:/dev                              # camera nodes (/dev/video*)
       - ./docs/dashboard:/app/docs/dashboard  # dashboard backend + built frontend
       - ./tools:/app/tools                     # live tools (camera + auth helpers)
+      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
       - ~/.aws:/root/.aws:ro
       - /home/unitree/cyclonedds_ws:/cyclonedds:ro
       - ./.memory:/app/.memory                 # shared agent_log + memory + auth store
@@ -112,6 +118,7 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
+      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
     entrypoint: ["python", "docs/dashboard/server.py", "--port", "8080", "--hz", "2"]
     restart: unless-stopped
 
@@ -138,6 +145,7 @@ services:
       - ./.memory:/app/.memory
       - ./telegram_events:/app/telegram_events
       - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
+      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - G1_NETWORK_INTERFACE=eth0
@@ -153,6 +161,7 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
+      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - TELEGRAM_HISTORY_LIMIT
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
@@ -185,6 +194,7 @@ services:
       - ./.memory:/app/.memory
       - ./telegram_events:/app/telegram_events
       - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
+      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - G1_NETWORK_INTERFACE=eth0
@@ -199,6 +209,7 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
+      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - TELEGRAM_HISTORY_LIMIT
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
