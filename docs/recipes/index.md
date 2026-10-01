@@ -9,7 +9,7 @@ Copy-paste conversations. Type it into the agent, watch it go. Each recipe is
 
 -   :material-waveform:{ .lg } **[stand → wave → sit](hello.md)** — the canonical first demo
 
--   :material-walk:{ .lg } **[SLAM-guided walk](walk.md)** — walk, measure real travel
+-   :material-walk:{ .lg } **[measured walk](walk.md)** — walk, hear how far it really went
 
 -   :material-eye-outline:{ .lg } **[describe the room](perception.md)** — camera → words
 
@@ -19,4 +19,5 @@ Copy-paste conversations. Type it into the agent, watch it go. Each recipe is
 
 </div>
 
-Recipes are verified against the live robot. If one drifts, it's a bug — open an issue.
+Recipes were run on the live robot when written (2026-10-01 for the walk). If
+one drifts, it is a bug: open an issue.

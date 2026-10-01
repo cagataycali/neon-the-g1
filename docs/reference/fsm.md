@@ -42,7 +42,9 @@ the action you want.
 | 702 | Lie2StandUp | 🟡 from face-up | no | no |
 | 706 | Squat2StandUp | 🟡 from squat | no | no |
 
-**`HANDSHAKE_FSMS = {500, 501, 801}`** — the set in which arm actions work.
+**`HANDSHAKE_FSMS = {500, 501, 801}`** is the set in which arm actions work;
+**`WALK_FSMS = {501, 801}`** the set in which velocity commands are accepted
+(the movement policy only walks in 501). Both live in `tools/_g1_common.py`.
 
 ## error code cheat sheet
 
@@ -68,37 +70,5 @@ the action you want.
 99  release           ← always follow actions with this
 ```
 
-## decision flow before motion
-
-```mermaid
-flowchart TD
-  A(["🔧 tool called"]) --> B{"DDS ok?"}
-  B -->|"no"| E1["🛑 rc=3104<br/>network fail"]
-  B -->|"yes"| C{"FSM correct?"}
-
-  C -->|"no"| D{"can auto-transition?"}
-  D -->|"no"| E2["🛑 rc=7404<br/>invalid FSM"]
-  D -->|"yes"| T["g1_set_fsm(target)"]
-  T --> F
-
-  C -->|"yes"| F{"arm mutex<br/>free?"}
-  F -->|"no"| E3["🛑 rc=7400<br/>topic occupied"]
-  F -->|"yes"| G["execute SDK RPC"]
-
-  G --> H(["✅ parse rc<br/>auto-release · return"])
-
-  classDef check stroke:#666464,stroke-width:1.5px
-  classDef err stroke:#946e00,stroke-width:1.5px
-  classDef ok stroke:#007a3d,stroke-width:1.5px
-  class B,C,D,F check
-  class E1,E2,E3 err
-  class G,H,T ok
-```
-
-## recovery recipes
-
-- **rc 7400** after a crashed prior call → `g1_release_arm()` then retry
-- **rc 7401** (arm holding) → `g1_release_arm()`
-- **rc 7302** walking blocked → `g1_set_fsm(501)` then retry
-- **rc 7404** arm wants 500 but you're in 1 (Damp) → `g1_set_fsm(500)` first
-- **rc 3104** timeout → check ethernet, `ip link show eth0`, ping robot
+The gate every composed tool runs before an RPC (DDS up, FSM right, arm mutex
+free, clamp, call, release) is drawn on [composed](../tools/composed.md#the-gate).

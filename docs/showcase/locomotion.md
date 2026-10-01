@@ -43,33 +43,18 @@ Spoken command in, motion out, in real time.
 
 ## clamps
 
-| axis | unit | safe range |
-|---|---|---|
-| `vx` | m/s | 0.1 – 0.3 |
-| `vy` | m/s | ±0.1 – 0.2 |
-| `vyaw` | rad/s | ±0.3 |
-| `duration` | s | 0.1 – 10.0 (capped) |
+| parameter | clamp |
+|---|---|
+| `duration` (`g1_move_velocity`) | 0 to 10 s |
+| `distance` (`g1_walk_forward`) | 0.1 to 1.0 m per request |
+| `speed` (`g1_walk_forward`) | 0.05 to 0.5 m/s, at least 0.15 under 0.3 m |
+| `yaw_rate` (`g1_turn`) | 0.1 to 0.6 rad/s |
 
-Only `duration` is hard-clamped; velocities pass through — keep them small.
+Velocities passed to `g1_move_velocity` are not clamped; the prompt keeps them
+at 0.2 m/s and 0.3 rad/s. All three tools read `rt/odommodestate` before and
+0.5 s after the command; `moved=false` means `rc=0` and no displacement.
 
-## a walk, start to finish
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as 🗣️ user
-    participant A as 🧠 neon
-    participant F as 🎛️ FSM
-    participant L as 🚶 LocoClient
-
-    U->>A: "walk forward 30 cm"
-    A->>A: take_photo("path clear for 0.3 m?") · fsm=501?
-    A-->>U: "walking forward thirty centimetres"
-    A->>L: SetVelocity(0.2,0,0) 1.5s
-    A->>A: odometry before/after → moved=true, 0.28 m
-    A-->>U: ✅ moved 0.28 m
-```
-
+The full exchange, including a refusal, is the [measured walk](../recipes/walk.md) recipe.
 
 ---
 

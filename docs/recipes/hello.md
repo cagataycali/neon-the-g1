@@ -12,7 +12,8 @@ The canonical first demo. Robot starts in Damp, stands, waves, sits.
 > stand up, wave hello, then sit down
 ```
 
-neon confirms the plan (~10 s, battery, arm_ready after stand), you reply `yes`.
+neon says what it is about to do in one sentence while it starts (about 10 s
+end to end); posture changes and gestures need no confirmation round-trip.
 
 ## what neon does
 

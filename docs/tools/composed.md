@@ -14,8 +14,13 @@ FSM gating, mutex, clamps, rich returns. They exist so the agent can't foot-gun.
 - **Arm mutex** — `rt/armsdk` is single-writer; the tool holds a lock
 - **Auto-release** — arm actions follow with id 99 (neutral)
 - **Damp preamble** — `g1_safe_*` issue FSM 1 first to avoid jerks
-- **Clamps** — `g1_move_velocity` caps `duration ∈ [0,10]s`; `g1_walk_forward`
-  caps `distance ∈ [-1,1]m`, `speed ∈ [0.05,0.5]`; `g1_turn` caps `yaw_rate ∈ [0.1,0.6]`
+- **Clamps** — `g1_move_velocity` caps `duration` to 0 to 10 s; `g1_walk_forward`
+  keeps `distance` between 0.1 and 1.0 m per request (below 0.1 m nothing
+  visible happens) and `speed` between 0.05 and 0.5 m/s, at least 0.15 under
+  0.3 m; `g1_turn` keeps `yaw_rate` between 0.1 and 0.6 rad/s
+- **Measured motion** — the walking tools read `rt/odommodestate` before and
+  0.5 s after the command and return `moved`, `requested_m`, `measured_m`
+  (`measured_rad` for turns); `moved=false` is `rc=0` with no displacement
 - **Rich returns** — `g1_set_fsm` → `{before, after, rc, message}`
 - **Frame parsing** — `g1_battery` decodes BMS frames
 
@@ -46,27 +51,15 @@ flowchart TD
 |---|---|
 | `g1_arm_action` | FSM gate + mutex + auto-release + name→id |
 | `g1_release_arm` | publishes id 99; frees arm |
-| `g1_move_velocity` | duration cap + requires FSM 501 |
-| `g1_walk_forward` | derives `duration` from `distance/speed` |
-| `g1_turn` | `angle_rad` → timed `vyaw` |
+| `g1_move_velocity` | duration cap, requires FSM 501 or 801, measures displacement |
+| `g1_walk_forward` | derives `duration` from `distance/speed`, clamps, measures |
+| `g1_turn` | `angle_rad` → timed `vyaw`, measures the yaw change |
 | `g1_set_fsm` | rich return; logs before/after |
 | `g1_safe_squat_to_stand` · `g1_safe_lie_to_stand` · `g1_safe_stand_to_squat` | Damp-first transitions |
 
 ## write your own
 
-```python
-from strands import tool
-from ._g1_common import ensure_dds, get_loco_client, read_fsm_id, decode_code, HANDSHAKE_FSMS
-
-@tool
-def g1_do_thing(param: int = 0, network_interface: str = "eth0") -> dict:
-    """One-line intent the LLM reads."""
-    if err := ensure_dds(network_interface):
-        return {"status": "error", "message": err}
-    if read_fsm_id() not in HANDSHAKE_FSMS:
-        return {"status": "error", "message": "wrong FSM"}
-    rc = get_loco_client().DoThing(param)
-    return {"status": "success" if rc == 0 else "error", "rc": rc, "message": decode_code(rc)}
-```
-
-Then export from `tools/__init__.py` into the right bundle. See [extending](../guide/extending.md).
+The template (`ensure_dds`, FSM check, SDK call, decoded `rc`) lives on
+[extending](../guide/extending.md#a-composed-tool), with the ToolResult shape
+the tests check. Export it from `tools/__init__.py` into the right bundle and
+the catalog counts follow.

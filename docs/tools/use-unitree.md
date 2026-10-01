@@ -59,6 +59,13 @@ params. Every call is checked:
 
 Bad calls return a helpful error, not a crashed DDS writer.
 
+Seven operations are flagged `high_danger` in the reply whatever the
+environment: `loco.ZeroTorque`, `loco.SetFsmId`, `loco.SetVelocity`,
+`loco.Move`, `loco.WaveHand`, `loco.ShakeHand` and
+`motion_switcher.ReleaseMode`. Mutative operations are flagged too unless
+`BYPASS_TOOL_CONSENT=true` (the compose stack sets it); `Get*` and `Check*`
+calls are read-only and never flagged.
+
 ## composed vs universal
 
 | situation | use |
