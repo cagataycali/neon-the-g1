@@ -16,7 +16,7 @@ flowchart TD
   L4 -->|"ok"| L5["⑤ arm mutex"]
   L5 -->|"locked"| R2["🛑 rc=7400"]
   L5 -->|"free"| L6["⑥ clamp"]
-  L6 --> L7["⑦ approval (walking)"]
+  L6 --> L7["⑦ request + look (walking)"]
   L7 -->|"no"| R4["🛑 cancelled"]
   L7 -->|"yes"| OK2(["✅"])
   classDef gate stroke:#666464,stroke-width:1.5px
@@ -35,7 +35,8 @@ flowchart TD
 | 4 | **FSM check** | motion needs `{500,501,801}` (arm) / `{501,801}` (walk); else `rc=7404`/`7302` |
 | 5 | **arm mutex** | `rt/armsdk` single-writer lock; foreign writer → `rc=7400` |
 | 6 | **clamp** | `duration ∈ [0,10]s`; velocity ranges documented, kept small |
-| 7 | **approval** | `g1_walk_*` requires explicit user "yes" |
+| 7 | **request + look** | walking needs the user's explicit request (that is the consent) and a `take_photo` look at the path; refusal names the reason |
+| 8 | **honesty** | `g1_walk_forward`/`g1_turn` measure odometry before and after and return `moved=true/false`; "done" is only said when `moved=true` |
 
 ## unsafe publishes
 
