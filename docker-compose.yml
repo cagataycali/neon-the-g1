@@ -63,6 +63,8 @@ services:
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - NEON_CAMERA_PROXY
+      - NEON_CAMERA_PROXY_TOKEN
       - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
       # 🎵 Spotify
@@ -124,6 +126,9 @@ services:
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - NEON_DASHBOARD_CAM      # take_photo source: realsense_color (brio has no signal)
+      - NEON_CAMERA_PROXY       # use_camera pulls the shared frame from the dashboard (self, over host network)
+      - NEON_CAMERA_PROXY_TOKEN
       - STRANDS_MODEL_ID
     entrypoint: ["python", "docs/dashboard/server.py", "--port", "8080", "--hz", "2"]
     restart: unless-stopped

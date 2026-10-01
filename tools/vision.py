@@ -159,9 +159,22 @@ def _dashboard_service_token() -> "Optional[str]":
 
 
 def _capture_frame_dashboard(output: Path = None, cam: str = None) -> Path:
-    """Grab a JPEG from the dashboard's shared camera snapshot endpoint."""
+    """Grab a JPEG from the dashboard's shared camera snapshot endpoint.
+
+    With no explicit camera, try the configured one (NEON_DASHBOARD_CAM) and
+    then the other head camera, so a process that was not handed the env var
+    does not fail on a camera with no signal.
+    """
+    if cam is None:
+        order = [_DASH_CAM] + [c for c in ("realsense_color", "brio") if c != _DASH_CAM]
+        last: Exception | None = None
+        for c in order:
+            try:
+                return _capture_frame_dashboard(output=output, cam=c)
+            except Exception as e:  # noqa: PERF203 - two cameras, two tries
+                last = e
+        raise RuntimeError(f"no dashboard camera delivered a frame ({order}): {last}")
     output = output or (CACHE_DIR / f"frame_{int(time.time())}.jpg")
-    cam = cam or _DASH_CAM
     url = f"{_DASH_URL}/api/camera/{cam}/snapshot"
     tok = _dashboard_service_token()
     req = _urlreq.Request(url)
@@ -214,9 +227,8 @@ def _capture_frame(device: int = 0) -> Path:
         # contention â the dashboard already owns the single USB camera).
         # Skip only if explicitly disabled via NEON_VISION_NO_DASHBOARD=1.
         if _os.getenv("NEON_VISION_NO_DASHBOARD", "").strip().lower() not in ("1", "true", "yes"):
-            cam = _DASH_CAM if not device else "brio"
             try:
-                return _capture_frame_dashboard(cam=cam)
+                return _capture_frame_dashboard(cam="brio" if device else None)
             except Exception as _e:
                 # dashboard down / camera offline â fall through to raw device
                 print(f"[vision] dashboard snapshot failed ({_e}); trying raw device")
@@ -231,9 +243,11 @@ async def take_photo(
     question: str = "",
     device: int = 0,
 ) -> dict:
-    """Capture a frame from the camera (or screen) and inject it into the
-    voice agent's multimodal context. The model sees the image natively
-    and replies in audio.
+    """Capture a frame from the head camera and show it to the model.
+
+    In a voice session the JPEG is injected into the realtime stream and the
+    model replies in audio; in every other persona (dashboard chat, shell,
+    telegram, thinker) the JPEG comes back as a tool-result image block.
 
     Use this when the user says "look at me", "what do you see?",
     "describe my desk", "is anyone in the room?", etc.
@@ -258,17 +272,29 @@ async def take_photo(
         take_photo(question="What's on my whiteboard?", device=1)
     """
     agent = getattr(tool_context, "agent", None) if tool_context else None
-    if agent is None or not hasattr(agent, "send"):
-        return {
-            "status": "error",
-            "message": "no bidi agent context — take_photo only works inside a "
-                       "running voice agent (BidiAgent)",
-        }
+    bidi = agent is not None and hasattr(agent, "send")
 
     try:
         image_path = _capture_frame(device=device)
     except Exception as e:
         return {"status": "error", "stage": "capture", "message": str(e)}
+
+    if not bidi:
+        # Not a voice session (dashboard chat, shell REPL, telegram, thinker):
+        # there is no realtime stream to inject into, so hand the frame back as
+        # a tool-result image block the text model sees natively (same shape as
+        # tools/use_camera.py). The model then answers the question itself.
+        jpeg = image_path.read_bytes()
+        caption = f"photo {image_path.stem} from the head camera ({len(jpeg)} bytes)"
+        if question.strip():
+            caption += f"; question: {question.strip()}"
+        return {
+            "status": "success",
+            "content": [
+                {"text": caption},
+                {"image": {"format": "jpeg", "source": {"bytes": jpeg}}},
+            ],
+        }
 
     img_b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
 
