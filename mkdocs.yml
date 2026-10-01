@@ -8,12 +8,12 @@ edit_uri: edit/main/docs/
 copyright: "neon / vision, language, action on the edge"
 
 exclude_docs: |
-  dashboard/
+  /dashboard/
   *.bak
   .docs-revamp.md
 
 extra_css:
-  - stylesheets/neon.css?v=7   # bump on CSS changes to bust browser cache
+  - stylesheets/neon.css?v=8   # bump on CSS changes to bust browser cache
 
 extra_javascript:
   # mermaid fences are rendered by Material itself (pre.mermaid), themed by the --md-mermaid-* tokens in neon.css
@@ -50,6 +50,7 @@ nav:
       - Extending: guide/extending.md
       - strands-robots integration: guide/strands-robots.md
       - WebXR teleop (Quest 3): guide/webxr-teleop.md
+      - Dashboard: guide/dashboard.md
       - Voice architecture: voice-architecture.md
   - Reference:
       - FSM + error codes: reference/fsm.md
