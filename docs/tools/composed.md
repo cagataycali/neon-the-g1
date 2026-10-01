@@ -32,9 +32,9 @@ flowchart TD
   D --> E["④ call SDK RPC"]
   E --> F["⑤ auto-release · restore FSM"]
   F --> G(["✅ rich dict"])
-  classDef step stroke:#2e8b8b,stroke-width:1.5px
-  classDef refuse stroke:#c0506b,stroke-width:1.5px
-  classDef ok stroke:#6ee7b7,stroke-width:1.5px
+  classDef step stroke:#666464,stroke-width:1.5px
+  classDef refuse stroke:#946e00,stroke-width:1.5px
+  classDef ok stroke:#007a3d,stroke-width:1.5px
   class B,C,D,E,F step
   class X,Y refuse
   class G ok

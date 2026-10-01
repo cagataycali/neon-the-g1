@@ -18,8 +18,8 @@ flowchart LR
   MS -.-> MS2
   FSM -.->|"10 states"| S
 
-  classDef switch stroke:#cc5a3a,stroke-width:1.5px
-  classDef detail stroke:#2e8b8b,stroke-width:1.5px
+  classDef switch stroke:#007a3d,stroke-width:1.5px
+  classDef detail stroke:#666464,stroke-width:1.5px
   class MS,FSM switch
   class MS2,S detail
 ```
@@ -87,9 +87,9 @@ flowchart TD
 
   G --> H(["✅ parse rc<br/>auto-release · return"])
 
-  classDef check stroke:#2e8b8b,stroke-width:1.5px
-  classDef err stroke:#c0506b,stroke-width:1.5px
-  classDef ok stroke:#6ee7b7,stroke-width:1.5px
+  classDef check stroke:#666464,stroke-width:1.5px
+  classDef err stroke:#946e00,stroke-width:1.5px
+  classDef ok stroke:#007a3d,stroke-width:1.5px
   class B,C,D,F check
   class E1,E2,E3 err
   class G,H,T ok

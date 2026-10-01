@@ -51,6 +51,19 @@
   --sr-surface-green: #e6f6e7;
   --sr-viewer-bg: #f4f4f4;
   --sr-grid-major: #b6b6b6;
+  /* Material renders mermaid fences itself; these tokens put the diagrams in ink on the page surface. */
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: #ffffff; --md-mermaid-node-fg-color: var(--sr-black);
+  --md-mermaid-edge-color: #666464;
+  --md-mermaid-label-bg-color: #ffffff; --md-mermaid-label-fg-color: var(--sr-black);
+  --md-mermaid-sequence-actor-bg-color: #ffffff; --md-mermaid-sequence-actor-border-color: var(--sr-black); --md-mermaid-sequence-actor-fg-color: var(--sr-black); --md-mermaid-sequence-actor-line-color: #666464;
+  --md-mermaid-sequence-actorman-bg-color: #ffffff; --md-mermaid-sequence-actorman-line-color: var(--sr-black);
+  --md-mermaid-sequence-message-line-color: var(--sr-black); --md-mermaid-sequence-message-fg-color: var(--sr-black);
+  --md-mermaid-sequence-note-bg-color: #f4f4f4; --md-mermaid-sequence-note-border-color: #666464; --md-mermaid-sequence-note-fg-color: var(--sr-black);
+  --md-mermaid-sequence-loop-bg-color: #ffffff; --md-mermaid-sequence-loop-border-color: #666464; --md-mermaid-sequence-loop-fg-color: var(--sr-black);
+  --md-mermaid-sequence-label-bg-color: #f4f4f4; --md-mermaid-sequence-label-fg-color: var(--sr-black);
+  --md-mermaid-sequence-number-bg-color: var(--sr-black); --md-mermaid-sequence-number-fg-color: #ffffff;
+  --md-mermaid-sequence-box-bg-color: #f4f4f4; --md-mermaid-sequence-box-fg-color: var(--sr-black);
   --sr-grid-minor: #d9d9d9;
 }
 
@@ -96,6 +109,19 @@
   --sr-surface-green: color-mix(in srgb, var(--sr-accent) 74%, #000);
   --sr-viewer-bg: #111213;
   --sr-grid-major: #46505c;
+  /* Material renders mermaid fences itself; these tokens put the diagrams in ink on the page surface. */
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: var(--sr-black); --md-mermaid-node-fg-color: #ffffff;
+  --md-mermaid-edge-color: #999696;
+  --md-mermaid-label-bg-color: var(--sr-black); --md-mermaid-label-fg-color: #ffffff;
+  --md-mermaid-sequence-actor-bg-color: var(--sr-black); --md-mermaid-sequence-actor-border-color: #ffffff; --md-mermaid-sequence-actor-fg-color: #ffffff; --md-mermaid-sequence-actor-line-color: #999696;
+  --md-mermaid-sequence-actorman-bg-color: var(--sr-black); --md-mermaid-sequence-actorman-line-color: #ffffff;
+  --md-mermaid-sequence-message-line-color: #ffffff; --md-mermaid-sequence-message-fg-color: #ffffff;
+  --md-mermaid-sequence-note-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-note-border-color: #999696; --md-mermaid-sequence-note-fg-color: #ffffff;
+  --md-mermaid-sequence-loop-bg-color: var(--sr-black); --md-mermaid-sequence-loop-border-color: #999696; --md-mermaid-sequence-loop-fg-color: #ffffff;
+  --md-mermaid-sequence-label-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-label-fg-color: #ffffff;
+  --md-mermaid-sequence-number-bg-color: #ffffff; --md-mermaid-sequence-number-fg-color: var(--sr-black);
+  --md-mermaid-sequence-box-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-box-fg-color: #ffffff;
   --sr-grid-minor: #303740;
 }
 

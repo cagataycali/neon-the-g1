@@ -16,8 +16,7 @@ extra_css:
   - stylesheets/neon.css?v=7   # bump on CSS changes to bust browser cache
 
 extra_javascript:
-  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
-  - javascripts/mermaid-init.js?v=4
+  # mermaid fences are rendered by Material itself (pre.mermaid), themed by the --md-mermaid-* tokens in neon.css
   - javascripts/motion.js?v=1
 
 nav:

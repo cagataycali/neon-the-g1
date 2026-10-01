@@ -25,8 +25,8 @@ flowchart LR
   M <-->|"SSH · WiFi"| J
   M <-->|"optional ethernet"| C
 
-  classDef dev stroke:#cc5a3a,stroke-width:1.5px
-  classDef robot stroke:#2e8b8b,stroke-width:1.5px
+  classDef dev stroke:#007a3d,stroke-width:1.5px
+  classDef robot stroke:#666464,stroke-width:1.5px
   class M dev
   class J,C,Motors robot
 ```

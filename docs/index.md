@@ -78,8 +78,8 @@ flowchart LR
     A -.->|"read-only"| S
   end
 
-  classDef brain stroke:#cc5a3a,stroke-width:1.5px
-  classDef io stroke:#2e8b8b,stroke-width:1.5px
+  classDef brain stroke:#007a3d,stroke-width:1.5px
+  classDef io stroke:#666464,stroke-width:1.5px
   class A brain
   class C,M,S io
 ```

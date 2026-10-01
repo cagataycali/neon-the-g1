@@ -21,9 +21,9 @@ flowchart TB
   T --> LL
   T --> RL
 
-  classDef core stroke:#2e8b8b,stroke-width:1.5px
-  classDef arm stroke:#6ee7b7,stroke-width:1.5px
-  classDef leg stroke:#fbbf24,stroke-width:1.5px
+  classDef core stroke:#666464,stroke-width:1.5px
+  classDef arm stroke:#007a3d,stroke-width:1.5px
+  classDef leg stroke:#946e00,stroke-width:1.5px
   class T core
   class LA,RA arm
   class LL,RL leg
