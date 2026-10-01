@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { authedFetch, getToken } from '../lib/auth'
+import { Ico } from './Icons'
 
 interface Cam {
   id: string; kind: string; backend: string | null
   running: boolean; frames: number; resolution: number[]; error: string | null
 }
 const LABELS: Record<string, string> = {
-  realsense_color: 'RealSense · Color',
-  realsense_depth: 'RealSense · Depth',
+  realsense_color: 'RealSense color',
+  realsense_depth: 'RealSense depth',
   brio: 'Logitech Brio',
 }
 
@@ -40,10 +41,10 @@ export default function CameraCard({ embedded = false, prefer }: { embedded?: bo
             <div className="cam-tile" key={c.id}>
               <div className="cam-tile-head">
                 <span>{LABELS[c.id] ?? c.id}</span>
-                <span className={`dot ${online ? 'open' : 'connecting'}`} />
+                <span className={`dot ${online ? 'open' : 'connecting'}`} role="img" aria-label={online ? 'streaming' : 'no frames yet'} title={online ? 'streaming' : 'no frames yet'} />
               </div>
               <div className="cam-frame">
-                <img className="cam-img" alt={c.id} src={`/api/camera/${c.id}/stream${q}`} />
+                <img className="cam-img" alt={`${LABELS[c.id] ?? c.id} stream`} src={`/api/camera/${c.id}/stream${q}`} />
               </div>
             </div>
           )
@@ -52,5 +53,5 @@ export default function CameraCard({ embedded = false, prefer }: { embedded?: bo
     )
   )
   if (embedded) return grid
-  return <div className="card span-8"><div className="card-title"><span className="ic">📹</span> Cameras</div>{grid}</div>
+  return <div className="card span-8"><div className="card-title"><span className="ic">{Ico.camera()}</span> Cameras</div>{grid}</div>
 }

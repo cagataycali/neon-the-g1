@@ -1,5 +1,5 @@
 // Shapes mirror server.py telemetry payloads. All fields optional/defensive
-// since DDS may be offline → server returns status:'error' per field.
+// since DDS may be offline the server returns status:'error' per field.
 
 export interface G1State {
   status?: string

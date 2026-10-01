@@ -1,4 +1,4 @@
-// WebAuthn passkey auth — token store + fetch wrapper + ceremonies.
+// WebAuthn passkey auth: token store + fetch wrapper + ceremonies.
 const KEY = 'neon_session'
 
 export function getToken(): string { return localStorage.getItem(KEY) || '' }

@@ -1,6 +1,7 @@
 interface Props {
   data: number[]
-  color?: string
+  /** 'ink' (default) draws in --sr-fg; 'accent' is reserved for the primary signal; 'warn' for a signal out of range. */
+  tone?: 'ink' | 'accent' | 'warn'
   height?: number
   min?: number
   max?: number
@@ -10,8 +11,9 @@ interface Props {
   value?: number | string
 }
 
+/** A rolling sparkline. Colours come from the .spark tone classes in styles.css, never from inline paint. */
 export default function Sparkline({
-  data, color = 'var(--cyan)', height = 56, min, max, fill = true, label, unit, value,
+  data, tone = 'ink', height = 48, min, max, fill = true, label, unit, value,
 }: Props) {
   const n = data.length
   const lo = min ?? (n ? Math.min(...data) : 0)
@@ -25,20 +27,21 @@ export default function Sparkline({
   })
   const path = pts.length ? `M${pts.join(' L')}` : ''
   const area = pts.length ? `M0,${H} L${pts.join(' L')} L${W},${H} Z` : ''
+  const title = label ? `${label}${value !== undefined ? ` ${value}${unit ? ` ${unit}` : ''}` : ''}` : undefined
 
   return (
-    <div className="spark">
+    <div className={`spark ${tone === 'ink' ? '' : tone}`}>
       {(label || value !== undefined) && (
         <div className="spark-head">
           <span className="spark-label">{label}</span>
-          <span className="spark-value" style={{ color }}>
+          <span className="spark-value">
             {value}{unit && <span className="spark-unit"> {unit}</span>}
           </span>
         </div>
       )}
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ height, width: '100%', display: 'block' }}>
-        {fill && area && <path d={area} fill={color} opacity={0.12} />}
-        {path && <path d={path} fill="none" stroke={color} strokeWidth={1.6} vectorEffect="non-scaling-stroke" />}
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ height, width: '100%', display: 'block' }} role="img" aria-label={title ? `${title}, last ${n} samples` : 'sparkline'}>
+        {fill && area && <path className="area" d={area} opacity={0.12} />}
+        {path && <path d={path} fill="none" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />}
       </svg>
     </div>
   )

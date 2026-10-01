@@ -1,0 +1,32 @@
+// The pixel STRANDS wordmark from strands-labs/robots overrides/partials/wordmark.svg (fill: currentColor / CSS var),
+// plus the brand lockup used by the Gate card and the topbar: wordmark + "/ neon" project label in mono.
+
+const GLYPHS: [number, string][] = [
+  [0, 'M30.2558 216.833V186.914H0V148.926H36.9794V179.182H121.023V127.075H30.2558V97.1548H0V29.9197H30.2558V0H127.747V29.9197H158.339V67.5714H121.023V37.9879H36.9794V89.759H127.747V119.006H158.339V186.914H127.747V216.833H30.2558Z'],
+  [30, 'M252.894 216.833V37.9879H229.361V67.5714H192.382V29.9197H222.638V0H320.129V29.9197H350.721V67.5714H313.405V37.9879H289.873V216.833H252.894Z'],
+  [60, 'M377.87 216.833V29.9197H408.125V0H505.617V29.9197H536.208V127.075H505.617V156.994H490.825V179.182H520.744V216.833H484.101V186.914H453.509V156.994H414.849V216.833H377.87ZM414.849 119.006H498.893V37.9879H414.849V119.006Z'],
+  [90, 'M576.818 216.833V59.5031H607.073V29.9197H637.329V0H674.309V29.9197H704.564V59.5031H735.156V216.833H697.841V156.994H613.797V216.833H576.818ZM613.797 119.006H697.841V67.5714H667.921V37.9879H643.717V67.5714H613.797V119.006Z'],
+  [120, 'M775.765 216.833V0H812.745V29.9197H842.664V59.5031H873.256V148.926H896.789V0H934.104V216.833H896.789V186.914H866.869V156.994H836.277V67.5714H812.745V216.833H775.765Z'],
+  [150, 'M974.713 216.833V0H1072.2V29.9197H1102.46V59.5031H1133.05V156.994H1102.46V186.914H1072.2V216.833H974.713ZM1011.69 179.182H1065.82V148.926H1095.74V67.5714H1065.82V37.9879H1011.69V179.182Z'],
+  [180, 'M1203.92 216.833V186.914H1173.66V148.926H1210.64V179.182H1294.68V127.075H1203.92V97.1548H1173.66V29.9197H1203.92V0H1301.41V29.9197H1332V67.5714H1294.68V37.9879H1210.64V89.759H1301.41V119.006H1332V186.914H1301.41V216.833H1203.92Z'],
+]
+
+export function Wordmark({ className = 'wordmark' }: { className?: string }) {
+  return (
+    <span className={className}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1512 217" role="img" aria-label="STRANDS">
+        {GLYPHS.map(([x, d]) => <g key={x} transform={`translate(${x} 0)`}><path d={d} /></g>)}
+      </svg>
+    </span>
+  )
+}
+
+/** "STRANDS / neon": the wordmark links out to strandsagents.com like the docs header; the project label stays put. */
+export function Brand({ project = '/ neon', className = 'brand' }: { project?: string; className?: string }) {
+  return (
+    <span className={className}>
+      <a href="https://strandsagents.com/" target="_blank" rel="noreferrer" title="Strands Agents" aria-label="Strands Agents" className="brand-link"><Wordmark /></a>
+      <span className="project">{project}</span>
+    </span>
+  )
+}

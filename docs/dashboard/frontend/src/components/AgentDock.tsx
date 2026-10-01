@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { authedFetch } from '../lib/auth'
+import { Ico } from './Icons'
 
 interface Msg { id: number; role: 'user' | 'assistant' | 'error'; text: string; tool?: string; reasoning?: string }
 let _id = 0
@@ -62,9 +63,9 @@ export default function AgentDock() {
         {msgs.slice(-8).map((m, i, arr) => (
           <div className={`fmsg ${m.role}`} key={m.id} style={{ opacity: Math.max(0.35, 1 - (arr.length - 1 - i) * 0.12) }}>
             {m.reasoning && <ReasoningBlock text={m.reasoning} live={busy && m.id === msgs[msgs.length - 1]?.id && !m.text} />}
-            {m.tool && <div className="fmsg-tool"><span className="fmsg-tool-dot" />{m.tool}</div>}
+            {m.tool && <div className="fmsg-tool"><span className="fmsg-tool-dot" aria-hidden="true" />{m.tool}</div>}
             {m.text ? <div className="fmsg-text">{m.text}</div>
-              : (m.role === 'assistant' && busy ? <div className="fmsg-text typing">▊</div> : null)}
+              : (m.role === 'assistant' && busy ? <div className="fmsg-text typing" aria-label="thinking">_</div> : null)}
           </div>
         ))}
         <div ref={endRef} />
@@ -78,12 +79,12 @@ export default function AgentDock() {
           </div>
         )}
         <div className="composer-bar">
-          <span className={`composer-status ${ready ? 'ok' : ready === false ? 'err' : ''}`} title={ready ? `${tools} tools` : 'offline'} />
-          <input className="composer-input" value={input} placeholder="talk to NEON…"
+          <span className={`composer-status ${ready ? 'ok' : ready === false ? 'err' : ''}`} role="img" aria-label={ready ? `agent online, ${tools} tools` : ready === false ? 'agent offline' : 'agent status unknown'} title={ready ? `${tools} tools` : 'offline'} />
+          <input className="composer-input" value={input} placeholder="talk to neon" aria-label="Message to neon"
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') send() }}
             disabled={ready === false} />
-          <button className="composer-send" onClick={send} disabled={busy || ready === false}>{busy ? '…' : '↑'}</button>
+          <button className="composer-send" onClick={send} disabled={busy || ready === false} aria-label="Send" title="Send (Enter)">{Ico.send()}</button>
         </div>
       </div>
     </div>
@@ -95,8 +96,8 @@ function ReasoningBlock({ text, live }: { text: string; live: boolean }) {
   const show = open || live
   return (
     <div className="freason">
-      <button className="freason-toggle" onClick={() => setOpen(v => !v)}>
-        <span className={`freason-spark ${live ? 'live' : ''}`} />{live ? 'thinking…' : open ? 'hide' : 'reasoning'}
+      <button className="freason-toggle" onClick={() => setOpen(v => !v)} aria-expanded={show}>
+        <span className={`freason-spark ${live ? 'live' : ''}`} />{live ? 'thinking' : open ? 'hide reasoning' : 'reasoning'}
       </button>
       {show && <div className="freason-body">{text}</div>}
     </div>

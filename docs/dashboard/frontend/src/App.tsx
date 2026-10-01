@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSocket } from './lib/useSocket'
 import AuthGate from './components/AuthGate'
 import ConfigPanel from './components/ConfigPanel'
@@ -10,9 +10,31 @@ import LogFeed from './components/LogFeed'
 import TelemetryGraphs from './components/TelemetryGraphs'
 import StateCard from './components/StateCard'
 import PostureCard from './components/PostureCard'
+import { Brand } from './components/Brand'
+import { Ico } from './components/Icons'
 
 export default function App() {
   return <AuthGate><Dashboard /></AuthGate>
+}
+
+/** Right-side drawer: role=dialog, closes on the scrim click, the close button and Escape. */
+export function Drawer({ title, icon, onClose, children, className = '' }: { title: string; icon?: React.ReactNode; onClose: () => void; children: React.ReactNode; className?: string }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="drawer-scrim" onClick={onClose}>
+      <div className={`drawer ${className}`} role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
+        <div className="drawer-head">
+          <span className="drawer-title">{icon && <span className="ic">{icon}</span>}{title}</span>
+          <button className="icon-btn sm" onClick={onClose} aria-label={`Close ${title.toLowerCase()}`} title="Close (Esc)">{Ico.close()}</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
 }
 
 function Dashboard() {
@@ -25,21 +47,16 @@ function Dashboard() {
   const connLabel = conn === 'open' ? 'LIVE' : conn === 'connecting' ? 'CONNECTING' : 'OFFLINE'
 
   return (
-    <div className="stage">
-      {/* ── floating top bar ── */}
+    <div className="stage" data-testid="cockpit">
+      {/* topbar strip: brand, connection, teleop / log / config */}
       <header className="hud-top">
-        <div className="brand">
-          <div className="brand-mark">N</div>
-          <div className="brand-txt">
-            <h1>NEON<span>·</span>G1</h1>
-            <div className="sub">vision · language · action</div>
-          </div>
-        </div>
+        <h1 className="sr-only">neon / G1 cockpit</h1>
+        <Brand />
         <div className="hud-top-right">
-          <div className="conn-pill"><span className={`dot ${conn}`} />{connLabel}</div>
-          <button className={teleop ? 'icon-tab on' : 'icon-tab'} onClick={() => setTeleop(v => !v)} title="Teleop">🥽</button>
-          <button className={showLog ? 'icon-tab on' : 'icon-tab'} onClick={() => setShowLog(v => !v)} title="Activity log">🧬</button>
-          <button className="icon-tab" onClick={() => setShowConfig(true)} title="Configuration">⚙️</button>
+          <div className={`conn-pill ${conn}`} role="status" aria-live="polite"><span className={`dot ${conn}`} />{connLabel}</div>
+          <button className={teleop ? 'icon-tab on' : 'icon-tab'} onClick={() => setTeleop(v => !v)} aria-pressed={teleop} aria-label="Teleop" title="Teleop" data-testid="tab-teleop">{Ico.headset()}</button>
+          <button className={showLog ? 'icon-tab on' : 'icon-tab'} onClick={() => setShowLog(v => !v)} aria-pressed={showLog} aria-label="Activity log" title="Activity log" data-testid="tab-log">{Ico.activity()}</button>
+          <button className="icon-tab" onClick={() => setShowConfig(true)} aria-label="Configuration" title="Configuration" data-testid="tab-config">{Ico.sliders()}</button>
         </div>
       </header>
 
@@ -47,11 +64,11 @@ function Dashboard() {
         <div className="teleop-full"><TeleopPanel /></div>
       ) : (
         <>
-          {/* ── BIG CENTER: camera / depth / lidar stage ── */}
+          {/* center: camera / depth / lidar stage */}
           <main className="viewstage">
-            <div className="view-switch">
+            <div className="view-switch" role="tablist" aria-label="View">
               {(['color', 'depth', 'lidar'] as const).map(v => (
-                <button key={v} className={view === v ? 'vpill on' : 'vpill'} onClick={() => setView(v)}>{v}</button>
+                <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'vpill on' : 'vpill'} onClick={() => setView(v)}>{v}</button>
               ))}
             </div>
             <div className="view-canvas">
@@ -61,36 +78,27 @@ function Dashboard() {
             </div>
           </main>
 
-          {/* ── floating corner widgets (mobile-first: they wrap) ── */}
-          <aside className="corner tl">
+          {/* corner cards (on a phone they stack) */}
+          <aside className="corner tl" aria-label="Controller">
             <StateCard s={t?.state} ls={t?.lowstate} embedded />
           </aside>
-          <aside className="corner tr-below">
+          <aside className="corner tr-below" aria-label="Posture">
             <PostureCard ls={t?.lowstate} embedded />
           </aside>
-          <aside className="corner bl">
+          <aside className="corner bl" aria-label="Telemetry">
             <TelemetryGraphs t={t} />
           </aside>
 
-          {/* ── messages stream over the page + fixed bottom composer ── */}
+          {/* message stream over the page + fixed bottom composer */}
           <AgentDock />
         </>
       )}
 
-      {/* ── activity log drawer (top-right) ── */}
       {showLog && (
-        <div className="drawer-scrim" onClick={() => setShowLog(false)}>
-          <div className="drawer log" onClick={e => e.stopPropagation()}>
-            <div className="drawer-head">
-              <span className="drawer-title">Activity Log</span>
-              <button className="icon-btn" onClick={() => setShowLog(false)}>✕</button>
-            </div>
-            <LogFeed log={log} stats={stats} embedded />
-          </div>
-        </div>
+        <Drawer title="Activity log" icon={Ico.activity()} onClose={() => setShowLog(false)} className="log">
+          <LogFeed log={log} stats={stats} embedded />
+        </Drawer>
       )}
-
-      {/* ── config drawer ── */}
       {showConfig && <ConfigPanel onClose={() => setShowConfig(false)} />}
     </div>
   )
