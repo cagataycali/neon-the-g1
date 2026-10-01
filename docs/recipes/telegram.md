@@ -42,9 +42,15 @@ silently. Comma-separate for multiple. Leaving it unset allows any sender.
 
 ## walking over chat
 
-Walking still passes through the same FSM safety gate as everywhere else — the
-telegram persona must confirm and reach FSM 501 before the robot moves. Keep
-approvals explicit; chat is an awkward place for a fall.
+Same policy as by voice: your message is the consent, the persona looks first,
+walks only in FSM 501 and replies with the measured distance or the reason it
+did not move. Chat is an awkward place for a fall: stay in the room.
+
+## slash commands
+
+`/state`, `/battery` answer without the model; `/mute`, `/unmute`, `/voice`
+flip or show the voice mute flag (same kv as the dashboard and `voice_control`);
+`/history`, `/clear` manage the per-chat memory.
 
 ## privacy
 

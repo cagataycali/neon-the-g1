@@ -58,9 +58,11 @@ app. This hands motor control to neon over DDS.
     `check state` · `battery` · `wave` · `shake hand` · `heart` · `clap` ·
     `hug` · `stand up` · `sit down` · `damp` · `set stand height 0.75`
 
-!!! danger "Walking is opt-in"
-    `walk forward 50cm` needs FSM 501 **and** your explicit yes. Tools refuse
-    otherwise. See [safety](../guide/safety.md).
+!!! danger "Walking is by request only"
+    `walk forward 50cm` is the consent; nothing else is. NEON looks at the
+    path first, walks only in FSM 501, and reports what the odometry
+    measured (`moved 0.48 m`) or that it did not move. See
+    [safety](../guide/safety.md).
 
 ## prerequisites
 

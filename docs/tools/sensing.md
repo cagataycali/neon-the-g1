@@ -50,9 +50,11 @@ g1_speak(action="stop")
 # provider: openai | nova_sonic | gemini
 ```
 
-!!! tip "Speak from anywhere"
+!!! tip "Speak from anywhere, or not at all"
     Any persona can call `voice_say("...")` (or `importance=2` for urgent
-    interrupts) — picked up from a shared SQLite queue within ~2 s.
+    interrupts): picked up from a shared SQLite queue within ~2 s. The agent
+    can also silence itself with `voice_control(action="snooze", minutes=60)`;
+    muted gates the mic and the speaker (see [voice](../voice-architecture.md#mute-and-snooze)).
 
 ## LiDAR / 4
 

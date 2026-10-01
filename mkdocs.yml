@@ -38,7 +38,7 @@ nav:
   - Recipes:
       - Overview: recipes/index.md
       - stand → wave → sit: recipes/hello.md
-      - SLAM-guided walk: recipes/walk.md
+      - Measured walk: recipes/walk.md
       - Describe the room: recipes/perception.md
       - Map a space: recipes/slam.md
       - Telegram control: recipes/telegram.md

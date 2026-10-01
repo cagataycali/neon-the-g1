@@ -8,7 +8,7 @@ DDS** (`AudioClient.PlayStream`), not a PortAudio device.
 ## signal chain
 
 ```
-Brio mic (16k mono)                    → raw "near"
+USB mic (16k mono; DJI receiver or Brio, auto-picked by VOICE_MIC_NAME)  → raw "near"
   → WebRTC AudioProcessor              AEC + NS + AGC · stream_delay_ms=120 ◄ KEY KNOB
   → ratecv 16k→24k                     (Realtime needs ≥24k in)
   → BidiAgent.run()                    ◄ briefings inject BidiTextInputEvent here
@@ -25,17 +25,16 @@ Brio mic (16k mono)                    → raw "near"
     `ref_buf` is fed **post-PlayStream**, in the writer thread — not at enqueue
     time. The speaker is async-queued, so feeding the AEC reference on enqueue
     would misalign it by a variable amount (queue depth). Feeding it right after
-    `PlayStream()` returns makes `stream_delay_ms=120` a *constant* delay. (The
-    original port had the variable-delay bug — fixed in cycle 22.)
+    `PlayStream()` returns makes `stream_delay_ms=120` a *constant* delay.
 
 ## why these values
 
-| param | neon | lookout | reason |
-|---|:-:|:-:|---|
-| `stream_delay_ms` | 120 | 10 | DDS PlayStream adds ~100-150ms vs ~10ms for PortAudio |
-| `vad_threshold` | 0.7 | 0.7 | higher = server-VAD less likely to fire on AEC residual |
-| `silence_duration_ms` | 700 | 700 | longer turn-end → fewer self-interrupts |
-| `ref_buf` maxsize | 500 | ∞ | caps ~5s; drops oldest on overflow (bounded memory) |
+| param | value | reason |
+|---|:-:|---|
+| `stream_delay_ms` | 120 | DDS PlayStream adds ~100-150 ms (a PortAudio device would be ~10) |
+| `vad_threshold` | 0.7 | higher = server-VAD less likely to fire on AEC residual |
+| `silence_duration_ms` | 700 | longer turn-end → fewer self-interrupts |
+| `ref_buf` maxsize | 500 | caps ~5 s; drops oldest on overflow |
 
 ## echo troubleshooting
 
@@ -63,19 +62,28 @@ telegram_listener → voice_bridge.push("telegram", "...")
 
 Push manually: `make voice-push MSG="hi neon"` or `voice_say(text=..., importance=1)`.
 
-## mute
+## mute and snooze
 
-`memory.kv_get('voice.muted')` polled at 1Hz. `true` → mic feeds silence (agent
-stays quiet but can still speak briefings). Toggle: `make mute` / `make unmute`,
-or Telegram `/mute` `/unmute`.
+One flag, four switches. The kv pair `voice.muted` / `voice.muted_until` in
+`.memory/mem.db` is read and written only through `tools/voice_state.py`; the
+listener's `MuteState` polls it once a second and gates **both** the mic and
+the speaker, so muted means silent, briefings included. A snooze is a deadline:
+once passed, the flag reads as unmuted and clears itself.
+
+| switch | |
+|---|---|
+| dashboard voice pill | snooze 15 min, 1 h, 3 h or until unmuted |
+| `voice_control` tool | the agent on itself: `mute`, `snooze minutes=`, `unmute`, `status`, `volume level=` |
+| `make mute` / `unmute` / `voice-status` | from a shell on the robot |
+| Telegram `/mute` `/unmute` `/voice` | the same flag (the bot's reply still describes the old mic-only mute) |
+
+Muting is not stopping: the session stays connected and tools keep working.
 
 ## two output sinks
 
-1. **`_G1SpeakerOutput`** — frames → DDS PlayStream + AEC ref buffer
-2. **`_LogOutput`** — final transcripts → `agent_log.record('voice', …)`
-
-So voice transcripts are visible to **all other personas** via the unified log —
-NEON stays conversationally coherent across surfaces.
+`_G1SpeakerOutput` sends frames to DDS PlayStream and the AEC reference buffer;
+`_LogOutput` writes final transcripts to `agent_log` as the `voice` persona, so
+every other persona reads what was said.
 
 ## providers
 
@@ -85,5 +93,14 @@ NEON stays conversationally coherent across surfaces.
 | `nova_sonic` | `AWS_BEARER_TOKEN_BEDROCK` / AWS creds | `tiffany` (us-east-1) |
 | `gemini` | `GOOGLE_API_KEY` / `GEMINI_API_KEY` | `Kore` |
 
-Switch via `VOICE_PROVIDER=...`. **OpenAI recommended** for G1: lowest-latency
-websocket, best at AEC residuals, good chest-speaker quality (`alloy`/`cedar`).
+Switch via `VOICE_PROVIDER=...` in `.env`, or from the dashboard Voice drawer
+(provider, voice and realtime model), which writes the same variables and
+restarts `neon-voice` through `neon-ctl`. **OpenAI recommended** for G1:
+lowest-latency websocket, best at AEC residuals, good chest-speaker quality
+(`alloy`/`cedar`).
+
+## moving by voice
+
+The voice persona carries the four walking tools under the same
+[movement policy](guide/safety.md): a spoken "walk forward" is the consent, it
+looks first, walks only in FSM 501 and says "done" only on `moved=true`.

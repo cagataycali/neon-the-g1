@@ -2,8 +2,8 @@
 
 <span class="read-badge">90s</span>
 
-Seven gates between a user message and a motor torque. Any one refuses → the
-motor stays idle.
+Eight gates between a user message and a motor torque. Any one refuses and the
+motor stays idle; the eighth makes the robot tell the truth about what happened.
 
 ```mermaid
 flowchart TD
@@ -17,36 +17,34 @@ flowchart TD
   L5 -->|"locked"| R2["🛑 rc=7400"]
   L5 -->|"free"| L6["⑥ clamp"]
   L6 --> L7["⑦ request + look (walking)"]
-  L7 -->|"no"| R4["🛑 cancelled"]
-  L7 -->|"yes"| OK2(["✅"])
+  L7 -->|"not clear"| R4["🛑 refused, reason named"]
+  L7 -->|"clear"| L8["⑧ measure: odometry before / after"]
+  L8 -->|"moved=false"| R5["did not move, says so"]
+  L8 -->|"moved=true"| OK2(["✅ moved 0.28 m"])
   classDef gate stroke:#666464,stroke-width:1.5px
   classDef refuse stroke:#946e00,stroke-width:1.5px
   classDef ok stroke:#007a3d,stroke-width:1.5px
-  class L1,L2,L4,L5,L6,L7 gate
-  class R1,R2,R4 refuse
+  class L1,L2,L4,L5,L6,L7,L8 gate
+  class R1,R2,R4,R5 refuse
   class OK1,OK2 ok
 ```
 
 | # | gate | what it does |
 |:-:|---|---|
 | 1 | **allowlist** | Telegram IDs/usernames not in `TELEGRAM_ALLOWED_USERS` dropped before the model sees them |
-| 2 | **model plan** | prompt rules: never auto-walk, always release arm, verify after transitions |
-| 3 | **tool class** | `G1_SAFE_TOOLS` omits walking → model literally can't call it |
+| 2 | **model plan** | `prompts/base.md`: never walk uninvited or as a gesture, never `continuous=True`, never claim what the tool did not confirm |
+| 3 | **tool class** | `G1_SAFE_TOOLS` omits walking and motion generation; `neon-mcp --safe` serves it, so a remote MCP client cannot walk the robot (the on-robot personas can) |
 | 4 | **FSM check** | motion needs `{500,501,801}` (arm) / `{501,801}` (walk); else `rc=7404`/`7302` |
 | 5 | **arm mutex** | `rt/armsdk` single-writer lock; foreign writer → `rc=7400` |
-| 6 | **clamp** | `duration ∈ [0,10]s`; velocity ranges documented, kept small |
-| 7 | **request + look** | walking needs the user's explicit request (that is the consent) and a `take_photo` look at the path; refusal names the reason |
-| 8 | **honesty** | `g1_walk_forward`/`g1_turn` measure odometry before and after and return `moved=true/false`; "done" is only said when `moved=true` |
+| 6 | **clamp** | duration 0 to 10 s, distance 0.1 to 1.0 m per request, speed 0.05 to 0.5 m/s, yaw rate 0.1 to 0.6 rad/s ([table](../tools/composed.md)) |
+| 7 | **request + look** | an explicit request to walk or turn is the consent, nothing else is; the agent looks first with `take_photo`, walks only in FSM 501, and a refusal names the reason |
+| 8 | **honesty** | the walking tools read `rt/odommodestate` before and after and return `moved=true` with the metres or `moved=false`; "done" is allowed only on `moved=true` |
 
 ## unsafe publishes
 
-Any raw publish to `rt/*cmd` needs `unsafe=True`:
-
-```python
-g1_dds_publish(topic="rt/lowcmd", payload={...}, unsafe=True)   # mandatory
-```
-
-The flag forces intent — the LLM can't publish motor commands by accident.
+A raw publish to the five motor, BMS and hand topics needs `unsafe=True`
+(`g1_dds_publish(topic="rt/lowcmd", payload={...}, unsafe=True)`); the flag
+forces intent. Details on [use_dds](../tools/use-dds.md).
 
 ## emergency stop — always safe
 
@@ -57,16 +55,25 @@ g1_set_fsm(1)      # Damp — soft-hold current pose
 ```
 
 !!! danger "Never FSM 0 (ZeroTorque)"
-    Drops all torque — the robot collapses. Only safe on a gantry. The prompt
-    forbids it unless your message contains the word "gantry".
+    Drops all torque and the robot collapses. Only safe on a gantry. There is
+    no dedicated tool for it; `g1_set_fsm(0)` and `use_unitree("loco", ...)`
+    can still reach it, which is why `use_unitree` flags `ZeroTorque`,
+    `SetFsmId`, `SetVelocity`, `Move`, `WaveHand`, `ShakeHand` and
+    `ReleaseMode` as high danger in its reply, and why `kimodo(action="play")`
+    is a dry run unless you pass `confirm=True` and `on_gantry=True`.
 
 ## audit trail
 
-```bash
-tail -f /tmp/devduck/logs/devduck.log | grep -E '(rc=|g1_)'
-```
+Every tool call from every persona is wrapped by `tools/tool_log.py`: one line
+on stderr (`journalctl -u neon-voice -f`, `docker compose logs -f`) and one
+`tool` row in `agent_log` (`.memory/mem.db`) with tool, status, `rc`, duration,
+arguments and, for walks, `moved` and `measured_m`. The dashboard activity log
+shows the same rows: a spoken "done" can be checked against them.
 
-Every call logs timestamp, tool, params, rc.
+```bash
+make log-show                 # last 30 turns across personas
+journalctl -u neon-voice -f | grep -E 'tool='
+```
 
 
 ---

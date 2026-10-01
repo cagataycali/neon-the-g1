@@ -1,39 +1,51 @@
-# SLAM-guided walk
+# measured walk
 
 <span class="read-badge">~8s</span>
 
-Walk 1 m, read SLAM pose before/after to **measure real travel**.
+Walk, and let the robot tell you how far it really went.
 
-**Prereqs:** standing (FSM 500/501), clear 1 m path, lidar on.
+**Prereqs:** standing in FSM 501 (Walk), a clear path one body-length longer
+than the request, you within reach.
 
 ## say
 
 ```
-> start SLAM, walk forward 1 meter, then tell me how far you actually moved
+> walk forward one metre
 ```
+
+That sentence is the consent; NEON does not ask again.
 
 ## what neon does
 
 ```python
-[ g1_lidar_switch(on=True), g1_slam_start() ]   # wait ~2s to stabilize
-before = g1_slam_pose()
-g1_set_fsm(501)                                  # Walk
-g1_walk_forward(distance=1.0, speed=0.25)
-g1_stop_move()
-after = g1_slam_pose()
-# travelled = hypot(after-before)
+take_photo(question="Is the path ahead clear for 1 metre? ...")   # look first
+g1_walk_forward(distance=1.0, speed=0.25)   # 1.0 m is the per-request cap
+# -> {"moved": true, "requested_m": 1.0, "measured_m": 0.94,
+#     "message": "moved 0.94 m (rc=0 ...)"}
 ```
 
-> Commanded 1.0 m · measured 0.94 m via SLAM · 6 cm under (slippage).
+> Moved ninety-four centimetres.
+
+The number is the robot's own odometry (`rt/odommodestate` before and after),
+not the request echoed back. When nothing moved the result says so:
+
+```python
+# -> {"moved": false, "measured_m": 0.001,
+#     "message": "SDK accepted (rc=0) but no displacement measured ... did NOT move"}
+```
+
+> The robot did not move: it is not in walk mode. Stand me up first.
 
 ## variations
 
 ```
-> measure how accurately you can turn 90 degrees   # reads slam yaw
-> walk to a point 2 m ahead using SLAM feedback     # closed-loop correction
+> turn ninety degrees left        # g1_turn(angle_rad=1.57), reports measured_rad
+> walk 30 cm, then tell me what you see
 ```
 
 ## notes
 
-- First pose after start can be zero for 1-2 s; the tool flags freshness and the agent waits.
-- `speed ≤ 0.3 m/s` is well-calibrated; above that expect 5-10% overshoot.
+- Odometry drifts over a room; for a repeatable position use the lidar
+  (`g1_slam_pose` before and after, map frame, see [map a space](slam.md)).
+- Under 0.1 m is rounded up, over 1.0 m is capped: ask twice for two metres.
+- Every walk is a `tool` row in the activity log with `moved` and `measured_m`.
