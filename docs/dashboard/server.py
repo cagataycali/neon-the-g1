@@ -403,20 +403,44 @@ async def config_wifi_connect(payload: dict):
 
 
 @app.post("/api/config/service/restart")
-async def config_service_restart():
-    """Restart the dashboard systemd service to apply env/model changes."""
-    import subprocess
-    try:
-        subprocess.Popen(["systemctl", "--user", "restart", "neon-dashboard.service"])
-        return JSONResponse({"ok": True, "message": "restarting…"})
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)})
+async def config_service_restart(payload: dict | None = None):
+    """Recreate persona containers to apply env/model changes.
+
+    Body {"services": [...]} among neon-agent, neon-telegram, neon-thinker,
+    neon-dashboard (default: all four). Executed on the host by neon-ctl
+    (scripts/neon_ctl.py) through the .memory/ctl channel; this container has
+    neither docker.sock nor systemd. When neon-dashboard is included the
+    answer is 202-shaped (pending) and the UI polls /api/health.
+    """
+    services = (payload or {}).get("services") or list(_cfg.PERSONAS)
+    res = await asyncio.to_thread(_cfg.restart_services, services)
+    return JSONResponse(res, status_code=202 if res.get("pending") and res.get("ok") else 200)
+
+
+@app.get("/api/config/ctl")
+async def config_ctl_status():
+    """Is the host-side neon-ctl alive (heartbeat age), plus the voice unit state it saw."""
+    return JSONResponse(_cfg._ctl().heartbeat())
+
+
+@app.get("/api/config/token")
+async def config_token_health():
+    return JSONResponse(_cfg.camera_token_health())
+
+
+@app.post("/api/config/token/refresh")
+async def config_token_refresh():
+    """Mint a fresh NEON_CAMERA_PROXY_TOKEN on the host and recreate telegram + thinker."""
+    return JSONResponse(await asyncio.to_thread(_cfg.refresh_camera_token))
 
 
 @app.get("/api/health")
 async def health():
+    tok = _cfg.camera_token_health()
     return {"status": "ok", "ts": time.time(), "iface": IFACE,
-            "tools": sorted(_TOOLS.keys())}
+            "tools": sorted(_TOOLS.keys()),
+            "camera_proxy_token": tok["state"],
+            "camera_proxy_token_exp": tok.get("exp")}
 
 
 @app.get("/api/telemetry")

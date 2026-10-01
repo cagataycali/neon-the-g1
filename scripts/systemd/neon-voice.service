@@ -1,0 +1,28 @@
+[Unit]
+Description=NEON G1 - bidirectional voice listener (DJI USB mic -> G1 chest speaker)
+# time-sync.target: the Jetson has no RTC battery and boots at 1970; a persona that
+# starts before NTP mints 1980-dated service tokens (see scripts/refresh_token.py).
+After=network-online.target sound.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+EnvironmentFile=-/home/unitree/neon-the-g1/.env
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=VOICE_PROVIDER=openai
+Environment=G1_NETWORK_INTERFACE=eth0
+Environment=VOICE_MIC_NAME=DJI,MINI
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/g1_speech_listener.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

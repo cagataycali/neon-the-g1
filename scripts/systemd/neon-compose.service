@@ -1,7 +1,9 @@
 [Unit]
 Description=NEON G1 — docker compose stack (agent + dashboard + telegram + thinker)
-After=network-online.target docker.service graphical.target
-Wants=network-online.target
+# time-sync.target: the Jetson boots at 1970 (no RTC battery); personas that start before
+# NTP mint 1980-dated camera proxy tokens. Wait for the clock.
+After=network-online.target docker.service graphical.target time-sync.target
+Wants=network-online.target time-sync.target
 
 [Service]
 Type=oneshot
