@@ -57,7 +57,13 @@ def _upsert(path: Path, updates: dict) -> None:
 
 
 def main() -> int:
+    import time
     import auth  # from docs/dashboard
+    if time.time() < auth.CLOCK_SANE_EPOCH:
+        print(f"refusing: clock not synced (time.time()={int(time.time())}); a token minted now "
+              "would be dated 1970 and every consumer would get 401. Wait for time-sync.target.",
+              file=sys.stderr)
+        return 2
     token = auth.service_token("thinker")
 
     if "--print" in sys.argv:

@@ -302,6 +302,8 @@ select.gate-input { appearance: none; -webkit-appearance: none; background-image
 .cfg-row { display: flex; gap: 8px }
 .cfg-row .gate-btn { flex: 1 }
 .cfg-msg { font: 12px var(--sr-mono); color: var(--sr-accent) } .cfg-msg.warn { color: var(--sr-warn) }
+.token-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--sr-rule); border-bottom: 1px solid var(--sr-rule); margin: 6px 0 }
+.token-row .cfg-msg { flex-basis: 100% }
 .cfg-msg.progress { color: var(--sr-fg); display: flex; align-items: center; gap: 8px }
 .spin { width: 10px; height: 10px; border: 1.5px solid var(--sr-rule); border-top-color: var(--sr-accent); border-radius: 50%; animation: spin 900ms linear infinite; flex: none }
 @keyframes spin { to { transform: rotate(360deg) } }

@@ -77,23 +77,54 @@ REALSENSE_VENDOR_TAG = "RealSense"
 #
 #   NEON_CAMERA_PROXY        e.g. https://localhost:8080  (dashboard base URL)
 #   NEON_CAMERA_PROXY_TOKEN  bearer JWT (auth.service_token) — optional
+def _mint_proxy_token() -> str:
+    """Mint a fresh service token from the dashboard auth store (the containers
+    bind-mount .memory, so the store is reachable). Same path as
+    vision._prime_camera_proxy. Returns '' when the store or clock is not usable."""
+    try:
+        import sys as _sys
+        from pathlib import Path as _P
+        dash = str(_P(__file__).resolve().parent.parent / "docs" / "dashboard")
+        if dash not in _sys.path:
+            _sys.path.insert(0, dash)
+        from auth import service_token  # type: ignore
+        return service_token("mhs") or ""
+    except Exception as e:  # clock not synced, store missing, pyjwt absent
+        logger.warning(f"camera proxy: could not mint a fresh token: {e}")
+        return ""
+
+
 def _proxy_snapshot(source: str = "auto"):
-    """Fetch a JPEG frame from the dashboard snapshot API. Returns bytes|None."""
+    """Fetch a JPEG frame from the dashboard snapshot API. Returns bytes|None.
+
+    A 401/403 means the bearer in NEON_CAMERA_PROXY_TOKEN is stale (typically a
+    token minted at a 1970 boot clock, exp 1980): drop it, mint a fresh one from
+    the auth store and retry ONCE. One warning line, never a loop."""
     base = os.getenv("NEON_CAMERA_PROXY", "").strip().rstrip("/")
     if not base:
         return None
-    # map our 'source' → dashboard cam id
+    # map our 'source' -> dashboard cam id
     cam_id = "realsense_color"
     if source == "logitech":
         cam_id = "brio"
     try:
         import requests
         tok = os.getenv("NEON_CAMERA_PROXY_TOKEN", "").strip()
-        headers = {"Authorization": f"Bearer {tok}"} if tok else {}
+        reminted = False
         # try the requested cam, then fall back to any available color cam
         for cid in (cam_id, "brio", "realsense_color"):
             url = f"{base}/api/camera/{cid}/snapshot"
+            headers = {"Authorization": f"Bearer {tok}"} if tok else {}
             r = requests.get(url, headers=headers, timeout=6, verify=False)
+            if r.status_code in (401, 403) and not reminted:
+                reminted = True
+                os.environ.pop("NEON_CAMERA_PROXY_TOKEN", None)
+                fresh = _mint_proxy_token()
+                if not fresh:
+                    return None
+                logger.warning("camera proxy: token refused (%s), re-minted from the auth store", r.status_code)
+                os.environ["NEON_CAMERA_PROXY_TOKEN"] = tok = fresh
+                r = requests.get(url, headers={"Authorization": f"Bearer {tok}"}, timeout=6, verify=False)
             if r.status_code == 200 and r.content and len(r.content) > 1000:
                 return r.content
     except Exception as e:

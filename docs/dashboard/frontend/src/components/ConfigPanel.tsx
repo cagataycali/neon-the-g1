@@ -161,6 +161,45 @@ function WifiTab() {
   )
 }
 
+type TokenHealth = { state: 'ok' | 'expired' | 'missing' | 'invalid'; exp: number | null; clock_synced?: boolean }
+
+/** NEON_CAMERA_PROXY_TOKEN health. The Jetson boots at a 1970 clock until NTP; a
+ *  token minted then is dated 1980 and the telegram/thinker personas get 401 from
+ *  the camera proxy. Refresh mints on the host (neon-ctl token-refresh) and
+ *  recreates the two consumers. */
+function TokenRow({ onDone }: { onDone: () => void }) {
+  const [tok, setTok] = useState<TokenHealth | null>(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState(''); const [warn, setWarn] = useState(false)
+  const load = () => authedFetch('/api/config/token').then(r => r.json()).then(setTok).catch(() => setTok(null))
+  useEffect(() => { load() }, [])
+  const refresh = async () => {
+    setBusy(true); setMsg('minting on the host, recreating telegram + thinker'); setWarn(false)
+    try {
+      const r = await authedFetch('/api/config/token/refresh', { method: 'POST' })
+      const d = await r.json()
+      if (d.ok) { setMsg('token refreshed; telegram + thinker recreated'); onDone() } else { setMsg(d.error || 'refresh failed'); setWarn(true) }
+    } catch { setMsg('refresh failed'); setWarn(true) }
+    setBusy(false); load()
+  }
+  if (!tok) return null
+  const ok = tok.state === 'ok'
+  const expTxt = tok.exp ? new Date(tok.exp * 1000).toISOString().slice(0, 10) : ''
+  return (
+    <div className="token-row">
+      <span className="cfg-label">Camera proxy token</span>
+      <span className={ok ? 'badge ok mono' : 'badge warn mono'}>
+        <span className="ic">{ok ? Ico.check() : Ico.alert()}</span>
+        {tok.state}{expTxt ? ` exp ${expTxt}` : ''}
+      </span>
+      {!ok && <span className="cfg-note-inline">telegram and thinker cannot read the cameras</span>}
+      <button className={ok ? 'gate-btn ghost' : 'gate-btn primary'} onClick={refresh} disabled={busy || tok.clock_synced === false}>
+        {busy ? <span className="spin" aria-hidden /> : null}Refresh token
+      </button>
+      {tok.clock_synced === false && <span className="cfg-note-inline">clock not synced yet</span>}
+      {msg && <div className={warn ? 'cfg-msg warn' : busy ? 'cfg-msg progress' : 'cfg-msg'} role="status">{msg}</div>}
+    </div>
+  )
+}
+
 function EnvTab() {
   const [vars, setVars] = useState<any[]>([]); const [path, setPath] = useState(''); const [edits, setEdits] = useState<Record<string, string>>({})
   const [msg, setMsg] = useState(''); const [example, setExample] = useState('')
@@ -175,6 +214,7 @@ function EnvTab() {
   return (
     <div className="cfg-section">
       <div className="cfg-label">Environment <span className="cfg-note-inline mono">{path}</span></div>
+      <TokenRow onDone={load} />
       <div className="env-list">
         {vars.map(v => (
           <div className="env-row" key={v.key}>

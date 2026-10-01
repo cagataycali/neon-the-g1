@@ -127,9 +127,13 @@ feed without fighting the device.
 shows **"Seal this robot with a passkey"**: tap → Touch/Face ID → the whole
 interface + agent are locked to your device. Later visits unlock with the
 passkey. The Configuration drawer lets you pick the colour **scheme**, switch
-**model id**, edit **.env** (secrets masked), pick **WiFi**, and manage
-**passkeys** - all live. The UI follows the Strands design language
-(`docs/dashboard/README.md`, Design).
+the **model** (applies to the dashboard chat at once; *Apply to all personas*
+recreates the containers through the host-side `neon-ctl`), edit **.env**
+(secrets masked, camera-proxy token health + refresh), pick **WiFi**, and manage
+**passkeys**. The topbar **voice pill** snoozes the voice listener (15m / 1h /
+3h / until unmute) and switches provider / voice / model; the voice agent has the
+same switch as the `voice_control` tool. The UI follows the Strands design
+language (`docs/dashboard/README.md`, Design and Configuration).
 
 ```bash
 make auth-status        # show enrolled passkeys / setup state
