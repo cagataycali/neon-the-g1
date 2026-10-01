@@ -9,15 +9,40 @@ Only run when:
 Per user instruction: DO NOT run walking tests automatically.
 Prefer g1_stop_move() to halt.
 """
-from typing import Dict, Any
+import math
+import time
+from typing import Dict, Any, Optional
 
 from strands import tool
 
 from ._g1_common import (
     ensure_dds, get_loco_client, read_fsm_id, decode_code, WALK_FSMS,
     _read_mode_machine_from_lowstate, ARM_READY_MODE_MACHINES,
-    _normalize,
+    _normalize, read_pose, pose_delta,
 )
+
+# Honesty thresholds: a command "moved" the robot only when the odometry
+# (rt/odommodestate) shows at least this much, or a quarter of the request.
+MIN_WALK_M = 0.1          # a request below this is rounded up: 5 cm produces nothing visible
+MAX_WALK_M = 1.0          # per request
+MIN_SPEED_SHORT = 0.15    # m/s floor when the request is <= 0.3 m
+MOVED_FLOOR_M = 0.05
+MOVED_FLOOR_RAD = 0.05
+SETTLE_S = 0.5            # wait after the commanded duration before measuring
+MAX_WAIT_S = 10.0
+
+_sleep = time.sleep       # patched by tests
+
+
+def _moved(measured: Optional[float], requested: float, floor: float) -> Optional[bool]:
+    """None = could not measure; otherwise did the robot cover enough of the request."""
+    if measured is None:
+        return None
+    return abs(measured) >= max(floor, 0.25 * abs(requested))
+
+
+def _fmt(v: Optional[float], unit: str) -> str:
+    return "unknown" if v is None else f"{abs(v):.2f} {unit}"
 
 
 @tool
@@ -31,21 +56,27 @@ def g1_move_velocity(
     force: bool = False,
 ) -> Dict[str, Any]:
     """
-    🚶 Command G1 to move at a given velocity for a duration.
+    🚶 Command G1 to move at a given velocity for a duration, then REPORT
+    what the robot actually did (odometry before/after).
 
     🚨 DANGER: causes the robot to WALK. Requires FSM ∈ {501, 801}.
     Defaults to single 1-second impulse for safety.
+
+    The result says moved=true/false and "moved 0.28 m" or "SDK accepted
+    (rc=0) but no displacement measured". Never tell the user the robot
+    moved unless moved is true.
 
     Args:
         vx: forward velocity (m/s). Typical safe: 0.1–0.3. Max ~0.8.
         vy: lateral velocity (m/s). Typical: ±0.1–0.2.
         vyaw: rotation rate (rad/s). Typical: ±0.3.
         duration: seconds to keep velocity. Default 1.0. Ignored if continuous.
-        continuous: if True, set duration to ~10 days (until explicitly stopped).
+        continuous: if True, set duration to ~10 days (until explicitly stopped). Not measured.
         network_interface: DDS interface. Default 'eth0'.
         force: bypass FSM safety check. Default False (RECOMMENDED).
 
-    Returns dict with rc, fsm_before, message.
+    Returns dict with rc, fsm_before, moved, requested_m, measured_m,
+    requested_rad, measured_rad, message.
     """
     result: Dict[str, Any] = {"status": "error", "rc": None, "message": "",
                              "fsm_before": None}
@@ -88,6 +119,8 @@ def g1_move_velocity(
         if duration <= 0:
             result["message"] = "duration<=0 (non-continuous), refusing"
             return _normalize(result)
+
+    before = None if continuous else read_pose(timeout=1.0)
     try:
         if continuous:
             loco.Move(vx, vy, vyaw, continous_move=True)
@@ -99,11 +132,48 @@ def g1_move_velocity(
         return _normalize(result)
 
     result["rc"] = rc
-    result["status"] = "success" if rc == 0 else "error"
-    result["message"] = (
-        f"SetVelocity(vx={vx}, vy={vy}, vyaw={vyaw}, "
-        f"dur={'∞' if continuous else duration}) rc={decode_code(rc)}"
-    )
+    head = (f"SetVelocity(vx={vx}, vy={vy}, vyaw={vyaw}, "
+            f"dur={'∞' if continuous else duration}) rc={decode_code(rc)}")
+    if continuous or rc != 0:
+        result["status"] = "success" if rc == 0 else "error"
+        result["message"] = head if rc == 0 else f"{head}: the robot did not move"
+        return _normalize(result)
+
+    # Measure: wait for the command to play out, then compare poses.
+    _sleep(min(float(duration) + SETTLE_S, MAX_WAIT_S))
+    after = read_pose(timeout=1.0)
+    delta = pose_delta(before, after)
+    requested_m = round(math.hypot(vx, vy) * duration, 3)
+    requested_rad = round(vyaw * duration, 3)
+    result.update({
+        "requested_m": requested_m, "requested_rad": requested_rad,
+        "measured_m": delta["measured_m"], "measured_rad": delta["measured_rad"],
+        "odom_source": delta["source"],
+    })
+    moved_lin = _moved(delta["measured_m"], requested_m, MOVED_FLOOR_M) if requested_m > 0 else None
+    moved_rot = _moved(delta["measured_rad"], requested_rad, MOVED_FLOOR_RAD) if requested_rad != 0 else None
+    verdicts = [v for v in (moved_lin, moved_rot) if v is not None]
+    moved: Optional[bool] = (all(verdicts) if verdicts else None)
+    result["moved"] = moved
+
+    parts = []
+    if requested_m > 0:
+        parts.append(f"{_fmt(delta['measured_m'], 'm')} of {requested_m:.2f} m requested")
+    if requested_rad != 0:
+        parts.append(f"{_fmt(delta['measured_rad'], 'rad')} of {abs(requested_rad):.2f} rad requested")
+    detail = ", ".join(parts)
+    if moved is True:
+        result["status"] = "success"
+        result["message"] = f"moved {detail} ({head})"
+    elif moved is False:
+        result["status"] = "error"
+        result["message"] = (f"SDK accepted (rc=0) but no displacement measured: {detail}. "
+                             f"The robot did NOT move; tell the user so. ({head})")
+    else:
+        result["status"] = "success"
+        result["message"] = (f"SDK accepted (rc=0) but motion could not be verified: "
+                             f"no odometry sample ({detail or 'nothing requested'}). "
+                             f"Do not claim the robot moved. ({head})")
     return _normalize(result)
 
 
@@ -139,21 +209,29 @@ def g1_walk_forward(
     force: bool = False,
 ) -> Dict[str, Any]:
     """
-    🚶 Walk forward for a calculated duration based on distance/speed.
+    🚶 Walk forward `distance` metres and REPORT the measured displacement.
 
-    🚨 DANGER: causes walking. Use small distances (< 0.5m) for testing.
+    🚨 DANGER: causes walking. Requires FSM 501. Look first (take_photo).
+    The result is honest: moved=true with "moved 0.28 m", or moved=false with
+    "SDK accepted (rc=0) but no displacement measured". Only say the robot
+    walked when moved is true; when false, read the message to the user.
 
     Args:
-        distance: meters to travel. Default 0.3m. Clamped to ±1.0m.
-        speed: forward velocity in m/s. Default 0.2 m/s. Clamped [0.05, 0.5].
+        distance: metres to travel (negative = backwards). Default 0.3.
+            Clamped to [0.1, 1.0] in magnitude: below 0.1 m nothing visible happens.
+        speed: forward velocity in m/s. Default 0.2. Clamped [0.05, 0.5];
+            at least 0.15 m/s when the distance is 0.3 m or less.
         force: bypass FSM check.
     """
-    distance = max(-1.0, min(1.0, float(distance)))
+    d = abs(float(distance))
+    d = max(MIN_WALK_M, min(MAX_WALK_M, d))
+    sign = 1.0 if float(distance) >= 0 else -1.0
     speed = max(0.05, min(0.5, abs(float(speed))))
-    vx = speed if distance >= 0 else -speed
-    duration = abs(distance) / speed
+    if d <= 0.3:
+        speed = max(speed, MIN_SPEED_SHORT)
+    duration = d / speed
     return g1_move_velocity(
-        vx=vx, vy=0.0, vyaw=0.0, duration=duration,
+        vx=sign * speed, vy=0.0, vyaw=0.0, duration=duration,
         continuous=False, network_interface=network_interface, force=force,
     )
 
@@ -166,16 +244,16 @@ def g1_turn(
     force: bool = False,
 ) -> Dict[str, Any]:
     """
-    🔄 Turn in place by approximately `angle_rad` radians.
+    🔄 Turn in place by approximately `angle_rad` radians and REPORT the
+    measured yaw change (moved=true/false, "turned 0.48 rad").
 
-    🚨 DANGER: turning in place still causes leg motion.
+    🚨 DANGER: turning in place still causes leg motion. Requires FSM 501.
 
     Args:
         angle_rad: rotation in radians (positive = CCW). Clamped ±2π.
         yaw_rate: rotation speed rad/s. Default 0.3. Clamped [0.1, 0.6].
         force: bypass FSM check.
     """
-    import math
     angle_rad = max(-2 * math.pi, min(2 * math.pi, float(angle_rad)))
     yaw_rate = max(0.1, min(0.6, abs(float(yaw_rate))))
     vyaw = yaw_rate if angle_rad >= 0 else -yaw_rate

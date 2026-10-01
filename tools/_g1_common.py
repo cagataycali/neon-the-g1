@@ -382,6 +382,106 @@ def _read_mode_machine_from_lowstate(net: str = "eth0") -> Optional[int]:
 ARM_READY_MODE_MACHINES = {5, 6}
 
 
+# ----------------------------------------------------------------------
+# Odometry cached singleton subscriber (rt/odommodestate, SportModeState_)
+#
+# Measured on the G1 2026-10-01: rt/odommodestate and rt/lf/odommodestate
+# both publish SportModeState_ with position[3] (m, odom frame),
+# velocity[3] and imu_state.rpy[3]; rt/sportmodestate, rt/odom and the
+# lidar odometry topics are silent. The locomotion tools read a pose before
+# and after a velocity command so they can report what the robot DID.
+# ----------------------------------------------------------------------
+
+ODOM_TOPIC = os.getenv("G1_ODOM_TOPIC", "rt/odommodestate")
+_ODOM_LOCK = threading.Lock()
+_ODOM_CACHE: Dict[str, Any] = {"last": None, "ts": 0.0, "sub": None}
+
+
+def _ensure_odom_subscriber() -> Optional[str]:
+    """Lazy-start the long-lived odometry subscriber. Returns None on success."""
+    if _ODOM_CACHE.get("sub") is not None:
+        return None
+    try:
+        from unitree_sdk2py.core.channel import ChannelSubscriber
+        from unitree_sdk2py.idl.unitree_go.msg.dds_ import SportModeState_
+    except Exception as e:
+        return f"SDK import failed: {e}"
+
+    def _cb(m):
+        with _ODOM_LOCK:
+            _ODOM_CACHE["last"] = m
+            _ODOM_CACHE["ts"] = time.time()
+
+    try:
+        with _DDS_INIT_LOCK:
+            sub = ChannelSubscriber(ODOM_TOPIC, SportModeState_)
+            sub.Init(_cb, 2)
+        _ODOM_CACHE["sub"] = sub
+        return None
+    except Exception as e:
+        return f"odometry subscribe failed: {e}"
+
+
+def _wrap_angle(a: float) -> float:
+    """Wrap an angle to [-pi, pi)."""
+    import math
+    return (a + math.pi) % (2 * math.pi) - math.pi
+
+
+def read_pose(timeout: float = 1.0, max_age: float = 0.5) -> Optional[Dict[str, float]]:
+    """Latest planar pose {x, y, yaw, ts, source} or None when no odometry.
+
+    Prefers rt/odommodestate (source "odom"); when that topic is silent falls
+    back to the LowState IMU yaw (source "imu", x/y unknown = None) so turns
+    can still be measured. A sample older than ``max_age`` seconds is waited
+    out for up to ``timeout`` seconds, then used as-is (flagged stale=True).
+    """
+    err = _ensure_odom_subscriber()
+    if err is None:
+        t0 = time.time()
+        while True:
+            with _ODOM_LOCK:
+                m = _ODOM_CACHE.get("last")
+                ts = _ODOM_CACHE.get("ts", 0.0)
+            fresh = m is not None and (time.time() - ts) <= max_age
+            if fresh or time.time() - t0 >= timeout:
+                break
+            time.sleep(0.02)
+        if m is not None:
+            try:
+                pos = list(m.position)
+                rpy = list(m.imu_state.rpy)
+                return {"x": float(pos[0]), "y": float(pos[1]), "yaw": float(rpy[2]),
+                        "ts": ts, "source": "odom", "stale": not fresh}
+            except Exception as e:
+                logger.debug("read_pose: odom decode failed: %s", e)
+    else:
+        logger.debug("read_pose: %s", err)
+    low = _get_lowstate_cached(timeout=timeout)
+    if low is not None:
+        try:
+            rpy = list(low.imu_state.rpy)
+            return {"x": None, "y": None, "yaw": float(rpy[2]), "ts": time.time(),
+                    "source": "imu", "stale": False}
+        except Exception as e:
+            logger.debug("read_pose: lowstate decode failed: %s", e)
+    return None
+
+
+def pose_delta(before: Optional[Dict[str, Any]], after: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Planar displacement (m) and yaw change (rad) between two read_pose() results."""
+    import math
+    out: Dict[str, Any] = {"measured_m": None, "measured_rad": None, "source": None}
+    if not before or not after:
+        return out
+    out["source"] = after.get("source")
+    if before.get("x") is not None and after.get("x") is not None:
+        out["measured_m"] = round(math.hypot(after["x"] - before["x"], after["y"] - before["y"]), 3)
+    if before.get("yaw") is not None and after.get("yaw") is not None:
+        out["measured_rad"] = round(_wrap_angle(after["yaw"] - before["yaw"]), 3)
+    return out
+
+
 def ensure_arm_ready_fsm(auto_transition: bool = True, wait: float = 3.0) -> Dict[str, Any]:
     """Ensure FSM is in {500, 501, 801} so arm actions work.
     Returns dict with: ok(bool), fsm_before, fsm_after, message.
