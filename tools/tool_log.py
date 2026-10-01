@@ -57,6 +57,17 @@ def _mask(args: Any) -> Any:
     return args
 
 
+def _is_result(event: Any) -> bool:
+    """Is this stream event the final ToolResult (plain dict or ToolResultEvent)?"""
+    if getattr(event, "tool_result", None) is not None:
+        return True
+    if isinstance(event, dict):
+        if isinstance(event.get("tool_result"), dict):
+            return True
+        return "status" in event and "content" in event
+    return False
+
+
 def summarize_result(result: Any) -> Dict[str, Any]:
     """Pull status / rc / message / moved out of a Strands ToolResult.
 
@@ -148,19 +159,32 @@ class LoggedTool(AgentTool):
     async def stream(self, tool_use, invocation_state, **kwargs):
         name = self.tool_name
         args = _mask((tool_use or {}).get("input"))
+        tid = (tool_use or {}).get("toolUseId")
         t0 = time.monotonic()
         last: Any = None
+        logged = False
         try:
             async for event in self._inner.stream(tool_use, invocation_state, **kwargs):
                 last = event
+                # The strands executor stops consuming at the first ToolResultEvent, so
+                # this generator is never resumed after yielding it: log BEFORE the yield.
+                if not logged and _is_result(event):
+                    log_call(self._persona, name, args, time.monotonic() - t0,
+                             summarize_result(event), tool_use_id=tid)
+                    logged = True
                 yield event
         except Exception as e:  # log, then let the executor handle it
-            log_call(self._persona, name, args, time.monotonic() - t0,
-                     {"status": "exception", "rc": None, "message": _short(repr(e)), "moved": None},
-                     tool_use_id=(tool_use or {}).get("toolUseId"))
+            if not logged:
+                log_call(self._persona, name, args, time.monotonic() - t0,
+                         {"status": "exception", "rc": None, "message": _short(repr(e)), "moved": None},
+                         tool_use_id=tid)
+                logged = True
             raise
-        log_call(self._persona, name, args, time.monotonic() - t0, summarize_result(last),
-                 tool_use_id=(tool_use or {}).get("toolUseId"))
+        finally:
+            # Consumer closed us early (GeneratorExit) or the inner stream never yielded a result.
+            if not logged:
+                log_call(self._persona, name, args, time.monotonic() - t0,
+                         summarize_result(last), tool_use_id=tid)
 
 
 def log_call(persona: str, name: str, args: Any, duration_s: float,
