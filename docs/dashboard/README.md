@@ -1,7 +1,7 @@
 # 🌐 NEON G1 Dashboard
 
-Live glassmorphic telemetry dashboard for the Unitree G1+ — **React + TypeScript + Vite**
-frontend, **FastAPI** backend, served behind a **Cloudflare Tunnel** at
+The Unitree G1 cockpit in the Strands design language: cameras, lidar, telemetry and the agent,
+behind a passkey gate. **React + TypeScript + Vite** frontend, **FastAPI** backend, served behind a **Cloudflare Tunnel** at
 **https://neon.cagatay.my**.
 
 ```
@@ -33,11 +33,13 @@ docs/dashboard/
     ├── src/
     │   ├── App.tsx              dashboard layout
     │   ├── types.ts             telemetry/log type defs
-    │   ├── styles.css           glassmorphic neon theme
+    │   ├── styles.css           Strands design tokens (paper / dark) + every component style
+    │   ├── lib/scheme.ts        colour scheme toggle (auto / paper / dark, localStorage neon-scheme)
     │   ├── lib/useSocket.ts     auto-reconnecting WS hook
     │   ├── lib/util.ts          formatters
-    │   └── components/          BatteryCard, StateCard, PostureCard,
-    │                            SystemCard, LogFeed
+    │   └── components/          Brand (STRANDS wordmark), Icons (line icons), AuthGate,
+    │                            StateCard, PostureCard, TelemetryGraphs, CameraCard,
+    │                            LidarView, AgentDock, LogFeed, ConfigPanel, TeleopPanel
     └── dist/             built SPA (served by server.py)
 ```
 
@@ -45,11 +47,31 @@ docs/dashboard/
 
 | Card | Source | Shows |
 |---|---|---|
-| 🔋 Battery | `g1_battery` | SOC%, voltage, current, SOH, temp, cycles |
-| 🧠 Controller State | `g1_get_state` | mode (ai), FSM id+name, arm-ready, balance, heights |
-| 🤖 Posture & IMU | `g1_read_lowstate` | animated SVG robot (bends with knee angle), roll/pitch/yaw, torque |
-| 🛰️ System & SLAM | `g1_mainboard` + `g1_slam_pose` | iface, CPU temp, fans, SLAM x/y/heading |
-| 🧬 Reasoning Log | `agent_log` | live cross-persona feed (voice/telegram/shell/dispatch) |
+| Telemetry | `g1_battery` + `g1_read_lowstate` | SOC (the one green number; warn colour under 20 %), V / A / C, sparklines for voltage, current, roll, pitch, yaw, knee |
+| Controller | `g1_get_state` | mode (ai), FSM id + name, arm ready / arm locked as outlined pills |
+| Posture | `g1_read_lowstate` | SVG stick figure in ink (bends with the knee angle), posture pill, roll / pitch / yaw, torque |
+| View stage | `/api/camera/*`, `/ws/lidar` | color / depth camera tiles or the Livox point cloud (ink near, green far) |
+| Activity log (drawer) | `agent_log` | live cross-persona feed, 2px left rule per persona: voice green, telegram ink, shell muted, dispatch warn |
+| Configuration (drawer) | `/api/config/*`, `/api/auth/*` | scheme, model id, WiFi, .env (secrets masked), passkeys |
+
+## Design
+
+The cockpit follows the Strands design language (the one used by the strands-labs/robots docs):
+
+- **Tokens** live at the top of `frontend/src/styles.css` as `--sr-*` custom properties on `:root`
+  (paper: white page, black ink, green `#007a3d`) and `html[data-scheme="dark"]` (black page, white
+  ink, green `#00cc60`). Surfaces are flat: 1px borders, 8px radius, no blur, gradient or shadow.
+  The only non-green signal colour is the warn amber (`#946e00` / `#f6bc00`): battery under 20 %,
+  arm locked, offline, errors.
+- **Scheme**: `index.html` sets `data-scheme` before paint from `localStorage["neon-scheme"]` or the
+  OS preference; the Configuration drawer has an auto / paper / dark row (`lib/scheme.ts`).
+- **Type**: JetBrains Mono for labels, pills, numbers and headings; Space Grotesk for body text.
+  Both load from Google Fonts in `index.html`.
+- **Brand**: `components/Brand.tsx` renders the pixel STRANDS wordmark (fill `--sr-accent`) with the
+  `/ neon` project label; `public/neon.svg` is the Strands mark. `components/Icons.tsx` holds the
+  inline line icons (no emoji anywhere in the UI).
+- **Keyboard**: Escape closes the log and configuration drawers (`role="dialog"`); Enter sends a
+  message to the agent. axe (WCAG 2.1 AA) reports 0 violations on every view in both schemes.
 
 Every field degrades gracefully to "offline" if DDS is unreachable.
 

@@ -126,8 +126,10 @@ feed without fighting the device.
 `https://<host>:8080` (self-signed HTTPS - needed for WebAuthn). First visit
 shows **"Seal this robot with a passkey"**: tap → Touch/Face ID → the whole
 interface + agent are locked to your device. Later visits unlock with the
-passkey. The ⚙ config drawer lets you switch **model id**, edit **.env**
-(secrets masked), pick **WiFi**, and manage **passkeys** - all live.
+passkey. The Configuration drawer lets you pick the colour **scheme**, switch
+**model id**, edit **.env** (secrets masked), pick **WiFi**, and manage
+**passkeys** - all live. The UI follows the Strands design language
+(`docs/dashboard/README.md`, Design).
 
 ```bash
 make auth-status        # show enrolled passkeys / setup state
