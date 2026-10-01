@@ -1,0 +1,13 @@
+{% extends "main.html" %}
+{% block site_nav %}{% endblock %}
+{% block content %}
+  <div class="sr-404">
+    <h1>404</h1>
+    <p>Page not found. Check the URL or try the search bar.</p>
+    <div class="buttons">
+      <a href="{{ '' | url }}" class="md-button md-button--primary">Home</a>
+      <a href="{{ 'start/quickstart/' | url }}" class="md-button">Quickstart</a>
+      <a href="{{ 'tools/catalog/' | url }}" class="md-button">Tool catalog</a>
+    </div>
+  </div>
+{% endblock %}
