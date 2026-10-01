@@ -114,7 +114,7 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .viewstage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--topbar-h) + 14px) 20px 150px }
 .view-switch { display: flex; gap: 6px; margin-bottom: 12px; z-index: 20 }
 .vpill { text-transform: lowercase }
-.view-canvas { width: min(100%, 1100px); height: 100%; max-height: calc(100vh - var(--topbar-h) - 190px); border-radius: var(--sr-radius); overflow: hidden; border: 1px solid var(--sr-card-border); background: var(--sr-viewer-bg); display: flex }
+.view-canvas { position: relative; width: min(100%, 1100px); height: 100%; max-height: calc(100vh - var(--topbar-h) - 190px); border-radius: var(--sr-radius); overflow: hidden; border: 1px solid var(--sr-card-border); background: var(--sr-viewer-bg); display: flex }
 .view-canvas > * { flex: 1; min-height: 0 }
 .view-canvas .cam-grid { flex: 1; height: 100% }
 .view-canvas .cam-grid.single { grid-template-columns: 1fr }
@@ -134,7 +134,7 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 /* lidar */
 .lidar-canvas { flex: 1; min-height: 220px; border-radius: var(--sr-radius); overflow: hidden; border: 1px solid var(--sr-rule); background: var(--sr-viewer-bg) }
 .lidar-canvas canvas { display: block }
-.lidar-stat { position: absolute; top: calc(var(--topbar-h) + 72px); right: 50%; transform: translateX(min(550px, 50vw - 30px)); font: 11px var(--sr-mono); color: var(--sr-muted); display: flex; align-items: center; gap: 6px; z-index: 21; padding: 3px 8px; border-radius: 999px; background: var(--sr-bg); border: 1px solid var(--sr-pill-border) }
+.lidar-stat, .view-canvas > .lidar-stat { position: absolute; top: 10px; right: 10px; flex: none; font: 11px var(--sr-mono); color: var(--sr-muted); display: flex; align-items: center; gap: 6px; z-index: 21; padding: 3px 8px; border-radius: 999px; background: var(--sr-bg); border: 1px solid var(--sr-pill-border) }
 
 /* corner cards: flat, 1px ink border */
 .corner { position: fixed; z-index: 30; width: 236px; max-width: 42vw; background: var(--sr-card-bg); border: 1px solid var(--sr-card-border); border-radius: var(--sr-radius); padding: 12px 13px }
@@ -146,11 +146,13 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .panel-title, .card-title { font: 600 11px var(--sr-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sr-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; flex-shrink: 0 }
 .panel-title .ic, .card-title .ic { color: var(--sr-fg) }
 @media (max-width: 820px) {
+  /* phone: one scrolling column under the topbar strip (view stage, then the three cards), the dock stays fixed */
+  .stage { overflow-y: auto; padding: calc(var(--topbar-h) + 8px) 0 calc(170px + var(--safe-bot)); -webkit-overflow-scrolling: touch }
+  .viewstage { position: static; inset: auto; height: 56vh; min-height: 300px; padding: 0 8px }
+  .view-canvas { max-height: none }
   .corner { position: static; width: auto; max-width: none; margin: 8px }
-  .viewstage { padding: calc(var(--topbar-h) + 8px) 8px 150px }
-  .stage { overflow: auto }
   .corner.tl, .corner.tr-below, .corner.bl { top: auto; left: auto; right: auto; bottom: auto; width: auto }
-  .lidar-stat { display: none }
+  .teleop-full { position: static; inset: auto; padding: 0 8px 8px }
 }
 
 /* telemetry graphs */
