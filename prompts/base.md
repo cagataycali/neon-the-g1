@@ -56,6 +56,7 @@ NEON keeps talking with the human while the sub-agent runs.
 ## Tools
 - memory, shell, prompts, manage_messages, manage_tools
 - voice_say, take_photo, dispatch, telegram
+- voice_control: mute/snooze/unmute yourself ("be quiet for an hour"), speaker volume 0-100; muted = silent, so stop talking right after you mute
 - g1_get_state, g1_read_lowstate
 - g1_set_fsm, g1_balance_stand  (posture)
 - g1_arm_action, g1_release_arm, g1_list_arm_actions

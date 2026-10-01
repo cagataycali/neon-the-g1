@@ -434,6 +434,41 @@ async def config_token_refresh():
     return JSONResponse(await asyncio.to_thread(_cfg.refresh_camera_token))
 
 
+# ── voice: mute / snooze / profile (auth-gated by middleware) ─────────────
+def _voice():
+    try:
+        from docs.dashboard import voice_api as v
+    except Exception:
+        import voice_api as v      # type: ignore
+    return v
+
+
+@app.get("/api/voice/status")
+async def voice_status():
+    """muted, muted_until, remaining_s, provider/voice/model, service_active (via neon-ctl heartbeat)."""
+    return JSONResponse(await asyncio.to_thread(_voice().status))
+
+
+@app.post("/api/voice/mute")
+async def voice_mute(payload: dict | None = None):
+    """Body {"minutes": 15|60|180|null}: null or 0 = until unmuted. Mic dropped AND speaker silent."""
+    return JSONResponse(await asyncio.to_thread(_voice().mute, (payload or {}).get("minutes")))
+
+
+@app.post("/api/voice/unmute")
+async def voice_unmute():
+    return JSONResponse(await asyncio.to_thread(_voice().unmute))
+
+
+@app.post("/api/voice/profile")
+async def voice_profile(payload: dict):
+    """Body {provider?, voice?, model?, restart?=true}: writes VOICE_* to .env and restarts neon-voice via neon-ctl."""
+    v = _voice()
+    res = await asyncio.to_thread(v.set_profile, payload.get("provider"), payload.get("voice"),
+                                  payload.get("model"), bool(payload.get("restart", True)))
+    return JSONResponse(res, status_code=200 if res.get("ok") else 400)
+
+
 @app.get("/api/health")
 async def health():
     tok = _cfg.camera_token_health()

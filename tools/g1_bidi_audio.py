@@ -52,7 +52,7 @@ from strands.experimental.bidi.types.io import BidiInput, BidiOutput
 if TYPE_CHECKING:
     from strands.experimental.bidi.agent.agent import BidiAgent as BidiAgentType
 
-from tools.memory import memory
+from tools import voice_state
 from tools.voice_bridge import pop_pending, flush_stale
 from tools.agent_log import record as alog
 
@@ -80,7 +80,10 @@ STATS: dict = {
 
 # ─── Mute state ───────────────────────────────────────────────────────────
 class MuteState:
-    """Polls memory kv `voice.muted` once/second; audio callbacks read flag."""
+    """Polls the kv `voice.muted` / `voice.muted_until` once a second
+    (tools.voice_state); mic AND speaker callbacks read the flag. An elapsed
+    snooze deadline reads as unmuted and is cleared in the kv, so the
+    dashboard pill, voice_control and `make voice-status` agree."""
     def __init__(self):
         self._muted = False
         self._stop = threading.Event()
@@ -90,8 +93,10 @@ class MuteState:
     def _loop(self):
         while not self._stop.is_set():
             try:
-                v = memory(action="kv_get", key="voice.muted")
-                self._muted = isinstance(v, str) and v.strip().lower() in ("1", "true", "yes", "on")
+                was = self._muted
+                self._muted = voice_state.is_muted(clear_expired=True)
+                if was != self._muted:
+                    log.info("voice %s", "MUTED" if self._muted else "LIVE")
             except Exception:
                 pass
             self._stop.wait(MUTE_POLL_SECONDS)
@@ -479,10 +484,12 @@ class _G1SpeakerOutput(BidiOutput):
     PlayStream returns. This output handler just resamples and queues.
     """
 
-    def __init__(self, writer: G1SpeakerWriter):
+    def __init__(self, writer: G1SpeakerWriter, mute: Optional[MuteState] = None):
         self._writer = writer
+        self._mute = mute
         self._target_rate = OPENAI_RATE
         self._ratecv_state = None
+        self._was_muted = False
 
     async def start(self, agent: "BidiAgentType") -> None:
         cfg = agent.model.config["audio"]
@@ -492,6 +499,16 @@ class _G1SpeakerOutput(BidiOutput):
         pass
 
     async def __call__(self, event: BidiOutputEvent) -> None:
+        # Muted means silent: drop model audio and flush what is queued, so a
+        # "be quiet" lands mid-sentence instead of after it.
+        if self._mute is not None:
+            m = self._mute.muted
+            if m and not self._was_muted:
+                self._writer.clear()
+                self._ratecv_state = None
+            self._was_muted = m
+            if m and isinstance(event, BidiAudioStreamEvent):
+                return
         if isinstance(event, BidiAudioStreamEvent):
             pcm = base64.b64decode(event["audio"])
             if self._target_rate != G1_RATE:
@@ -627,7 +644,7 @@ class G1BidiAudioIO:
         return _MicInput(self._ap, self._ref_buf, self.mute, self._device_index)
 
     def output(self) -> _G1SpeakerOutput:
-        return _G1SpeakerOutput(self._writer)
+        return _G1SpeakerOutput(self._writer, self.mute)
 
     def log_output(self) -> _LogOutput:
         return _LogOutput()

@@ -170,10 +170,11 @@ from .manage_messages import manage_messages
 from .manage_tools import manage_tools
 from .make import make
 from .phone import phone
+from .voice_control import voice_control
 
 # Curated bundle for callers
 G1_LOOKOUT_TOOLS = [
     memory, voice_say, dispatch, telegram, take_photo,
-    prompts, manage_messages, manage_tools, make, kimodo, phone,
+    prompts, manage_messages, manage_tools, make, kimodo, phone, voice_control,
 ]
 

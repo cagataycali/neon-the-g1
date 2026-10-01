@@ -38,6 +38,7 @@ export const Ico = {
   tool: (p: P = {}) => <svg {...base(p)}><path d="M14.5 5.5a4 4 0 0 0 4 4l-9 9a2.1 2.1 0 0 1-3-3l9-9Z" /><path d="M15 6l3 3" /></svg>,
   key: (p: P = {}) => <svg {...base(p)}><circle cx="8" cy="14" r="4" /><path d="M11 11l9-9M16 6l3 3M14 8l2 2" /></svg>,
   mic: (p: P = {}) => <svg {...base(p)}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>,
+  micOff: (p: P = {}) => <svg {...base(p)}><path d="M9 9v5a3 3 0 0 0 5.1 2.1M15 10V6a3 3 0 0 0-6 0" /><path d="M5 11a7 7 0 0 0 11.6 5.2M19 11a7 7 0 0 1-.6 2.8M12 18v3M4 4l16 16" /></svg>,
   chat: (p: P = {}) => <svg {...base(p)}><path d="M4 5h16v10H9l-5 4V5Z" /><path d="M8 9h8M8 12h5" /></svg>,
   monitor: (p: P = {}) => <svg {...base(p)}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>,
   terminal: (p: P = {}) => <svg {...base(p)}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M12 15h5" /></svg>,

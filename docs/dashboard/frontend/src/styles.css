@@ -109,6 +109,14 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .brand .brand-link { display: flex; color: inherit } .brand .project { font: 600 13px var(--sr-mono); color: var(--sr-fg); white-space: nowrap }
 .hud-top-right { display: flex; align-items: center; gap: 8px; min-width: 0 }
 .conn-pill { color: var(--sr-fg) } .conn-pill.closed { border-color: var(--sr-warn); color: var(--sr-warn) }
+.mic-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--sr-pill-border); background: var(--sr-bg); color: var(--sr-fg); font: 600 11px var(--sr-mono); letter-spacing: 0.06em; cursor: pointer; transition: border-color 120ms ease, background 120ms ease }
+.mic-pill .ic svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.mic-pill.live { background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-on-accent) }
+.mic-pill.muted { border-color: var(--sr-warn); color: var(--sr-warn) }
+.mic-pill.unknown { color: var(--sr-muted) }
+.mic-pill:hover { border-color: var(--sr-fg) }
+select.gate-input { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px }
+@media (max-width: 420px) { .mic-pill .mono { display: none } .mic-pill { padding: 3px 8px } }
 @media (max-width: 420px) { .hud-top { gap: 6px } .conn-pill { padding: 3px 8px; font-size: 11px } .icon-tab, .icon-btn { width: 36px; height: 36px } }
 
 /* view stage: camera / depth / lidar */
