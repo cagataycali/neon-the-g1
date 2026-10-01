@@ -1,0 +1,41 @@
+# Core agent stack
+strands-agents
+strands-agents-tools
+strands-agents[bidi]
+strands-adb              # adb tool: control attached Android device over USB
+spotipy
+# Audio 
+pyaudio                 # mic capture
+webrtcvad               # VAD for listen_brio
+sounddevice             # optional alternative audio I/O
+pywebrtc-audio
+
+# Telegram + dispatch + memory tooling (lookout-style stack)
+requests                # tools/telegram.py uses requests for Bot API
+python-dotenv           # auto-load .env in service contexts
+
+# Vision (use_camera, yolo_vision)
+opencv-python-headless  # cv2 — `headless` variant avoids GL/Qt bloat on server
+# pyrealsense2            # RealSense D435i capture (aarch64: build from source; see README)
+ultralytics             # YOLO object detection
+
+# LiDAR + SLAM (g1_lidar, g1_slam)
+numpy
+kiss-icp                # pose estimation from LiDAR point clouds
+# open3d                  # optional: ICP relocalization (aarch64 wheel depends on Python version)
+
+# Speech / realtime models (speech tool)
+google-genai            # Gemini Live bidi
+websockets
+
+
+# unitree_sdk2py (install separately — wheel is broken, use editable clone)
+# git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2_python.git
+# pip install -e ./unitree_sdk2_python
+# (or let the Dockerfile do it)
+
+# Dashboard (docs/dashboard/server.py)
+fastapi
+uvicorn[standard]
+webauthn>=2.0
+PyJWT>=2.8

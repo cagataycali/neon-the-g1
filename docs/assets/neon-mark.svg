@@ -1,0 +1,28 @@
+<!-- Standalone "neon" mark for social / Open Graph. 512x512. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="neon">
+  <!-- warm paper backdrop -->
+  <rect width="512" height="512" rx="112" fill="#faf9f7"/>
+  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#e8e4dd" stroke-width="2"/>
+
+  <!-- terracotta chip -->
+  <rect x="146" y="120" width="220" height="220" rx="52" fill="#cc5a3a"/>
+
+  <!-- signal dot -->
+  <circle cx="316" cy="168" r="15" fill="#fff" opacity="0.92">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- lowercase 'n' in white -->
+  <text x="256" y="300" text-anchor="middle"
+        font-family="'Inter','SF Pro Display',system-ui,sans-serif"
+        font-size="180" font-weight="650" letter-spacing="-8" fill="#fff">n</text>
+
+  <!-- wordmark below -->
+  <text x="256" y="408" text-anchor="middle"
+        font-family="'Inter','SF Pro Text',system-ui,sans-serif"
+        font-size="52" font-weight="600" letter-spacing="-1.5" fill="#1c1a17">neon</text>
+  <!-- tagline -->
+  <text x="256" y="446" text-anchor="middle"
+        font-family="'JetBrains Mono',ui-monospace,monospace"
+        font-size="15" font-weight="400" letter-spacing="4" fill="#8a847a">VISION · LANGUAGE · ACTION</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="neon">
+  <rect width="32" height="32" rx="8" fill="#cc5a3a"/>
+  <!-- signal dot -->
+  <circle cx="22.5" cy="9.5" r="2" fill="#fff" opacity="0.92"/>
+  <!-- lowercase 'n' -->
+  <text x="16" y="23.5" text-anchor="middle"
+        font-family="'Inter','SF Pro Text',system-ui,sans-serif"
+        font-size="19" font-weight="650" letter-spacing="-1" fill="#fff">n</text>
+</svg>

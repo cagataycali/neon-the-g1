@@ -1,0 +1,10 @@
+[Unit]
+Description=NEON WiFi watchdog — fall back to neon_net hotspot if wlan0 drops
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+Environment=NEON_FALLBACK_SSID=neon_net
+Environment=NEON_FALLBACK_PSK=1234567890
+Environment=NEON_WIFI_IFACE=wlan0
+ExecStart=/home/unitree/neon-the-g1/scripts/wifi_watchdog.sh

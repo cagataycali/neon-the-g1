@@ -1,0 +1,12 @@
+# NEON WebXR teleop bridge (Quest 3 → G1).
+# The bridge itself only needs websockets + numpy; the IK→DDS control loop
+# reuses the unitree xr_teleoperate stack (clone it; see docs/guide/webxr-teleop.md).
+websockets>=12.0
+numpy
+# --- IK / robot control path (install on the robot) ---
+# Clone alongside this repo and add to PYTHONPATH:
+#   git clone --recurse-submodules https://github.com/unitreerobotics/xr_teleoperate
+#   pip install -r xr_teleoperate/requirements.txt
+#   pip install -e xr_teleoperate/teleop/televuer
+#   pip install -e xr_teleoperate/teleop/robot_control/dex-retargeting
+# pinocchio (IK) + meshcat + casadi come via xr_teleoperate/requirements.txt

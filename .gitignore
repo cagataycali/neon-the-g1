@@ -1,0 +1,47 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.egg-info/
+.venv/*
+site/
+captures/
+recordings/
+
+# runtime artifacts
+.yolo_detections/
+telegram_events/
+whatsapp_events/
+captures/
+*.pt
+_use_unitree_testshim.py
+unitree_sdk2_python/
+audio/
+# Local secrets (passed to docker compose via auto-loaded .env)
+.env
+.env.local
+.gitignore.local
+.autonomous/logs/
+# Runtime SQLite + downloaded TG files + per-listener logs
+.memory/
+.logs/
+
+# Backup files + secrets that should never be committed
+.env.bak.*
+spotify-creds.md
+.telegram_offset
+_robots-src/
+build/
+dist/
+.pytest_cache/
+MUJOCO_LOG.TXT
+_xr_teleoperate/
+
+# dashboard build deps (dist IS committed as deploy artifact)
+docs/dashboard/frontend/node_modules/
+docs/dashboard/frontend/*.tsbuildinfo
+docs/dashboard/frontend/vite.config.d.ts
+docs/dashboard/frontend/vite.config.js
+docs/dashboard/frontend/dist/
+
+*.bak

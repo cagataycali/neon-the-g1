@@ -1,0 +1,10 @@
+# Pin the robot's WiFi to a known IP (NetworkManager).
+# Run this ONCE on the robot while connected to the target AP.
+
+sudo nmcli connection modify "Neon" \
+  ipv4.addresses 192.168.1.175/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns "8.8.8.8 8.8.4.4" \
+  ipv4.method manual
+
+sudo nmcli connection up "Neon"

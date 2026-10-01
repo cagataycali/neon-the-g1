@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#ff2a6d"/>
+    </linearGradient>
+  </defs>
+  <!-- Minimal: the letter 'n' in a circle -->
+  <rect width="32" height="32" rx="6" fill="#0a0a12"/>
+  <text x="16" y="22" text-anchor="middle"
+        font-family="ui-monospace,monospace"
+        font-size="20" font-weight="700" letter-spacing="-1"
+        fill="url(#g)">n</text>
+</svg>

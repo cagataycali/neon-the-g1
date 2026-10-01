@@ -1,0 +1,35 @@
+[Unit]
+Description=NEON G1 — bidirectional voice listener (DJI USB mic → G1 chest speaker)
+# Order after docker so the dashboard (camera owner) has a chance to come up.
+# The listener ALSO gates on live camera frames in-process (tools/camera_ready),
+# so exact ordering isn't load-bearing — this just reduces the wait.
+After=network-online.target sound.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/neon-the-g1
+EnvironmentFile=-/home/unitree/neon-the-g1/.env
+Environment=CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
+Environment=PYTHONPATH=/home/unitree/neon-the-g1/unitree_sdk2_python
+Environment=VOICE_PROVIDER=openai
+Environment=G1_NETWORK_INTERFACE=eth0
+Environment=VOICE_MIC_NAME=DJI,MINI
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+# 🎥 in-process camera readiness gate (tools/camera_ready.wait_for_cameras):
+#   waits for dashboard to stream frames + self-heals a stale proxy token
+#   before voice comes up. Soft-caps at CAMERA_READY_TIMEOUT so boot won't hang.
+Environment=CAMERA_READY_TIMEOUT=150
+Environment=CAMERA_READY_POLL=3
+ExecStart=/home/unitree/neon-the-g1/.venv/bin/python /home/unitree/neon-the-g1/g1_speech_listener.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>NEON · WebXR Teleop — Unitree G1</title>
+<style>
+  :root { --neon:#00f0ff; --hot:#ff2a6d; --ok:#00ff88; --bg:#05070d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Inter,system-ui,-apple-system,sans-serif; background:
+         radial-gradient(1200px 800px at 70% -10%, #0a1730 0%, var(--bg) 60%); color:#e7f0ff; min-height:100vh; }
+  header { padding:22px 24px 8px; }
+  h1 { margin:0; font-size:26px; letter-spacing:.5px; }
+  h1 b { color:var(--neon); }
+  .sub { color:#7fa6c9; font-size:13px; margin-top:4px; }
+  .wrap { max-width:880px; margin:0 auto; padding:16px 20px 60px; }
+  .card { background:linear-gradient(180deg,#0e1422,#0a0f1a); border:1px solid #1a2740;
+          border-radius:16px; padding:18px 20px; margin:14px 0; box-shadow:0 8px 40px #0008; }
+  label { display:block; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#6f93b6; margin:10px 0 5px; }
+  input, select { width:100%; padding:11px 13px; background:#070b13; border:1px solid #20304d;
+          color:#dbe9ff; border-radius:10px; font-size:15px; outline:none; }
+  input:focus, select:focus { border-color:var(--neon); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  button { cursor:pointer; border:none; border-radius:12px; font-weight:700; font-size:16px;
+           padding:15px 18px; transition:.15s transform,.15s box-shadow; }
+  button:active { transform:translateY(1px) scale(.99); }
+  .enter { width:100%; background:linear-gradient(90deg,var(--neon),#19a7ff); color:#021018;
+           box-shadow:0 6px 26px #00f0ff44; margin-top:8px; }
+  .enter:disabled { filter:grayscale(.8) brightness(.7); cursor:not-allowed; box-shadow:none; }
+  .ghost { background:#0a1322; border:1px solid #20304d; color:#bfe; margin-top:8px; width:100%; }
+  .pill { display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px;
+          font-size:12px; font-weight:600; background:#0a1322; border:1px solid #1c2c47; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#39507a; }
+  .dot.on { background:var(--ok); box-shadow:0 0 10px var(--ok); }
+  .dot.err { background:var(--hot); box-shadow:0 0 10px var(--hot); }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px; }
+  .stat { background:#070b13; border:1px solid #18233b; border-radius:10px; padding:10px 12px; }
+  .stat .k { font-size:11px; color:#6f93b6; text-transform:uppercase; letter-spacing:1px; }
+  .stat .v { font-size:18px; font-variant-numeric:tabular-nums; margin-top:3px; }
+  .mono { font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .log { height:150px; overflow:auto; background:#04070d; border:1px solid #16223a; border-radius:10px;
+         padding:10px 12px; font-family:ui-monospace,monospace; font-size:12px; color:#8fb6db; white-space:pre-wrap; }
+  .hint { color:#5e7ea0; font-size:12.5px; line-height:1.5; }
+  a { color:var(--neon); }
+  .warn { background:#1a0d12; border:1px solid #4a1b2a; color:#ff9bb4; padding:10px 13px; border-radius:10px; font-size:13px; }
+  .ok { color:var(--ok); } .hot { color:var(--hot); }
+  footer { text-align:center; color:#46618a; font-size:12px; margin-top:20px; }
+  #preview { width:100%; border-radius:10px; border:1px solid #18233b; margin-top:8px; background:#000; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <h1>🤖 <b>NEON</b> · WebXR Teleop</h1>
+    <div class="sub">Drive a Unitree G1+ from your Meta Quest 3 — hands · controllers · head,
+      with the robot's <b>stereo camera in your headset</b>. VR immersive or AR passthrough.</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span class="pill"><span id="dotXR" class="dot"></span> WebXR</span>
+      <span class="pill"><span id="dotWS" class="dot"></span> Bridge</span>
+      <span class="pill"><span id="dotTrk" class="dot"></span> Tracking</span>
+      <span class="pill"><span id="dotCam" class="dot"></span> Robot cam</span>
+      <span class="pill mono" id="modePill">mode: —</span>
+    </div>
+
+    <label>Teleop bridge WebSocket URL (pose uplink)</label>
+    <input id="wsUrl" value="" placeholder="wss://192.168.123.x:8012/xr"/>
+
+    <label>Robot camera WebRTC /offer URL (video downlink — teleimager)</label>
+    <input id="rtcUrl" value="" placeholder="https://192.168.123.164:60001/offer"/>
+    <div class="hint" style="margin-top:6px">
+      Quest 3 WebXR needs <b>HTTPS + WSS</b>. Generate a cert with
+      <span class="mono">make xr-cert</span>. Pose bridge default <b>:8012</b>,
+      robot stereo camera (teleimager) default <b>:60001</b>. Leave camera URL
+      blank to teleop without video (not recommended).
+    </div>
+
+    <div class="row3">
+      <div>
+        <label>Input source</label>
+        <select id="inputMode">
+          <option value="hand">Hand tracking</option>
+          <option value="controller">Controllers</option>
+        </select>
+      </div>
+      <div>
+        <label>Display</label>
+        <select id="displayMode">
+          <option value="immersive">Immersive VR (robot view)</option>
+          <option value="ar">AR passthrough (overlay)</option>
+        </select>
+      </div>
+      <div>
+        <label>Send rate (Hz)</label>
+        <select id="rate"><option>30</option><option>45</option><option>60</option><option>90</option></select>
+      </div>
+    </div>
+
+    <button id="enterBtn" class="enter" disabled>Checking WebXR…</button>
+    <button id="camTestBtn" class="ghost">📹 Test robot camera (2D preview)</button>
+    <video id="preview" autoplay playsinline muted></video>
+    <div id="xrWarn" class="warn" style="display:none;margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="grid3">
+      <div class="stat"><div class="k">Sent</div><div class="v mono" id="sFrames">0</div></div>
+      <div class="stat"><div class="k">Send Hz</div><div class="v mono" id="sHz">0</div></div>
+      <div class="stat"><div class="k">Left pinch</div><div class="v mono" id="sLpinch">0.00</div></div>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <div class="stat"><div class="k">Right pinch</div><div class="v mono" id="sRpinch">0.00</div></div>
+      <div class="stat"><div class="k">Head y</div><div class="v mono" id="sHeadY">0.00</div></div>
+      <div class="stat"><div class="k">Cam fps</div><div class="v mono" id="sCamFps">0</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Event log</label>
+    <div id="log" class="log"></div>
+  </div>
+
+  <footer>
+    NEON · neon-the-g1 · <a href="../guide/webxr-teleop/">docs</a> ·
+    pose basis: OpenXR (y-up, z-back) · stereo via teleimager WebRTC
+  </footer>
+</div>
+
+<!-- Three.js for WebXR stereo layer rendering (per-eye robot camera planes) -->
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+/*
+ NEON WebXR Teleop client — pose UPLINK + robot-camera DOWNLINK.
+ ----------------------------------------------------------------------------
+ UPLINK: Quest hand/controller/head poses → WSS → neon.teleop.xr_bridge in the
+   Vuer-compatible format (HAND_MOVE / CONTROLLER_MOVE / CAMERA_MOVE), column-
+   major SE(3) 4x4 in OpenXR basis. The bridge feeds televuer's WORLD→robot
+   transform + xr_teleoperate IK → G1 arm DDS, unchanged.
+
+ DOWNLINK: robot binocular camera via teleimager's WebRTC /offer endpoint. We
+   pull the stereo MJPEG/H264 stream, map it onto two Three.js planes — one per
+   eye via layer masks (left=layer 1, right=layer 2), mirroring televuer's
+   ImageBackground(layers=1/2) trick — so each eye sees its half of the
+   side-by-side stereo frame. This is what makes real first-person teleop work.
+
+ DISPLAY:
+   immersive  → fully immersive VR, robot stereo fills the view (televuer parity)
+   ar         → WebAR passthrough; robot view floats as a panel in the real room
+*/
+
+const $ = (id) => document.getElementById(id);
+const logEl = $("log");
+function log(msg, cls){ const t=new Date().toLocaleTimeString();
+  logEl.innerHTML += `<span style="color:#3d6">${t}</span> ${cls?`<span class="${cls}">${msg}</span>`:msg}\n`;
+  logEl.scrollTop = logEl.scrollHeight; }
+
+$("wsUrl").value  = `wss://${location.hostname || "192.168.123.161"}:8012/xr`;
+$("rtcUrl").value = `https://${location.hostname || "192.168.123.164"}:60001/offer`;
+
+// ───────────── WebXR capability ─────────────
+const dotXR=$("dotXR"), dotWS=$("dotWS"), dotTrk=$("dotTrk"), dotCam=$("dotCam");
+const enterBtn=$("enterBtn"), xrWarn=$("xrWarn");
+let vrOK=false, arOK=false;
+if(!("xr" in navigator)){
+  xrWarn.style.display="block";
+  xrWarn.innerHTML="❌ WebXR not available. Open in the <b>Meta Quest Browser</b> over <b>HTTPS</b>.";
+  enterBtn.textContent="WebXR unavailable";
+} else {
+  Promise.all([
+    navigator.xr.isSessionSupported("immersive-vr").catch(()=>false),
+    navigator.xr.isSessionSupported("immersive-ar").catch(()=>false),
+  ]).then(([vr,ar])=>{
+    vrOK=vr; arOK=ar; dotXR.className="dot"+(vr||ar?" on":" err");
+    enterBtn.disabled=!(vr||ar);
+    enterBtn.textContent=(vr||ar)?"▶ Enter XR & Teleop":"immersive session unsupported";
+    log(`WebXR support — VR:${vr} AR:${ar}`, (vr||ar)?"ok":"hot");
+    if(!ar){ const o=[...$("displayMode").options].find(o=>o.value==="ar"); if(o) o.textContent+=" (unsupported)"; }
+  });
+}
+
+// ───────────── WebSocket pose uplink ─────────────
+let ws=null, wsOpen=false;
+function connectWS(){
+  return new Promise((resolve,reject)=>{
+    try{ ws=new WebSocket($("wsUrl").value); }catch(e){ reject(e); return; }
+    ws.onopen =()=>{ wsOpen=true; dotWS.className="dot on"; log("bridge connected","ok"); resolve(); };
+    ws.onclose=()=>{ wsOpen=false; dotWS.className="dot"; log("bridge closed"); };
+    ws.onerror=(e)=>{ dotWS.className="dot err"; log("bridge error — check URL/cert","hot"); reject(e); };
+    ws.onmessage=(m)=>{ try{ const d=JSON.parse(m.data); if(d.type==="STATE") log("state: "+JSON.stringify(d.value)); }catch{} };
+  });
+}
+function send(o){ if(wsOpen){ ws.send(JSON.stringify(o)); return true; } return false; }
+
+// ───────────── Robot camera downlink (teleimager WebRTC) ─────────────
+let pc=null, videoEl=null, camStream=null;
+function makeVideoEl(){
+  const v=document.createElement("video");
+  v.autoplay=true; v.playsInline=true; v.muted=true; v.crossOrigin="anonymous";
+  return v;
+}
+async function connectCamera(offerUrl){
+  if(!offerUrl){ log("no camera URL — teleop without video","hot"); return null; }
+  log("connecting robot camera: "+offerUrl);
+  pc=new RTCPeerConnection({sdpSemantics:"unified-plan"});
+  pc.addTransceiver("video",{direction:"recvonly"});
+  videoEl=makeVideoEl();
+  pc.addEventListener("track",(evt)=>{
+    if(evt.track.kind==="video"){ camStream=evt.streams[0]; videoEl.srcObject=camStream;
+      dotCam.className="dot on"; log("robot camera track live","ok"); }
+  });
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await new Promise((res)=>{ if(pc.iceGatheringState==="complete") return res();
+    const c=()=>{ if(pc.iceGatheringState==="complete"){ pc.removeEventListener("icegatheringstatechange",c); res(); } };
+    pc.addEventListener("icegatheringstatechange",c); setTimeout(res,2000); });
+  const resp=await fetch(offerUrl,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({sdp:pc.localDescription.sdp,type:pc.localDescription.type,codec:null})});
+  const ans=await resp.json();
+  await pc.setRemoteDescription(ans);
+  await videoEl.play().catch(()=>{});
+  return videoEl;
+}
+
+// 2D preview (debug, outside XR)
+$("camTestBtn").addEventListener("click", async ()=>{
+  try{
+    const v=await connectCamera($("rtcUrl").value);
+    if(v && v.srcObject){ const p=$("preview"); p.srcObject=v.srcObject; p.style.display="block";
+      log("preview started (2D, side-by-side stereo)","ok"); }
+  }catch(e){ log("camera test failed: "+e.message,"hot"); }
+});
+
+// ───────────── pose helpers ─────────────
+const toArr=(m)=>Array.from(m);
+const HAND_JOINTS=[
+ "wrist",
+ "thumb-metacarpal","thumb-phalanx-proximal","thumb-phalanx-distal","thumb-tip",
+ "index-finger-metacarpal","index-finger-phalanx-proximal","index-finger-phalanx-intermediate","index-finger-phalanx-distal","index-finger-tip",
+ "middle-finger-metacarpal","middle-finger-phalanx-proximal","middle-finger-phalanx-intermediate","middle-finger-phalanx-distal","middle-finger-tip",
+ "ring-finger-metacarpal","ring-finger-phalanx-proximal","ring-finger-phalanx-intermediate","ring-finger-phalanx-distal","ring-finger-tip",
+ "pinky-finger-metacarpal","pinky-finger-phalanx-proximal","pinky-finger-phalanx-intermediate","pinky-finger-phalanx-distal","pinky-finger-tip"
+];
+function pinchDistance(buf,ti,ii){ const a=ti*16,b=ii*16;
+  return Math.hypot(buf[a+12]-buf[b+12],buf[a+13]-buf[b+13],buf[a+14]-buf[b+14]); }
+
+// ───────────── Three.js scene (stereo robot view) ─────────────
+let renderer, scene, camera, leftPlane, rightPlane, videoTex;
+function buildScene(displayMode){
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(70, 1, 0.01, 100);
+  renderer=new THREE.WebGLRenderer({antialias:true, alpha:displayMode==="ar"});
+  renderer.autoClear = displayMode!=="ar";
+  if(displayMode!=="ar") scene.background=new THREE.Color(0x000000);
+  renderer.xr.enabled=true;
+  document.body.appendChild(renderer.domElement);
+
+  if(videoEl){
+    videoTex=new THREE.VideoTexture(videoEl);
+    videoTex.colorSpace=THREE.SRGBColorSpace;
+    // side-by-side stereo: left half (0..0.5) for left eye, right half (0.5..1) for right eye.
+    const geo=new THREE.PlaneGeometry(1.6,0.9);
+    // distance / size: immersive = fills view at 1m; AR = floating 1.2m panel
+    const dist = displayMode==="ar" ? -1.2 : -1.0;
+    const scale = displayMode==="ar" ? 0.9 : 1.6;
+
+    const matL=new THREE.MeshBasicMaterial({map:videoTex.clone()});
+    matL.map=videoTex; matL.map.repeat.set(0.5,1); matL.map.offset.set(0,0);
+    const matR=new THREE.MeshBasicMaterial({map:videoTex.clone()});
+    matR.map=videoTex; matR.map.repeat.set(0.5,1); matR.map.offset.set(0.5,0);
+
+    leftPlane=new THREE.Mesh(geo,matL);  leftPlane.position.set(0,0,dist); leftPlane.scale.setScalar(scale);
+    rightPlane=new THREE.Mesh(geo,matR); rightPlane.position.set(0,0,dist); rightPlane.scale.setScalar(scale);
+    // layer masks: camera.layers — left eye renders layer 1, right eye layer 2 (Three sets per-eye cams).
+    leftPlane.layers.set(1); rightPlane.layers.set(2);
+    scene.add(leftPlane); scene.add(rightPlane);
+    log("stereo planes built (L=layer1, R=layer2)","ok");
+  } else {
+    log("no video — entering with empty scene (pose uplink only)","hot");
+  }
+}
+function onResize(){ if(renderer){ renderer.setSize(window.innerWidth,window.innerHeight);
+  camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); } }
+window.addEventListener("resize",onResize);
+
+// ───────────── session + per-frame loop ─────────────
+let session=null, refSpace=null, frames=0, lastHz=performance.now(), hz=0, lastSend=0, sendMs=1000/30;
+let camFrameCount=0, lastCamHz=performance.now();
+
+enterBtn.addEventListener("click", startXR);
+
+async function startXR(){
+  const displayMode=$("displayMode").value;
+  const wantAR = displayMode==="ar";
+  if(wantAR && !arOK){ log("AR not supported on this device","hot"); return; }
+  if(!wantAR && !vrOK){ log("VR not supported on this device","hot"); return; }
+
+  const inputMode=$("inputMode").value;
+  $("modePill").textContent=`mode: ${inputMode}/${displayMode}`;
+  sendMs=1000/parseInt($("rate").value,10);
+
+  try{ await connectWS(); }catch(e){ log("bridge connect failed — aborting","hot"); return; }
+  try{ await connectCamera($("rtcUrl").value); }
+  catch(e){ log("camera connect failed (continuing without video): "+e.message,"hot"); }
+
+  buildScene(displayMode);
+
+  const sessType = wantAR ? "immersive-ar" : "immersive-vr";
+  const feats=["local-floor"]; if(inputMode==="hand") feats.push("hand-tracking");
+  if(wantAR) feats.push("local");
+  try{ session=await navigator.xr.requestSession(sessType,{optionalFeatures:feats}); }
+  catch(e){ log("requestSession failed: "+e.message,"hot"); return; }
+
+  await renderer.xr.setSession(session);
+  // make BOTH eyes see plane base layer 0 too (HUD), each eye also its stereo layer.
+  renderer.xr.getCamera().layers.enableAll?.();
+
+  dotXR.className="dot on";
+  refSpace=await session.requestReferenceSpace("local-floor").catch(()=>session.requestReferenceSpace("local"));
+  log(`XR session: ${sessType} (${inputMode}, ${$("rate").value}Hz)`,"ok");
+  session.addEventListener("end",()=>{ dotXR.className="dot"; dotTrk.className="dot";
+    if(renderer){ renderer.domElement.remove(); renderer.dispose(); renderer=null; }
+    log("XR session ended"); });
+
+  renderer.setAnimationLoop((t,frame)=> onXRFrame(t,frame));
+}
+
+function onXRFrame(t, frame){
+  if(!frame || !session) return;
+  // per-eye layer enable: Three's ArrayCamera holds 2 sub-cameras; assign layers.
+  const xrCam=renderer.xr.getCamera();
+  if(xrCam.cameras && xrCam.cameras.length===2){
+    xrCam.cameras[0].layers.enable(1);  // left eye → layer 1 plane
+    xrCam.cameras[1].layers.enable(2);  // right eye → layer 2 plane
+  }
+  if(videoTex) videoTex.needsUpdate=true;
+  renderer.render(scene, camera);
+
+  // camera fps stat
+  if(videoEl && !videoEl.paused){ camFrameCount++;
+    const now=performance.now(); if(now-lastCamHz>=1000){ $("sCamFps").textContent=camFrameCount; camFrameCount=0; lastCamHz=now; } }
+
+  const now=performance.now();
+  if(now-lastSend < sendMs) return;
+  lastSend=now;
+
+  const pose=frame.getViewerPose(refSpace);
+  const inputMode=$("inputMode").value;
+  let tracked=false;
+
+  if(pose){ send({type:"CAMERA_MOVE",value:{camera:{matrix:toArr(pose.transform.matrix)}}});
+    $("sHeadY").textContent=pose.transform.position.y.toFixed(2); }
+
+  if(inputMode==="hand"){
+    const hands={left:null,right:null}, states={left:null,right:null};
+    for(const src of session.inputSources){
+      if(!src.hand||!src.handedness) continue;
+      const buf=new Array(400).fill(0); let ok=true,j=0;
+      for(const name of HAND_JOINTS){
+        const joint=src.hand.get(name);
+        const jp=joint&&frame.getJointPose?frame.getJointPose(joint,refSpace):null;
+        if(jp){ const m=toArr(jp.transform.matrix); for(let k=0;k<16;k++) buf[j*16+k]=m[k]; } else ok=false;
+        j++;
+      }
+      const d=pinchDistance(buf,4,9), strength=Math.max(0,Math.min(1,(0.08-d)/0.06));
+      hands[src.handedness]=buf;
+      states[src.handedness]={pinch:d<0.02,pinchValue:d,squeeze:false,squeezeValue:0.0,pinchStrength:strength};
+      if(ok) tracked=true;
+    }
+    if(hands.left||hands.right){
+      send({type:"HAND_MOVE",value:{
+        left:hands.left||new Array(400).fill(0), right:hands.right||new Array(400).fill(0),
+        leftState:states.left||{pinch:false,pinchValue:0.15,squeeze:false,squeezeValue:0},
+        rightState:states.right||{pinch:false,pinchValue:0.15,squeeze:false,squeezeValue:0}}});
+      $("sLpinch").textContent=(states.left?.pinchStrength||0).toFixed(2);
+      $("sRpinch").textContent=(states.right?.pinchStrength||0).toFixed(2);
+    }
+  } else {
+    const ctrl={left:null,right:null}, states={left:null,right:null};
+    for(const src of session.inputSources){
+      if(src.hand||!src.gripSpace||!src.handedness) continue;
+      const gp=frame.getPose(src.gripSpace,refSpace); if(!gp) continue;
+      ctrl[src.handedness]=toArr(gp.transform.matrix);
+      const g=src.gamepad, btn=(i)=>g&&g.buttons[i]?{p:g.buttons[i].pressed,v:g.buttons[i].value}:{p:false,v:0};
+      const trig=btn(0),sq=btn(1),thumb=btn(3), ax=g&&g.axes.length>=4?[g.axes[2],g.axes[3]]:[0,0];
+      states[src.handedness]={trigger:trig.p,triggerValue:trig.v,squeeze:sq.p,squeezeValue:sq.v,
+        thumbstick:thumb.p,thumbstickValue:ax,aButton:btn(4).p,bButton:btn(5).p};
+      tracked=true;
+    }
+    if(ctrl.left||ctrl.right){
+      send({type:"CONTROLLER_MOVE",value:{
+        left:ctrl.left||new Array(16).fill(0), right:ctrl.right||new Array(16).fill(0),
+        leftState:states.left||{trigger:false,triggerValue:0,squeeze:false,squeezeValue:0,thumbstick:false,thumbstickValue:[0,0],aButton:false,bButton:false},
+        rightState:states.right||{trigger:false,triggerValue:0,squeeze:false,squeezeValue:0,thumbstick:false,thumbstickValue:[0,0],aButton:false,bButton:false}}});
+      $("sLpinch").textContent=(states.left?.triggerValue||0).toFixed(2);
+      $("sRpinch").textContent=(states.right?.triggerValue||0).toFixed(2);
+    }
+  }
+
+  dotTrk.className="dot"+(tracked?" on":" err");
+  frames++; hz++; $("sFrames").textContent=frames;
+  if(now-lastHz>=1000){ $("sHz").textContent=hz; hz=0; lastHz=now; }
+}
+</script>
+</body>
+</html>

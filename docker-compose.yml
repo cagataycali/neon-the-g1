@@ -1,0 +1,209 @@
+# Canonical compose file for the G1 agent on the robot (Jetson, aarch64).
+# Use the Makefile wrappers:
+#   make build       # docker compose build
+#   make up          # docker compose up -d
+#   make logs        # docker compose logs -f
+#   make exec        # docker compose exec neon-agent bash
+#   make down        # docker compose down
+#
+# For Mac dev (no robot hardware) layer the override:
+#   make up-mac
+# which runs:  docker compose -f docker-compose.yml -f docker-compose.mac.yml up
+
+services:
+  neon-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: neon
+    container_name: neon-agent
+    network_mode: host           # required for CycloneDDS multicast on eth0
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/snd:/dev/snd
+    device_cgroup_rules:
+      - 'c 81:* rmw'   # V4L2 video devices (major 81) — any node number
+      - 'c 189:* rmw'  # USB devices (major 189) — RealSense hot-replug
+    volumes:
+      - /dev:/dev              # camera nodes (/dev/video*) — numbers shift on replug
+      - ~/.aws:/root/.aws:ro
+      - /home/unitree/cyclonedds_ws:/cyclonedds:ro
+      - ./logs:/app/logs
+      - ./.memory:/app/.memory          # lookout-style stack: memory + agent_log + voice_bridge + tg_history
+      - ./telegram_events:/app/telegram_events
+      - ./whatsapp_events:/app/whatsapp_events
+      - ./tools:/app/tools   # live tools (camera dashboard-proxy fix) without rebuild
+    environment:
+      - G1_IFACE=eth0
+      - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
+      # AWS Bedrock (bearer-token preferred — STS keys optional)
+      - AWS_BEARER_TOKEN_BEDROCK
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_DEFAULT_REGION=us-west-2
+      # 🎙️ Speech (g1_speak auto-starts on agent boot)
+      - OPENAI_API_KEY
+      - NEON_NO_SPEECH
+      - VOICE_PROVIDER         # openai | nova_sonic | gemini (default: openai)
+      - VOICE_NAME             # provider-specific voice (alloy / tiffany / Kore)
+      - VOICE_MIC_NAME         # comma-sep mic name substrings (DJI,MINI,Brio) for autopick_mic
+      - VOICE_MODEL            # only for openai (gpt-realtime / gpt-realtime-mini)
+      - VOICE_NO_AEC           # 1 = disable WebRTC AEC (NOT recommended)
+      - VOICE_RESTART_DELAY    # seconds between auto-restart attempts
+      - GOOGLE_API_KEY         # gemini live
+      - GEMINI_API_KEY
+      # 📨 Telegram bot (optional)
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_ALLOWED_USERS
+      - TELEGRAM_DEFAULT_CHAT_ID
+      - TELEGRAM_HISTORY_LIMIT
+      # 🎵 Spotify
+      - SPOTIFY_CLIENT_ID
+      - SPOTIFY_CLIENT_SECRET
+      - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
+    stdin_open: true             # interactive REPL
+    tty: true
+    restart: unless-stopped
+
+  # 🌐 NEON Dashboard — FastAPI telemetry + camera + lidar + agent chat.
+  # Serves the React UI at https://<robot-ip>:8080 (self-signed) and bridges
+  # DDS state / cameras / lidar / the NEON agent to the browser.
+  neon-dashboard:
+    image: neon
+    container_name: neon-dashboard
+    depends_on:
+      - neon-agent
+    network_mode: host           # CycloneDDS multicast + reach robot DDS on eth0
+    devices:
+      - /dev/bus/usb:/dev/bus/usb   # USB cameras (RealSense + Brio)
+    device_cgroup_rules:
+      - 'c 81:* rmw'    # V4L2 video devices (major 81)
+      - 'c 189:* rmw'   # USB devices (major 189) — RealSense hot-replug
+    volumes:
+      - /dev:/dev                              # camera nodes (/dev/video*)
+      - ./docs/dashboard:/app/docs/dashboard  # dashboard backend + built frontend
+      - ./tools:/app/tools                     # live tools (camera + auth helpers)
+      - ~/.aws:/root/.aws:ro
+      - /home/unitree/cyclonedds_ws:/cyclonedds:ro
+      - ./.memory:/app/.memory                 # shared agent_log + memory + auth store
+      - ./logs:/app/logs
+      - ~/.config/xr_teleoperate:/certs:ro     # TLS cert/key for HTTPS
+    environment:
+      - G1_IFACE=eth0
+      - G1_NETWORK_INTERFACE=eth0
+      - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
+      - DASHBOARD_SSL=1
+      - DASHBOARD_CERT=/certs/cert.pem
+      - DASHBOARD_KEY=/certs/key.pem
+      - DASHBOARD_HZ=2
+      - NEON_THINK_EFFORT=high
+      - NEON_MAX_TOKENS=8192
+      - AWS_BEARER_TOKEN_BEDROCK
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_DEFAULT_REGION=us-west-2
+      - OPENAI_API_KEY
+      - GOOGLE_API_KEY
+      - GEMINI_API_KEY
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_ALLOWED_USERS
+      - TELEGRAM_DEFAULT_CHAT_ID
+    entrypoint: ["python", "docs/dashboard/server.py", "--port", "8080", "--hz", "2"]
+    restart: unless-stopped
+
+  # 🧠 NEON Slow-Thinker — background reflective heartbeat loop (every 30s).
+  # Takes a photo, does one physical action (LED/gesture), and telegrams a
+  # status caption to the operator. Shares the same image + DDS + memory as
+  # neon-agent. Reads TELEGRAM_DEFAULT_CHAT_ID to know where to send.
+  neon-thinker:
+    image: neon
+    container_name: neon-thinker
+    depends_on:
+      - neon-agent
+    network_mode: host           # CycloneDDS multicast on eth0
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - 'c 81:* rmw'
+      - 'c 189:* rmw'
+    volumes:
+      - /dev:/dev
+      - ~/.aws:/root/.aws:ro
+      - /home/unitree/cyclonedds_ws:/cyclonedds:ro
+      - ./logs:/app/logs
+      - ./.memory:/app/.memory
+      - ./telegram_events:/app/telegram_events
+      - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
+    environment:
+      - G1_IFACE=eth0
+      - G1_NETWORK_INTERFACE=eth0
+      - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
+      - THINKER_INTERVAL=30
+      - NEON_CAMERA_PROXY
+      - NEON_CAMERA_PROXY_TOKEN
+      - AWS_BEARER_TOKEN_BEDROCK
+      - AWS_DEFAULT_REGION=us-west-2
+      - OPENAI_API_KEY
+      - GOOGLE_API_KEY
+      - GEMINI_API_KEY
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_ALLOWED_USERS
+      - TELEGRAM_DEFAULT_CHAT_ID
+      - TELEGRAM_HISTORY_LIMIT
+      - SPOTIFY_CLIENT_ID
+      - SPOTIFY_CLIENT_SECRET
+      - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
+    entrypoint: ["python", "thinker_loop.py"]
+    restart: unless-stopped
+
+  # 📨 NEON Telegram listener — long-polls Telegram, spawns a fresh agent per
+  # incoming message (telegram persona), handles /slash commands, relays to
+  # the voice persona via voice_bridge. Shares memory + DDS + camera proxy
+  # with the other personas.
+  neon-telegram:
+    image: neon
+    container_name: neon-telegram
+    depends_on:
+      - neon-agent
+    network_mode: host           # CycloneDDS multicast on eth0 + reach dashboard proxy
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - 'c 81:* rmw'
+      - 'c 189:* rmw'
+    volumes:
+      - /dev:/dev
+      - ~/.aws:/root/.aws:ro
+      - /home/unitree/cyclonedds_ws:/cyclonedds:ro
+      - ./logs:/app/logs
+      - ./.memory:/app/.memory
+      - ./telegram_events:/app/telegram_events
+      - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
+    environment:
+      - G1_IFACE=eth0
+      - G1_NETWORK_INTERFACE=eth0
+      - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
+      - NEON_CAMERA_PROXY
+      - NEON_CAMERA_PROXY_TOKEN
+      - AWS_BEARER_TOKEN_BEDROCK
+      - AWS_DEFAULT_REGION=us-west-2
+      - OPENAI_API_KEY
+      - GOOGLE_API_KEY
+      - GEMINI_API_KEY
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_ALLOWED_USERS
+      - TELEGRAM_DEFAULT_CHAT_ID
+      - TELEGRAM_HISTORY_LIMIT
+      - SPOTIFY_CLIENT_ID
+      - SPOTIFY_CLIENT_SECRET
+      - SPOTIFY_REDIRECT_URI
+      # 🐙 GitHub (use_github tool)
+      - GITHUB_TOKEN
+    entrypoint: ["python", "telegram_listener.py"]
+    restart: unless-stopped
