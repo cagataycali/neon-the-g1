@@ -1,6 +1,6 @@
 # systemd
 
-<span class="read-badge">⏱ 30s</span>
+<span class="read-badge">30s</span>
 
 Run `neon` as a system service — auto-start on boot, restart on failure, alive
 without an SSH session.

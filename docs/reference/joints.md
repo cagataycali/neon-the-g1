@@ -1,6 +1,6 @@
 # joints
 
-<span class="read-badge">⏱ 60s · ref</span>
+<span class="read-badge">60s · ref</span>
 
 G1+ has **29 motor joints** plus optional **Inspire hand joints** (6 per hand).
 Every index below is confirmed against `tools/g1_joints.py` (mirrors the SDK

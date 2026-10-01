@@ -1,6 +1,6 @@
 # DDS topics
 
-<span class="read-badge">⏱ 60s · ref</span>
+<span class="read-badge">60s · ref</span>
 
 All `rt/*` topics currently discoverable on the G1 CycloneDDS domain.
 

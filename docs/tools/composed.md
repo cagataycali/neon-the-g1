@@ -1,6 +1,6 @@
 # composed (safety-gated)
 
-<span class="read-badge">⏱ 60s</span>
+<span class="read-badge">60s</span>
 
 The hand-written tools in `tools/g1_*.py` that do **more than a 1:1 SDK call** —
 FSM gating, mutex, clamps, rich returns. They exist so the agent can't foot-gun.

@@ -351,6 +351,13 @@
 .md-typeset .grid.cards .lg { color: var(--sr-accent); }
 .md-typeset .motion-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; font-family: var(--sr-mono); font-size: 0.66rem; color: var(--md-default-fg-color--light); margin: 0.6rem 0 1rem; }
 .md-typeset .motion-legend .dot { animation: none; }
+/* Safety classes: a dot before the heading and in legends. safe = green, motion = amber, danger = ink. */
+.md-typeset .dot.safe { background: var(--sr-accent); animation: none; }
+.md-typeset .dot.motion { background: var(--sr-warn); animation: none; }
+.md-typeset .dot.danger { background: var(--sr-fg); animation: none; }
+.md-typeset :is(h2, h3).safe::before, .md-typeset :is(h2, h3).motion::before, .md-typeset :is(h2, h3).danger::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; border-radius: 50%; margin-right: 0.45em; vertical-align: middle; background: var(--sr-accent); }
+.md-typeset :is(h2, h3).motion::before { background: var(--sr-warn); }
+.md-typeset :is(h2, h3).danger::before { background: var(--sr-fg); }
 
 /* Admonitions flat and outlined; the accent is the green except for warnings, which take the amber. */
 .md-typeset .admonition, .md-typeset details { border: 1px solid var(--md-default-fg-color--lightest); border-left: 3px solid var(--sr-accent); font-size: 0.72rem; }

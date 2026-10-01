@@ -1,16 +1,16 @@
 # tool catalog
 
-<span class="read-badge">⏱ 90s · 53 tools</span>
+<span class="read-badge">90s · 53 tools</span>
 
 Every `@tool` in `tools/`, grouped by safety class.
 
 <div class="motion-legend" markdown>
-<span><span class="dot" style="background:#6ee7b7"></span>safe — read-only / self-bounded</span>
-<span><span class="dot" style="background:#fbbf24"></span>motion — FSM/mutex-gated</span>
-<span><span class="dot" style="background:#c0506b"></span>danger — can fall/collapse</span>
+<span><span class="dot safe"></span>safe — read-only / self-bounded</span>
+<span><span class="dot motion"></span>motion — FSM/mutex-gated</span>
+<span><span class="dot danger"></span>danger — can fall/collapse</span>
 </div>
 
-## 🟢 state · 9
+## state / 9 { .safe }
 
 | tool | what |
 |---|---|
@@ -22,7 +22,7 @@ Every `@tool` in `tools/`, grouped by safety class.
 | `g1_pressure` | foot pressure (4× per foot) |
 | `g1_joint_reference` · `g1_joint_name` · `g1_joint_index` | joint name ⇄ index + gains |
 
-## 🟡 posture · 7
+## posture / 7 { .motion }
 
 | tool | what |
 |---|---|
@@ -32,7 +32,7 @@ Every `@tool` in `tools/`, grouped by safety class.
 | `g1_balance_stand` | re-engage balance controller |
 | `g1_safe_squat_to_stand` · `g1_safe_lie_to_stand` · `g1_safe_stand_to_squat` | Damp-preamble transitions |
 
-## 🟡 arm · 4
+## arm / 4 { .motion }
 
 Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 
@@ -43,7 +43,7 @@ Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 | `g1_list_arm_actions` | static list of 16 gestures |
 | `g1_get_arm_action_list_from_robot` | live list from controller |
 
-## 🟢 audio · 3
+## audio / 3 { .safe }
 
 | tool | what |
 |---|---|
@@ -53,7 +53,7 @@ Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 
 TTS/volume/LED → `use_unitree("audio", …)`.
 
-## 🟢 sensing · camera 2 · lidar 4 · slam 9
+## sensing / camera 2 / lidar 4 / slam 9 { .safe }
 
 | tool | what |
 |---|---|
@@ -62,7 +62,7 @@ TTS/volume/LED → `use_unitree("audio", …)`.
 | `g1_lidar_state` · `_snapshot` · `_switch` · `_stats` | Livox MID-360 |
 | `g1_slam_*` | kiss-icp: start/stop/pose/reset/accumulate/save/load/list_maps/stats |
 
-## 🔴 locomotion · 7
+## locomotion / 7 { .danger }
 
 **Robot will fall if misused. Always ask the user first.**
 
@@ -75,7 +75,7 @@ TTS/volume/LED → `use_unitree("audio", …)`.
 | `g1_wave_hand_loco` · `g1_shake_hand_loco` | walk + gesture |
 | `g1_set_task_id` | switch walking controller |
 
-## 🪆 universal · 1 + DDS · 8
+## universal / 1 + DDS / 8
 
 | tool | what |
 |---|---|

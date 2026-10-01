@@ -1,6 +1,6 @@
 # network
 
-<span class="read-badge">⏱ 45s · ref</span>
+<span class="read-badge">45s · ref</span>
 
 Where `neon`, the MCU, and your laptop all sit.
 

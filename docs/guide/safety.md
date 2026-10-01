@@ -1,6 +1,6 @@
 # safety model
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 Seven gates between a user message and a motor torque. Any one refuses → the
 motor stays idle.

@@ -1,12 +1,12 @@
 # gestures
 
-<span class="read-badge">⏱ 45s</span>
+<span class="read-badge">45s</span>
 
 Every arm gesture, dispatched through `g1_arm_action(action=...)`.
 
 <div class="motion-legend" markdown>
-<span><span class="dot" style="background:#6ee7b7"></span>auto-release</span>
-<span><span class="dot" style="background:#fbbf24"></span>needs FSM 500/501/801</span>
+<span><span class="dot safe"></span>auto-release</span>
+<span><span class="dot motion"></span>needs FSM 500/501/801</span>
 </div>
 
 | action | key | · | action | key |
@@ -24,7 +24,7 @@ from tools import g1_arm_action
 g1_arm_action(action="high wave")   # auto_release=True by default
 ```
 
-## 👋 wave, live
+## wave, live
 
 Triggered from the dashboard — `g1_arm_action('high wave')` on the real robot.
 

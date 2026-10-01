@@ -1,11 +1,11 @@
 # sensing
 
-<span class="read-badge">⏱ 60s</span>
+<span class="read-badge">60s</span>
 
 Everything `neon` uses to **see and hear**. Vision via V4L2/RealSense; audio via
 the G1's onboard AudioClient + the bidi voice agent.
 
-## 📷 use_camera
+## use_camera
 
 ```python
 use_camera(action="capture", source="realsense")
@@ -20,7 +20,7 @@ Color vs depth is chosen by **action**, not source.
 - **Logitech Brio 4K** — chest-mounted · 1920×1080
 - **any V4L2 device** — by path or index
 
-## 🖼 take_photo
+## take_photo
 
 Injects a frame straight into the **voice agent's** multimodal context (only
 inside a running bidi voice agent — see `g1_speak`).
@@ -30,14 +30,14 @@ take_photo(question="What do you see?")
 take_photo(question="What's on my whiteboard?", device=1)  # 0=RealSense 1=Brio
 ```
 
-## 🎧 audio
+## audio
 
 ```python
 g1_asr(duration_s=3.0)                    # onboard mic → text (API 1002)
 g1_play_wav(file_path="/path/clip.wav")   # 16 kHz mono PCM → chest speaker
 ```
 
-## 🎙 g1_speak — full bidi voice
+## g1_speak — full bidi voice
 
 Brio mic → AEC → bidi model → G1 chest speaker (DDS). Has the entire G1 toolset
 wired in.
@@ -54,7 +54,7 @@ g1_speak(action="stop")
     Any persona can call `voice_say("...")` (or `importance=2` for urgent
     interrupts) — picked up from a shared SQLite queue within ~2 s.
 
-## LiDAR · 4
+## LiDAR / 4
 
 Livox MID-360 on the head, via SDK.
 
@@ -65,7 +65,7 @@ Livox MID-360 on the head, via SDK.
 | `g1_lidar_switch(on=True)` | power on/off |
 | `g1_lidar_stats` | averaged over N seconds |
 
-## SLAM · 9
+## SLAM / 9
 
 kiss-icp on the LiDAR stream (standalone from Unitree's onboard SLAM).
 

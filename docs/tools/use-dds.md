@@ -1,6 +1,6 @@
 # use_dds
 
-<span class="read-badge">⏱ 60s · escape hatch</span>
+<span class="read-badge">60s · escape hatch</span>
 
 Raw DDS on any topic — for monitoring, debugging, or publishing what the SDK
 doesn't wrap.

@@ -1,6 +1,6 @@
 # FSM + error codes
 
-<span class="read-badge">⏱ 60s · ref</span>
+<span class="read-badge">60s · ref</span>
 
 Two independent switches own the robot's motors. **Both must be right** before
 anything moves.

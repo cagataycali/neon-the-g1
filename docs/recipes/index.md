@@ -1,6 +1,6 @@
 # recipes
 
-<span class="read-badge">⏱ pick one · ~60s each</span>
+<span class="read-badge">pick one · ~60s each</span>
 
 Copy-paste conversations. Type it into the agent, watch it go. Each recipe is
 **say this** → **what neon does** → **variations**.

@@ -1,8 +1,8 @@
 # quickstart
 
-<span class="read-badge">⏱ 60s to first wave</span>
+<span class="read-badge">60s to first wave</span>
 
-## 1 · clone & run
+## 1 / clone & run
 
 ```bash
 git clone https://github.com/cagataycali/neon-the-g1.git
@@ -16,7 +16,7 @@ and attaches you to the `agent.py` REPL — auto-starting bidirectional voice
 which clones the Unitree SDK (the pip wheel is broken) and exports
 `CYCLONEDDS_URI` + `PYTHONPATH`.
 
-## 2 · pick a model
+## 2 / pick a model
 
 NEON runs on a Bedrock model by default. Provide Bedrock credentials before
 `make run`:
@@ -27,7 +27,7 @@ export AWS_DEFAULT_REGION=us-west-2
 export NEON_MODEL_ID=global.anthropic.claude-opus-4-8   # override the default
 ```
 
-## 3 · talk to it
+## 3 / talk to it
 
 <div class="terminal" markdown>
 <span class="p">&gt;</span> check state
@@ -42,7 +42,7 @@ export NEON_MODEL_ID=global.anthropic.claude-opus-4-8   # override the default
 You want `arm_ready=True` and `fsm ∈ {500, 501, 801}`. If `arm_ready=False`,
 say `set fsm 500` first — the arm won't move from Damp.
 
-## 🕹 enable control (arm the G1)
+## enable control (arm the G1)
 
 Before the robot can walk, switch it to **walk/control mode** in the Unitree
 app. This hands motor control to neon over DDS.

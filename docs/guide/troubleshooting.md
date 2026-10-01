@@ -1,6 +1,6 @@
 # troubleshooting
 
-<span class="read-badge">⏱ scan by symptom</span>
+<span class="read-badge">scan by symptom</span>
 
 | symptom | rc | fix |
 |---|:-:|---|
@@ -11,7 +11,7 @@
 | walking refused | 7302 | `g1_set_fsm(501)` first |
 | SLAM/lidar silent | — | `g1_lidar_switch(on=True)` then `g1_slam_start()` |
 
-## 🔴 nothing responds (rc=3104)
+## nothing responds (rc=3104) { .danger }
 
 DDS can't reach the motor bus.
 
@@ -25,7 +25,7 @@ python3 -c "from tools import g1_get_state; print(g1_get_state())"
 
 Ping fails → Jetson on wrong network. Re-plug ethernet / check `scripts/change-ip.txt`.
 
-## 🟡 arm issues
+## arm issues { .motion }
 
 ```python
 g1_arm_action(action="high wave", auto_transition=True)   # 7404: auto-fix FSM
@@ -41,14 +41,14 @@ pgrep -fa "agent.py"
 pkill -f agent.py
 ```
 
-## 🟢 telegram not responding
+## telegram not responding { .safe }
 
 1. `docker compose logs neon-telegram` (or `make tg` output)
 2. `docker compose logs neon-telegram | grep -i telegram`
 3. Your ID/username in `TELEGRAM_ALLOWED_USERS`?
 4. Token valid? (regen via @BotFather)
 
-## 🟢 voice picks up echo / fan noise
+## voice picks up echo / fan noise { .safe }
 
 ```python
 g1_speak(action="start",
@@ -60,13 +60,13 @@ g1_speak(action="start",
 
 Driving the mic directly? `g1_asr(duration_s=3.0)` sidesteps host noise.
 
-## 🟢 slow answers
+## slow answers { .safe }
 
 - Point `NEON_MODEL_ID` at a lighter Bedrock model (e.g. a Sonnet id)
 - Too many heavy tool calls → check logs for stray vision calls
 - Context overflow → `manage_messages(action='compact')`
 
-## 🟢 "pip wheel broken"
+## "pip wheel broken" { .safe }
 
 The `unitree_sdk2_python` wheel is missing subpackages. Use the source clone:
 

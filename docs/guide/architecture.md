@@ -1,6 +1,6 @@
 # architecture
 
-<span class="read-badge">⏱ 90s</span>
+<span class="read-badge">90s</span>
 
 How `neon` fits inside the G1's runtime.
 
