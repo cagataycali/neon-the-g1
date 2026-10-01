@@ -89,7 +89,7 @@ when it moved. See [safety](../guide/safety.md).
 
 | tool | what |
 |---|---|
-| `kimodo(action, prompt, csv, confirm, on_gantry)` | NVIDIA Kimodo text-to-motion: `list` / `preview` the `motions/*.csv` clips, `generate` off-box, `play` streams joints on `rt/lowcmd`. `play` is a dry run unless `confirm=True` **and** `on_gantry=True`. |
+| `kimodo(action, prompt, csv, confirm, on_gantry)` | text-to-motion clips played on `rt/lowcmd`; dry run unless `confirm=True` **and** `on_gantry=True`. [Page](motion-gen.md). |
 
 ## universal / {{facts:universal_tools}}
 
@@ -117,9 +117,39 @@ From `tools/__init__.py`:
 | `G1_ALL_TOOLS` | {{facts:all_tools}} | everything |
 | `G1_LOOKOUT_TOOLS` | {{facts:lookout_tools}} | cross-persona: memory, voice_say, dispatch, telegram, take_photo, prompts, manage_messages, manage_tools, make, kimodo, phone, voice_control |
 
-Default: `G1_TOOLS == G1_ALL_TOOLS`. `G1_SAFE_TOOLS` is what `neon-mcp --safe`
-serves; the personas on the robot get `G1_ALL_TOOLS` (telegram, thinker) or
-the slim 27-tool voice list in `g1.build_voice_tools` (voice, shell, dashboard).
+Default: `G1_TOOLS == G1_ALL_TOOLS`.
+
+## cross-persona tools / {{facts:lookout_tools}}
+
+The tools every persona carries besides the robot ones (`G1_LOOKOUT_TOOLS`).
+
+| tool | what |
+|---|---|
+| `memory` | kv + notes in `.memory/mem.db`, shared by every persona |
+| `voice_say(text, importance)` | queue a sentence for the chest speaker from any persona |
+| `voice_control(action, minutes, level)` | the agent on its own voice: mute, snooze, unmute, status, speaker volume |
+| `take_photo(question, hires)` | a frame from the dashboard camera into the model (audio reply in voice, image block elsewhere) |
+| `telegram(action, chat_id, text)` | send messages and photos to the owner's chat |
+| `dispatch(prompt, mode, tools)` | a background sub-agent that reports back through `voice_say` |
+| `phone(action, ...)` | an ADB-connected Android phone on the robot's back: status, unlock, open, screenshot, tap, swipe; the unlock PIN comes from `PHONE_PIN` and is never spoken or written |
+| `prompts` | read, override and reset a persona's own system prompt |
+| `manage_messages` / `manage_tools` | compact own history / load extra tools at runtime |
+| `make` | run a Makefile target from inside the agent |
+| `kimodo` | [motion generation](motion-gen.md) |
+
+## who sees what
+
+`g1.py` builds three lists; every tool in them is wrapped by `tools/tool_log.py`
+so each call lands as a `tool` row in `agent_log`.
+
+| persona | list | contents |
+|---|---|---|
+| voice, REPL, dashboard chat | `build_voice_tools` | 12 cross-persona + 14 robot tools (state 2, posture 2, arm 3, locomotion 4, audio 2, `use_camera`) + Spotify, plus ADB when installed; small on purpose for realtime latency |
+| telegram, thinker | `build_tools` | 13 cross-persona + `telegram` + all {{facts:all_tools}} robot tools + GitHub / Spotify / ADB when installed |
+| `neon-mcp --safe` | `G1_SAFE_TOOLS` | {{facts:safe_tools}} robot tools, no walking, no `kimodo` |
+
+Need lidar, SLAM or DDS by voice? The prompt says so: load them on demand with
+`manage_tools`.
 
 ## dig deeper
 

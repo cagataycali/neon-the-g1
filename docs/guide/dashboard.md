@@ -79,6 +79,16 @@ Below 820 px the stage and the cards become one scrolling column under the topba
 </figure>
 </div>
 
+## from your phone
+
+The same API the cockpit uses (`/api/health`, `/api/telemetry`,
+`/api/camera/<id>/snapshot`, `POST /api/chat`) is what the tiny app reads when
+the robot is enrolled as a body in your fleet: a floating card with the camera,
+the readings and the gestures, each gesture being one prompt to the dashboard
+agent. Enrol once from the robot with a dashboard service token
+(`make service-token` mints one; `npx tiny-tech enroll --endpoint https://<host> --body neon-the-g1`)
+and the card follows the robot across networks through the tunnel.
+
 ## deploy
 
 `docker-compose.yml` bind mounts `docs/dashboard` over the image, so the container serves the host's `frontend/dist`. After a frontend change on the Jetson: `cd docs/dashboard/frontend && npm install && npm run build`, then `docker compose restart neon-dashboard`. Details and the API table live in [`docs/dashboard/README.md`](https://github.com/cagataycali/neon-the-g1/blob/main/docs/dashboard/README.md).
