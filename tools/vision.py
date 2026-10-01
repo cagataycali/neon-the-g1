@@ -148,7 +148,12 @@ def _dashboard_service_token() -> "Optional[str]":
         if _dash not in _sys.path:
             _sys.path.insert(0, _dash)
         from auth import service_token  # type: ignore
-        return service_token("voice")
+        tok = service_token("voice")
+        try:
+            from tools.camera_ready import _token_sane
+        except Exception:
+            from camera_ready import _token_sane  # type: ignore
+        return tok if tok and _token_sane(tok) else None
     except Exception:
         return None
 

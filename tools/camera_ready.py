@@ -41,13 +41,36 @@ def _log(msg: str) -> None:
     print(f"[camera_ready] {msg}", flush=True)
 
 
+CLOCK_SANE_EPOCH = 1_700_000_000  # the Jetson boots at 1970 until NTP (no RTC battery)
+
+
+def _token_sane(tok: str) -> bool:
+    """A service token minted at a 1970 boot clock decodes fine (iat=47,
+    exp 1980) but every consumer gets 401 from the middleware. The image's
+    auth.py may predate the clock guard, so check the claims here too."""
+    try:
+        import base64 as _b64
+        import json as _json
+        p = tok.split(".")[1]
+        p += "=" * (-len(p) % 4)
+        c = _json.loads(_b64.urlsafe_b64decode(p))
+        return float(c.get("iat", 0)) >= CLOCK_SANE_EPOCH and float(c.get("exp", 0)) > time.time() + 60
+    except Exception:
+        return False
+
+
 def _mint_token() -> Optional[str]:
     """Mint a fresh service JWT from the dashboard auth store.
 
     Tries in-process import first (host venv), then the dashboard container.
+    Never returns (or persists) a token minted at a 1970 clock, and does not
+    mint at all while this process's own clock is unsynced.
     """
     import sys as _sys
 
+    if time.time() < CLOCK_SANE_EPOCH:
+        _log("clock not synced yet; not minting a service token")
+        return None
     dash = str(REPO / "docs" / "dashboard")
     if dash not in _sys.path:
         _sys.path.insert(0, dash)
@@ -55,8 +78,10 @@ def _mint_token() -> Optional[str]:
         import auth  # type: ignore
 
         tok = auth.service_token("voice")
-        if tok:
+        if tok and _token_sane(tok):
             return tok
+        if tok:
+            _log("auth store returned a token minted at a 1970 clock; ignoring it")
     except Exception:
         pass
     # fallback: mint inside the dashboard container
@@ -72,7 +97,7 @@ def _mint_token() -> Optional[str]:
             capture_output=True, text=True, timeout=15,
         )
         tok = (out.stdout or "").strip()
-        return tok or None
+        return tok if tok and _token_sane(tok) else None
     except Exception:
         return None
 
@@ -131,7 +156,12 @@ def wait_for_cameras(
         _log("minted fresh service token → os.environ + .env")
     else:
         token = os.getenv(KEY, "")
-        _log("could not mint; using existing token (may be stale)")
+        if token and not _token_sane(token):
+            _log("existing token was minted at a 1970 clock; dropping it (use_camera re-mints on 401)")
+            token = ""
+            os.environ.pop(KEY, None)
+        else:
+            _log("could not mint; using existing token (may be stale)")
 
     deadline = time.time() + timeout
     while time.time() < deadline:
