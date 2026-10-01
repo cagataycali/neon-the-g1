@@ -22,7 +22,8 @@ export default function PostureCard({ ls, embedded = false }: { ls?: LowState; e
         <div className="empty">offline, no LowState</div>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <span className={badgeClass + ' posture-badge'}>{posture}</span>
+          <div className="posture-body">
             <div className="robot-wrap">
               {/* stick figure in ink; the head carries the posture colour */}
               <svg className="robot" viewBox="0 0 120 180" role="img" aria-label={`Posture ${posture}`}>
@@ -38,13 +39,10 @@ export default function PostureCard({ ls, embedded = false }: { ls?: LowState; e
                 <rect x="60" y={160 - bend} width="16" height="6" rx="3" className="ink-fill" />
               </svg>
             </div>
-            <div style={{ flex: 1 }}>
-              <span className={badgeClass}>{posture}</span>
-              <div style={{ marginTop: 12 }}>
-                <div className="metric-row"><span className="k">Avg knee</span><span className="v">{fmt(knee, 3)}</span></div>
-                <div className="metric-row"><span className="k">Max torque</span><span className="v">{fmt(ls?.max_leg_tau, 1)} Nm</span></div>
-                <div className="metric-row"><span className="k">Tick</span><span className="v">{ls?.tick ?? '--'}</span></div>
-              </div>
+            <div className="posture-metrics">
+              <div className="metric-row"><span className="k">Avg knee</span><span className="v">{fmt(knee, 3)}</span></div>
+              <div className="metric-row"><span className="k">Max torque</span><span className="v">{fmt(ls?.max_leg_tau, 1)} Nm</span></div>
+              <div className="metric-row"><span className="k">Tick</span><span className="v">{ls?.tick ?? '--'}</span></div>
             </div>
           </div>
           <div className="imu-grid">
