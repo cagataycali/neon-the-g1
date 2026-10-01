@@ -110,6 +110,8 @@ G1_DDS_TOOLS = [
     g1_dds_stats, g1_dds_publish,
 ]
 
+from .kimodo import kimodo
+
 G1_SENSING_TOOLS = (
     [use_camera, capture_camera]
     + G1_LIDAR_TOOLS + G1_SLAM_TOOLS + G1_DDS_TOOLS
@@ -128,8 +130,11 @@ G1_SAFE_TOOLS = (
     + G1_UNIVERSAL_TOOLS
 )
 
+# Kimodo text-to-motion (🚨 low-level playback; safety-gated inside the tool)
+G1_MOTION_GEN_TOOLS = [kimodo]
+
 # Everything
-G1_ALL_TOOLS = G1_SAFE_TOOLS + G1_LOCOMOTION_TOOLS
+G1_ALL_TOOLS = G1_SAFE_TOOLS + G1_LOCOMOTION_TOOLS + G1_MOTION_GEN_TOOLS
 
 # Default export
 G1_TOOLS = G1_ALL_TOOLS
@@ -164,10 +169,11 @@ from .prompts import prompts
 from .manage_messages import manage_messages
 from .manage_tools import manage_tools
 from .make import make
+from .phone import phone
 
 # Curated bundle for callers
 G1_LOOKOUT_TOOLS = [
     memory, voice_say, dispatch, telegram, take_photo,
-    prompts, manage_messages, manage_tools, make,
+    prompts, manage_messages, manage_tools, make, kimodo, phone,
 ]
 
