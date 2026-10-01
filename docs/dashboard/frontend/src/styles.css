@@ -141,7 +141,7 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .corner { position: fixed; z-index: 30; width: 236px; max-width: 42vw; background: var(--sr-card-bg); border: 1px solid var(--sr-card-border); border-radius: var(--sr-radius); padding: 12px 13px }
 .corner .panel { background: transparent; border: none; padding: 0 }
 .corner.tl { top: calc(var(--topbar-h) + 12px); left: 18px }
-.corner.tr-below { top: calc(var(--topbar-h) + 12px); right: 18px }
+.corner.tr-below { top: calc(var(--topbar-h) + 12px); right: 18px; width: 268px }
 .corner.bl { bottom: 150px; left: 18px; width: 300px }
 .panel { display: flex; flex-direction: column; min-height: 0; position: relative; overflow: hidden }
 .panel-title, .card-title { font: 600 11px var(--sr-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sr-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; flex-shrink: 0 }
@@ -190,8 +190,14 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .badges { display: flex; gap: 6px; flex-wrap: wrap }
 
 /* posture robot + imu */
-.robot-wrap { display: grid; place-items: center }
-.robot { width: 90px; height: 130px }
+/* posture card: the badge is its own row (long names like SITTING / DEEP_SQUAT wrap), the figure + metrics share the rest; nothing may widen the fixed card */
+.posture-badge { display: inline-flex; max-width: 100%; white-space: normal; text-align: left; line-height: 1.25; height: auto; margin-bottom: 10px }
+.posture-body { display: flex; gap: 12px; align-items: center; min-width: 0 }
+.posture-metrics { flex: 1; min-width: 0 }
+.posture-metrics .metric-row .k { white-space: nowrap } .posture-metrics .metric-row .v { white-space: nowrap }
+.robot-wrap { display: grid; place-items: center; flex: none }
+.robot { width: 72px; height: 104px }
+.corner > .panel, .corner .panel > * { min-width: 0; max-width: 100% }
 .robot .ink { stroke: var(--sr-fg) } .robot .ink-fill { fill: var(--sr-fg) }
 .robot .torso { fill: var(--sr-chip-bg); stroke: var(--sr-fg) }
 .robot .head { fill: var(--sr-accent) } .robot .head.warn { fill: var(--sr-warn) } .robot .head.off { fill: var(--sr-muted) }
