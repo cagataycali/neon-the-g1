@@ -9,8 +9,12 @@ copyright: "neon / vision, language, action on the edge"
 
 exclude_docs: |
   /dashboard/
+  /hooks/
   *.bak
   .docs-revamp.md
+
+hooks:
+  - docs/hooks/facts.py   # {{facts:key}} tokens derived from tools/__init__.py and g1.py
 
 extra_css:
   - stylesheets/neon.css?v=9   # bump on CSS changes to bust browser cache

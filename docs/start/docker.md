@@ -40,10 +40,10 @@ loop without the robot hardware.
 Set these in `.env` next to `docker-compose.yml` (auto-loaded by compose):
 
 ```bash
-AWS_BEARER_TOKEN_BEDROCK=...      # REPL agent (Claude Opus via Bedrock)
+AWS_BEARER_TOKEN_BEDROCK=...      # agent personas (Bedrock)
 AWS_DEFAULT_REGION=us-west-2
 OPENAI_API_KEY=sk-...             # default g1_speak voice provider
-NEON_MODEL_ID=global.anthropic.claude-opus-4-8   # override the default model
+NEON_MODEL_ID={{facts:default_model}}   # default; the dashboard rewrites this line and recreates the personas
 G1_IFACE=eth0
 CYCLONEDDS_URI=/home/unitree/cyclonedds_ws/cyclonedds.xml
 TELEGRAM_BOT_TOKEN=123:ABC        # optional listeners

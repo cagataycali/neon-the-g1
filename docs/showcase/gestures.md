@@ -2,7 +2,8 @@
 
 <span class="read-badge">45s</span>
 
-Every arm gesture, dispatched through `g1_arm_action(action=...)`.
+Every arm gesture, dispatched through `g1_arm_action(action=...)`. Fifteen
+gestures plus `release arm` (id 99), the SDK `action_map` as shipped.
 
 <div class="motion-legend" markdown>
 <span><span class="dot safe"></span>auto-release</span>

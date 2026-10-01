@@ -19,7 +19,7 @@ hide:
 
 <div class="stat-row" markdown>
 <span class="stat-pill"><span class="dot"></span> <strong>&nbsp;live on G1</strong></span>
-<span class="stat-pill"><strong>53</strong> tools</span>
+<span class="stat-pill"><strong>{{facts:all_tools}}</strong> robot tools</span>
 <span class="stat-pill"><strong>500 Hz</strong> state</span>
 <span class="stat-pill"><strong>29</strong> motors</span>
 <span class="stat-pill"><strong>0</strong> cloud hops</span>
@@ -75,7 +75,7 @@ flowchart LR
 
   subgraph G1["🤖 Unitree G1+ · Jetson Orin"]
     direction TB
-    A["🧠 neon<br/>strands · 53 tools"]
+    A["🧠 neon<br/>strands · {{facts:all_tools}} robot tools"]
     C["⚙️ MCU controllers"]
     M["🦾 motors · arms<br/>audio · LEDs"]
     S[("👁️ lidar · imu<br/>bms · camera")]
@@ -96,8 +96,8 @@ flowchart LR
 | **robot** | Unitree G1+ · 29 motors · 2 arms · Livox MID-360 lidar |
 | **compute** | Jetson Orin NX — agent runs *on the robot* |
 | **transport** | CycloneDDS over `eth0` (no ROS) |
-| **tools** | 53 — state · posture · arm · audio · lidar · SLAM · DDS · vision |
-| **models** | Bedrock (default: Claude Opus) via `NEON_MODEL_ID` |
+| **tools** | {{facts:all_tools}} robot tools (state, posture, arm, audio, lidar, SLAM, DDS, vision, motion generation) + {{facts:lookout_tools}} cross-persona tools |
+| **model** | any Bedrock model id: `NEON_MODEL_ID` (default `{{facts:default_model}}`), changed live from the dashboard |
 | **surfaces** | REPL · voice (chest speaker) · Telegram · dispatch |
 | **safety** | FSM gating · arm mutex · velocity clamps · `unsafe=True` for raw publishes |
 
@@ -111,7 +111,7 @@ flowchart LR
 
 -   :material-numeric-3-circle:{ .lg } **[Do it](recipes/index.md)** — copy-paste recipes: wave, walk, perceive, map, telegram.
 
--   :material-numeric-4-circle:{ .lg } **[Dig in](tools/catalog.md)** — 53 tools, `use_unitree`, `use_dds`, safety, architecture.
+-   :material-numeric-4-circle:{ .lg } **[Dig in](tools/catalog.md)** — {{facts:all_tools}} robot tools, `use_unitree`, `use_dds`, safety, architecture.
 
 </div>
 

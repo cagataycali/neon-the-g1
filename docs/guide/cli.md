@@ -26,7 +26,7 @@ make help                 # all targets
 # model (Bedrock by default)
 AWS_BEARER_TOKEN_BEDROCK=...
 AWS_DEFAULT_REGION=us-west-2
-NEON_MODEL_ID=global.anthropic.claude-opus-4-8   # override default
+NEON_MODEL_ID={{facts:default_model}}   # default; the dashboard can change it live
 
 # network / dds (never change on robot)
 G1_IFACE=eth0
