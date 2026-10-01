@@ -20,6 +20,7 @@ _LOCK = threading.Lock()        # serializes ask() (single agent, shared history
 _BUILD_LOCK = threading.Lock()  # guards one-time build
 _ERROR: Optional[str] = None
 _BUILDING = False
+_MODEL_ID: Optional[str] = None  # the model the live agent was built with
 _static_prompt = ""
 
 
@@ -51,7 +52,13 @@ def _build():
         # Thinking requires: temperature=1, max_tokens > budget_tokens.
         # Disable gracefully (bare string model) if creds aren't Bedrock or
         # the thinking-capable model rejects the config.
-        model = g1.MODEL_ID
+        # The model id is re-read from the environment at every build so a
+        # Configuration > model change applies on rebuild() without a restart;
+        # g1.MODEL_ID is only the import-time default.
+        model_id = os.getenv("NEON_MODEL_ID") or os.getenv("STRANDS_MODEL_ID") or g1.MODEL_ID
+        global _MODEL_ID
+        _MODEL_ID = model_id
+        model = model_id
         if os.getenv("AWS_BEARER_TOKEN_BEDROCK") or os.getenv("AWS_ACCESS_KEY_ID"):
             try:
                 from strands.models import BedrockModel
@@ -61,7 +68,7 @@ def _build():
                 # (older models used {"type":"enabled","budget_tokens":N}).
                 effort = os.getenv("NEON_THINK_EFFORT", "medium")  # low|medium|high
                 model = BedrockModel(
-                    model_id=g1.MODEL_ID,
+                    model_id=model_id,
                     max_tokens=max_tok,
                     temperature=1.0,
                     additional_request_fields={
@@ -72,7 +79,7 @@ def _build():
                 log.info(f"🧠 reasoning enabled (adaptive, effort={effort}, max_tokens={max_tok})")
             except Exception as e:
                 log.warning(f"reasoning model build failed, using plain string: {e}")
-                model = g1.MODEL_ID
+                model = model_id
 
         # Build with the STATIC base prompt (no DDS at construction); the
         # dashboard adds live-state per-turn from its cached snapshot.
@@ -127,7 +134,7 @@ def _live_block_from_cache() -> str:
 def status() -> dict:
     # Never blocks: report building state without forcing a build here.
     if _AGENT is not None:
-        return {"ready": True, "error": None,
+        return {"ready": True, "model": _MODEL_ID, "error": None,
                 "tools": len(_AGENT.tool_names),
                 "turns": len(_AGENT.messages) if hasattr(_AGENT, "messages") else 0}
     if _ERROR:
@@ -231,3 +238,22 @@ def reset() -> dict:
     if _AGENT is not None and hasattr(_AGENT, "messages"):
         _AGENT.messages.clear()
     return {"ok": True}
+
+
+def live_model() -> Optional[str]:
+    """Model id of the agent currently answering, None while building/failed."""
+    return _MODEL_ID if _AGENT is not None else None
+
+
+def rebuild() -> dict:
+    """Drop the cached agent so the next message builds a fresh one from the
+    current environment (used after Configuration > model). Conversation
+    history is lost on purpose: a new model should not inherit another
+    model's reasoning blocks."""
+    global _AGENT, _ERROR, _MODEL_ID
+    with _BUILD_LOCK:
+        _AGENT = None
+        _ERROR = None
+        _MODEL_ID = None
+    threading.Thread(target=_build, daemon=True, name="neon-chat-rebuild").start()
+    return {"ok": True, "rebuilding": True}

@@ -7,6 +7,7 @@ import LidarView from './components/LidarView'
 import TeleopPanel from './components/TeleopPanel'
 import AgentDock from './components/AgentDock'
 import LogFeed from './components/LogFeed'
+import VoiceSheet, { VoicePill, useVoiceStatus } from './components/VoiceSheet'
 import TelemetryGraphs from './components/TelemetryGraphs'
 import StateCard from './components/StateCard'
 import PostureCard from './components/PostureCard'
@@ -42,6 +43,8 @@ function Dashboard() {
   const [teleop, setTeleop] = useState(false)
   const [showLog, setShowLog] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
+  const voice = useVoiceStatus()
   const [view, setView] = useState<'color' | 'depth' | 'lidar'>('color')
   const t = telemetry
   const connLabel = conn === 'open' ? 'LIVE' : conn === 'connecting' ? 'CONNECTING' : 'OFFLINE'
@@ -54,6 +57,7 @@ function Dashboard() {
         <Brand />
         <div className="hud-top-right">
           <div className={`conn-pill ${conn}`} role="status" aria-live="polite"><span className={`dot ${conn}`} />{connLabel}</div>
+          <VoicePill st={voice.st} onClick={() => setShowVoice(true)} />
           <button className={teleop ? 'icon-tab on' : 'icon-tab'} onClick={() => setTeleop(v => !v)} aria-pressed={teleop} aria-label="Teleop" title="Teleop" data-testid="tab-teleop">{Ico.headset()}</button>
           <button className={showLog ? 'icon-tab on' : 'icon-tab'} onClick={() => setShowLog(v => !v)} aria-pressed={showLog} aria-label="Activity log" title="Activity log" data-testid="tab-log">{Ico.activity()}</button>
           <button className="icon-tab" onClick={() => setShowConfig(true)} aria-label="Configuration" title="Configuration" data-testid="tab-config">{Ico.sliders()}</button>
@@ -100,6 +104,7 @@ function Dashboard() {
         </Drawer>
       )}
       {showConfig && <ConfigPanel onClose={() => setShowConfig(false)} />}
+      {showVoice && <VoiceSheet st={voice.st} refresh={voice.refresh} onClose={() => setShowVoice(false)} />}
     </div>
   )
 }

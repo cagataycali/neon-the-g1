@@ -109,6 +109,14 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .brand .brand-link { display: flex; color: inherit } .brand .project { font: 600 13px var(--sr-mono); color: var(--sr-fg); white-space: nowrap }
 .hud-top-right { display: flex; align-items: center; gap: 8px; min-width: 0 }
 .conn-pill { color: var(--sr-fg) } .conn-pill.closed { border-color: var(--sr-warn); color: var(--sr-warn) }
+.mic-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--sr-pill-border); background: var(--sr-bg); color: var(--sr-fg); font: 600 11px var(--sr-mono); letter-spacing: 0.06em; cursor: pointer; transition: border-color 120ms ease, background 120ms ease }
+.mic-pill .ic svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.mic-pill.live { background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-on-accent) }
+.mic-pill.muted { border-color: var(--sr-warn); color: var(--sr-warn) }
+.mic-pill.unknown { color: var(--sr-muted) }
+.mic-pill:hover { border-color: var(--sr-fg) }
+select.gate-input { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px }
+@media (max-width: 420px) { .mic-pill .mono { display: none } .mic-pill { padding: 3px 8px } }
 @media (max-width: 420px) { .hud-top { gap: 6px } .conn-pill { padding: 3px 8px; font-size: 11px } .icon-tab, .icon-btn { width: 36px; height: 36px } }
 
 /* view stage: camera / depth / lidar */
@@ -294,6 +302,11 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .cfg-row { display: flex; gap: 8px }
 .cfg-row .gate-btn { flex: 1 }
 .cfg-msg { font: 12px var(--sr-mono); color: var(--sr-accent) } .cfg-msg.warn { color: var(--sr-warn) }
+.token-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--sr-rule); border-bottom: 1px solid var(--sr-rule); margin: 6px 0 }
+.token-row .cfg-msg { flex-basis: 100% }
+.cfg-msg.progress { color: var(--sr-fg); display: flex; align-items: center; gap: 8px }
+.spin { width: 10px; height: 10px; border: 1.5px solid var(--sr-rule); border-top-color: var(--sr-accent); border-radius: 50%; animation: spin 900ms linear infinite; flex: none }
+@keyframes spin { to { transform: rotate(360deg) } }
 .cfg-note { font-size: 12px; color: var(--sr-muted); line-height: 1.5 }
 .cfg-details { margin-top: 8px } .cfg-details summary { cursor: pointer; font: 500 12px var(--sr-mono); color: var(--sr-muted) }
 .cfg-details pre { margin-top: 8px; max-height: 240px; overflow: auto; font-size: 11px }

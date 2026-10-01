@@ -52,7 +52,8 @@ docs/dashboard/
 | Posture | `g1_read_lowstate` | SVG stick figure in ink (bends with the knee angle), posture pill, roll / pitch / yaw, torque |
 | View stage | `/api/camera/*`, `/ws/lidar` | color / depth camera tiles or the Livox point cloud (ink near, green far) |
 | Activity log (drawer) | `agent_log` | live cross-persona feed, 2px left rule per persona: voice green, telegram ink, shell muted, dispatch warn |
-| Configuration (drawer) | `/api/config/*`, `/api/auth/*` | scheme, model id, WiFi, .env (secrets masked), passkeys |
+| Configuration (drawer) | `/api/config/*`, `/api/auth/*` | scheme, model (live vs configured, Apply to all personas), WiFi, .env (secrets masked) + camera-proxy token health, passkeys |
+| Voice (topbar pill + drawer) | `/api/voice/*` | VOICE live / SNOOZED 42m at a glance; snooze 15m / 1h / 3h / until unmute, Unmute now, provider + voice + model with Apply (restarts the listener) |
 
 ## Design
 
@@ -112,6 +113,53 @@ survive logout and reboot.
 cd ~/neon-the-g1 && git pull
 cd docs/dashboard/frontend && npm install && npm run build && cd -
 docker compose restart neon-dashboard        # or: make dashboard (rebuilds the image too)
+```
+
+## Configuration: what applies live and what needs a restart
+
+Containers must not reach docker.sock, so anything that restarts a process goes through
+**neon-ctl**, a small host-side user service (`scripts/neon_ctl.py`, unit
+`scripts/systemd/neon-ctl.service`). The dashboard writes a request into `.memory/ctl/<id>.json`
+(the `.memory` dir is bind-mounted into every container); neon-ctl polls the dir every 2 s,
+executes ONLY its allow-list and answers in `<id>.result.json`:
+
+| op | what the host runs |
+|---|---|
+| `recreate` `{services:[...]}` | `docker compose up -d --force-recreate <svcs>` (names validated against the four neon-* services) |
+| `restart-voice` | `sudo systemctl restart neon-voice` (sudoers: `scripts/systemd/neon-ctl.sudoers`, exactly restart / status / is-active) |
+| `token-refresh` | `scripts/refresh_token.py` then recreate neon-telegram + neon-thinker |
+| `status` | heartbeat, voice unit state, listener pid |
+
+neon-ctl also clears an expired voice snooze every poll (belt and braces for the listener).
+
+- **Model** (`ModelTab`): Save writes `NEON_MODEL_ID` / `STRANDS_MODEL_ID` into `.env` (bind-mounted
+  into neon-dashboard as `/app/.env`) and rebuilds the dashboard's own chat agent at once, so the
+  next chat message runs the new model. The other personas read `MODEL_ID` at import: the tab shows
+  **Live** vs **Configured**, a `restart pending` chip with the persona names, and **Apply to N
+  personas** recreates them through neon-ctl (~20 s; the dashboard recreating itself answers 202 and
+  the UI polls `/api/health` until it is back). `docker-compose.yml` passes both variables to all four
+  services.
+- **Voice**: mute state is the kv `voice.muted` + `voice.muted_until` in `.memory/mem.db`
+  (`tools/voice_state.py`, the one reader/writer; `make voice-status` reads the same). The listener's
+  `MuteState` polls it once a second and gates BOTH the mic and the speaker (muted = silent); an
+  elapsed deadline reads as unmuted and clears itself. The voice agent carries the same switch as a
+  tool, `voice_control(action=mute|snooze|unmute|status|volume)`, so "be quiet for an hour" and
+  "louder" work by voice or from Telegram. Changing provider / voice / model writes `VOICE_*` to
+  `.env` and restarts `neon-voice` through neon-ctl.
+- **Camera proxy token**: the Jetson has no RTC battery and boots at 1970 until NTP; a service
+  token minted then is dated 1980 and the telegram / thinker personas get 401 from `/api/camera/*`.
+  `/api/health` reports `camera_proxy_token: ok|expired|missing|invalid`, the .env tab shows the chip
+  with a **Refresh token** button (neon-ctl `token-refresh`), `auth.service_token` refuses to mint
+  while the clock is unsynced and reissues a cached token minted at a 1970 clock, `tools/use_camera`
+  re-mints once on a 401/403, and `neon-voice.service` / `neon-compose.service` order themselves
+  `After=time-sync.target`.
+
+Install on the Jetson (once):
+
+```bash
+mkdir -p ~/.config/systemd/user && cp scripts/systemd/neon-ctl.service ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now neon-ctl
+sudo install -m 0440 scripts/systemd/neon-ctl.sudoers /etc/sudoers.d/neon-ctl && sudo visudo -c
 ```
 
 ## Cloudflare tunnel (one-time setup, already done)

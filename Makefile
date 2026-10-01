@@ -267,7 +267,7 @@ unmute: venv ## unmute the voice agent
 
 .PHONY: voice-status
 voice-status: venv ## show voice mute state
-	@$(PY) -c "from tools.memory import memory; v=memory(action='kv_get', key='voice.muted'); print('🔇 MUTED' if str(v).strip().lower() in ('1','true','yes','on') else '🟢 LIVE')"
+	@$(PY) -c "from tools import voice_state as v; s=v.status(); print(('🔇 MUTED' + (' for %dm' % (s['remaining_s']//60) if s['remaining_s'] else '')) if s['muted'] else '🟢 LIVE')"
 
 .PHONY: voice-push
 voice-push: venv ## push manual briefing: make voice-push MSG="hi"

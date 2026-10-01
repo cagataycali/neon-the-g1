@@ -62,6 +62,8 @@ services:
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
+      - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
       # 🎵 Spotify
       - SPOTIFY_CLIENT_ID
@@ -96,6 +98,7 @@ services:
       - /home/unitree/cyclonedds_ws:/cyclonedds:ro
       - ./.memory:/app/.memory                 # shared agent_log + memory + auth store
       - ./logs:/app/logs
+      - ./.env:/app/.env                       # the env compose loads; edited by the Configuration drawer
       - ~/.config/xr_teleoperate:/certs:ro     # TLS cert/key for HTTPS
     environment:
       - G1_IFACE=eth0
@@ -105,6 +108,7 @@ services:
       - DASHBOARD_CERT=/certs/cert.pem
       - DASHBOARD_KEY=/certs/key.pem
       - DASHBOARD_HZ=2
+      - NEON_ENV_FILE=/app/.env                # config_api writes the mounted .env (recreate applies it)
       - NEON_THINK_EFFORT=high
       - NEON_MAX_TOKENS=8192
       - AWS_BEARER_TOKEN_BEDROCK
@@ -119,6 +123,8 @@ services:
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
+      - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - STRANDS_MODEL_ID
     entrypoint: ["python", "docs/dashboard/server.py", "--port", "8080", "--hz", "2"]
     restart: unless-stopped
 
@@ -162,6 +168,8 @@ services:
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
+      - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET
@@ -210,6 +218,8 @@ services:
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
       - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
+      - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
+      - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
       - SPOTIFY_CLIENT_ID
       - SPOTIFY_CLIENT_SECRET

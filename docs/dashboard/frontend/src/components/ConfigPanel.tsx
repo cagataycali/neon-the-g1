@@ -42,26 +42,86 @@ function SchemeRow() {
   )
 }
 
+type ModelState = { configured: string; live: string | null; boot: string; pending: string[]; known: string[]; ctl: { alive: boolean; age_s: number | null } }
+
+/** Model: Live (what the dashboard agent answers with) vs Configured (.env, what a
+ *  recreated persona will run). Save applies to the dashboard at once; the other
+ *  personas need a container recreate through the host's neon-ctl ("Apply to all"). */
 function ModelTab() {
-  const [cur, setCur] = useState(''); const [known, setKnown] = useState<string[]>([])
-  const [val, setVal] = useState(''); const [msg, setMsg] = useState('')
-  useEffect(() => { authedFetch('/api/config/model').then(r => r.json()).then(d => { setCur(d.current); setVal(d.current); setKnown(d.known || []) }) }, [])
+  const [st, setSt] = useState<ModelState | null>(null)
+  const [val, setVal] = useState(''); const [msg, setMsg] = useState(''); const [warn, setWarn] = useState(false)
+  const [busy, setBusy] = useState<string>('')
+  const load = () => authedFetch('/api/config/model').then(r => r.json()).then((d: ModelState) => { setSt(d); setVal(v => v || d.configured) }).catch(() => {})
+  useEffect(() => { load() }, [])
+  const say = (m: string, w = false) => { setMsg(m); setWarn(w) }
   const save = async () => {
-    setMsg('saving')
+    say('saving')
     const r = await authedFetch('/api/config/model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model_id: val }) })
-    const d = await r.json(); setMsg(d.ok ? 'saved, restart to apply' : d.error || 'failed'); if (d.ok) setCur(val)
+    const d = await r.json()
+    if (!d.ok) { say(d.error || 'failed', true); return }
+    say(`saved; dashboard chat uses it on the next message, ${d.pending.length} personas pending`)
+    load()
   }
+  /** Recreate the pending containers and wait for the dashboard to come back on the new model. */
+  const applyAll = async () => {
+    if (!st) return
+    const services = st.pending.length ? st.pending : ['neon-agent', 'neon-telegram', 'neon-thinker', 'neon-dashboard']
+    const t0 = Date.now(); const tick = () => Math.round((Date.now() - t0) / 1000)
+    setBusy(`recreating ${services.join(', ')}`)
+    say('')
+    let r: Response
+    try {
+      r = await authedFetch('/api/config/service/restart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ services }) })
+    } catch { r = new Response(JSON.stringify({ ok: true, pending: true, self_restart: true }), { status: 202 }) }
+    const d = await r.json().catch(() => ({ ok: false, error: 'bad answer' }))
+    if (!d.ok) { setBusy(''); say(d.error || 'failed', true); return }
+    if (!d.self_restart) { setBusy(''); say(`recreated ${services.join(', ')} in ${tick()} s`); load(); return }
+    // the dashboard itself restarts: poll until it answers and reports nothing pending
+    let sawDown = false
+    for (let i = 0; i < 90; i++) {
+      await new Promise(res => setTimeout(res, 2000))
+      setBusy(`${sawDown ? 'waiting for the dashboard' : 'recreating'} ${services.length} containers (${tick()} s)`)
+      try {
+        const h = await fetch('/api/health', { cache: 'no-store' })
+        if (!h.ok) { sawDown = true; continue }
+        if (!sawDown && tick() < 6) continue
+        const m: ModelState = await authedFetch('/api/config/model').then(x => x.json())
+        setSt(m)
+        if (m.pending.length === 0) { setBusy(''); say(`live on ${m.live || m.boot} after ${tick()} s`); return }
+      } catch { sawDown = true }
+    }
+    setBusy(''); say('still not back after 180 s; check docker ps on the Jetson', true)
+  }
+  const live = st?.live || st?.boot || ''
+  const differs = !!st && st.configured !== live
+  const pending = st?.pending || []
   return (
-    <div className="cfg-section">
-      <div className="cfg-label">Active model</div>
-      <div className="cfg-current mono">{cur || '--'}</div>
+    <div className="cfg-section" aria-busy={!!busy}>
+      <div className="cfg-label">Live model <span className="cfg-note-inline">dashboard chat</span></div>
+      <div className="cfg-current mono">{live || '--'}</div>
+      {differs && (<>
+        <div className="cfg-label">Configured <span className="cfg-note-inline">.env</span></div>
+        <div className="cfg-current mono">{st!.configured}</div>
+      </>)}
+      {pending.length > 0 && (
+        <div className="badges"><span className="badge warn"><span className="ic">{Ico.alert()}</span>restart pending</span>
+          {pending.map(p => <span key={p} className="badge mono">{p.replace('neon-', '')}</span>)}</div>
+      )}
+      {st && !st.ctl.alive && <div className="badges"><span className="badge warn"><span className="ic">{Ico.alert()}</span>neon-ctl offline on the host</span></div>}
       <div className="cfg-label">Change to</div>
       <div className="cfg-chips">
-        {known.map(m => <button key={m} className={val === m ? 'cfg-chip on' : 'cfg-chip'} onClick={() => setVal(m)}>{m.split('.').pop()}</button>)}
+        {(st?.known || []).map(m => <button key={m} className={val === m ? 'cfg-chip on' : 'cfg-chip'} onClick={() => setVal(m)}>{m.split('.').pop()}</button>)}
       </div>
       <input className="gate-input mono" value={val} onChange={e => setVal(e.target.value)} placeholder="model id" aria-label="Model id" />
-      <button className="gate-btn primary" onClick={save}>Save model</button>
-      {msg && <div className="cfg-msg">{msg}</div>}
+      <div className="cfg-row">
+        <button className="gate-btn primary" onClick={save} disabled={!!busy || !val || val === st?.configured}>Save model</button>
+        <button className="gate-btn" onClick={applyAll} disabled={!!busy || !st || !st.ctl.alive} title="docker compose up -d --force-recreate on the host">
+          <span className="ic">{Ico.refresh()}</span>{pending.length ? `Apply to ${pending.length} personas` : 'Recreate all'}
+        </button>
+      </div>
+      {busy && <div className="cfg-msg progress mono" role="status"><span className="spin" aria-hidden="true" />{busy}</div>}
+      {msg && <div className={warn ? 'cfg-msg warn' : 'cfg-msg'} role="status">{msg}</div>}
+      <div className="cfg-note">Save writes NEON_MODEL_ID to .env and switches the dashboard agent at once. Apply recreates the listed containers (about 20 s); the dashboard reconnects by itself.</div>
     </div>
   )
 }
@@ -101,6 +161,45 @@ function WifiTab() {
   )
 }
 
+type TokenHealth = { state: 'ok' | 'expired' | 'missing' | 'invalid'; exp: number | null; clock_synced?: boolean }
+
+/** NEON_CAMERA_PROXY_TOKEN health. The Jetson boots at a 1970 clock until NTP; a
+ *  token minted then is dated 1980 and the telegram/thinker personas get 401 from
+ *  the camera proxy. Refresh mints on the host (neon-ctl token-refresh) and
+ *  recreates the two consumers. */
+function TokenRow({ onDone }: { onDone: () => void }) {
+  const [tok, setTok] = useState<TokenHealth | null>(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState(''); const [warn, setWarn] = useState(false)
+  const load = () => authedFetch('/api/config/token').then(r => r.json()).then(setTok).catch(() => setTok(null))
+  useEffect(() => { load() }, [])
+  const refresh = async () => {
+    setBusy(true); setMsg('minting on the host, recreating telegram + thinker'); setWarn(false)
+    try {
+      const r = await authedFetch('/api/config/token/refresh', { method: 'POST' })
+      const d = await r.json()
+      if (d.ok) { setMsg('token refreshed; telegram + thinker recreated'); onDone() } else { setMsg(d.error || 'refresh failed'); setWarn(true) }
+    } catch { setMsg('refresh failed'); setWarn(true) }
+    setBusy(false); load()
+  }
+  if (!tok) return null
+  const ok = tok.state === 'ok'
+  const expTxt = tok.exp ? new Date(tok.exp * 1000).toISOString().slice(0, 10) : ''
+  return (
+    <div className="token-row">
+      <span className="cfg-label">Camera proxy token</span>
+      <span className={ok ? 'badge ok mono' : 'badge warn mono'}>
+        <span className="ic">{ok ? Ico.check() : Ico.alert()}</span>
+        {tok.state}{expTxt ? ` exp ${expTxt}` : ''}
+      </span>
+      {!ok && <span className="cfg-note-inline">telegram and thinker cannot read the cameras</span>}
+      <button className={ok ? 'gate-btn ghost' : 'gate-btn primary'} onClick={refresh} disabled={busy || tok.clock_synced === false}>
+        {busy ? <span className="spin" aria-hidden /> : null}Refresh token
+      </button>
+      {tok.clock_synced === false && <span className="cfg-note-inline">clock not synced yet</span>}
+      {msg && <div className={warn ? 'cfg-msg warn' : busy ? 'cfg-msg progress' : 'cfg-msg'} role="status">{msg}</div>}
+    </div>
+  )
+}
+
 function EnvTab() {
   const [vars, setVars] = useState<any[]>([]); const [path, setPath] = useState(''); const [edits, setEdits] = useState<Record<string, string>>({})
   const [msg, setMsg] = useState(''); const [example, setExample] = useState('')
@@ -115,6 +214,7 @@ function EnvTab() {
   return (
     <div className="cfg-section">
       <div className="cfg-label">Environment <span className="cfg-note-inline mono">{path}</span></div>
+      <TokenRow onDone={load} />
       <div className="env-list">
         {vars.map(v => (
           <div className="env-row" key={v.key}>

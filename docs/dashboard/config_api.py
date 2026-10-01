@@ -18,8 +18,13 @@ must stay on 192.168.123.0/24.
 
 Model
 -----
-The model id lives in the env as STRANDS_MODEL_ID (and NEON_MODEL_ID).
-Changing it rewrites the env; the agent picks it up on next (re)build.
+The model id lives in the env as NEON_MODEL_ID (and STRANDS_MODEL_ID).
+set_model rewrites the env, applies it to the dashboard's own agent at once
+(chat_agent.rebuild) and reports the personas that still need a container
+recreate; restart_services asks the host's neon-ctl (scripts/neon_ctl.py) to
+do that through the .memory/ctl channel. In the container ENV_FILE is the
+bind-mounted repo .env (NEON_ENV_FILE=/app/.env in docker-compose.yml), the
+file compose itself loads, so a recreate picks the change up.
 """
 from __future__ import annotations
 
@@ -42,6 +47,17 @@ KNOWN_MODELS = [
     "global.anthropic.claude-opus-4-8",
     "global.anthropic.claude-sonnet-4-5",
 ]
+
+
+def _mod(name: str):
+    """Import a sibling dashboard module the same way server.py does, so
+    config_api and server share ONE module instance (chat_agent keeps the
+    live agent in module globals; two copies would disagree)."""
+    import importlib
+    try:
+        return importlib.import_module(f"docs.dashboard.{name}")
+    except Exception:
+        return importlib.import_module(name)
 
 
 # ── .env parsing (order-preserving) ───────────────────────────────────
@@ -128,19 +144,117 @@ def set_env(updates: Dict[str, str]) -> Dict[str, Any]:
 
 
 # ── model id ──────────────────────────────────────────────────────────
-def get_model() -> Dict[str, Any]:
+PERSONAS = ["neon-agent", "neon-telegram", "neon-thinker", "neon-dashboard"]
+
+
+def configured_model() -> str:
     env = _parse(_read_env_lines())
-    current = env.get("STRANDS_MODEL_ID") or env.get("NEON_MODEL_ID") or os.getenv("NEON_MODEL_ID", "global.anthropic.claude-opus-4-8")
-    return {"current": current, "known": KNOWN_MODELS}
+    return (env.get("NEON_MODEL_ID") or env.get("STRANDS_MODEL_ID")
+            or os.getenv("NEON_MODEL_ID") or os.getenv("STRANDS_MODEL_ID")
+            or "global.anthropic.claude-opus-4-8")
+
+
+def get_model() -> Dict[str, Any]:
+    """configured = what .env says (what a recreated persona will run);
+    live = what the dashboard's own agent is answering with right now;
+    boot = what this container started with (what the other personas run
+    until they are recreated). pending lists the personas whose process
+    still carries a different model than .env."""
+    chat_agent = _mod("chat_agent")
+    configured = configured_model()
+    live = chat_agent.live_model()
+    boot = _BOOT_MODEL
+    pending = [p for p in PERSONAS if p != "neon-dashboard"] if boot != configured else []
+    if live is not None and live != configured:
+        pending = pending + ["neon-dashboard"]
+    return {"current": configured, "configured": configured, "live": live, "boot": boot,
+            "pending": pending, "known": KNOWN_MODELS, "ctl": _ctl().heartbeat()}
+
+
+_BOOT_MODEL = os.getenv("NEON_MODEL_ID") or os.getenv("STRANDS_MODEL_ID") or "global.anthropic.claude-opus-4-8"
+_MODEL_RX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,199}$")
+
+
+def _ctl():
+    return _mod("ctl")
 
 
 def set_model(model_id: str) -> Dict[str, Any]:
+    """Write the model to .env, apply it to the dashboard's own agent now
+    (rebuild on the next message), and report which personas still need a
+    recreate (POST /api/config/service/restart with their names)."""
     model_id = (model_id or "").strip()
     if not model_id:
         return {"ok": False, "error": "empty model_id"}
+    if not _MODEL_RX.match(model_id):
+        return {"ok": False, "error": "model id may only contain letters, digits and . _ : / -"}
     set_env({"STRANDS_MODEL_ID": model_id, "NEON_MODEL_ID": model_id})
-    return {"ok": True, "model": model_id,
-            "note": "restart the dashboard service (or the agent rebuilds) to apply"}
+    os.environ["NEON_MODEL_ID"] = model_id
+    os.environ["STRANDS_MODEL_ID"] = model_id
+    _mod("chat_agent").rebuild()
+    pending = [p for p in PERSONAS if p != "neon-dashboard"]
+    return {"ok": True, "model": model_id, "applied": ["neon-dashboard"], "pending": pending,
+            "note": "dashboard chat uses the new model on its next message; "
+                    "the other personas apply it when recreated"}
+
+
+def restart_services(services: List[str]) -> Dict[str, Any]:
+    """Recreate persona containers through neon-ctl. When the dashboard is
+    in the list the result can never be read (this process dies), so the
+    request is fire-and-forget and the UI polls /api/health."""
+    services = [str(s) for s in (services or [])]
+    ctl = _ctl()
+    err = ctl.validate("recreate", services)
+    if err:
+        return {"ok": False, "error": err}
+    if "neon-dashboard" in services:
+        # recreate the others first so their result is visible, then ourselves
+        others = [s for s in services if s != "neon-dashboard"]
+        first = ctl.request_ctl("recreate", others, wait_s=120) if others else {"ok": True}
+        if not first.get("ok"):
+            return first
+        own = ctl.request_ctl("recreate", ["neon-dashboard"], wait_s=0)
+        return {"ok": True, "pending": True, "self_restart": True, "services": services,
+                "others": first, "id": own.get("id"),
+                "message": "recreating; poll /api/health until it answers again"}
+    return ctl.request_ctl("recreate", services, wait_s=120)
+
+
+# ── camera proxy token health (NEON_CAMERA_PROXY_TOKEN) ───────────────
+def _jwt_exp(token: str) -> float | None:
+    """exp claim of a JWT WITHOUT verifying it (health display only)."""
+    import base64
+    import json
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        return float(json.loads(base64.urlsafe_b64decode(payload)).get("exp", 0)) or None
+    except Exception:
+        return None
+
+
+def camera_token_health() -> Dict[str, Any]:
+    """ok | expired | missing | invalid for the token in .env. 'expired'
+    includes the 1980-dated tokens minted at a 1970 boot clock."""
+    import time
+    env = _parse(_read_env_lines())
+    tok = env.get("NEON_CAMERA_PROXY_TOKEN") or os.getenv("NEON_CAMERA_PROXY_TOKEN", "")
+    if not tok:
+        return {"state": "missing", "exp": None}
+    exp = _jwt_exp(tok)
+    if exp is None:
+        return {"state": "invalid", "exp": None}
+    state = "ok" if exp > time.time() + 60 else "expired"
+    return {"state": state, "exp": exp, "clock_synced": time.time() > 1_700_000_000}
+
+
+def refresh_camera_token() -> Dict[str, Any]:
+    """Mint a fresh token on the host (scripts/refresh_token.py via neon-ctl)
+    and recreate the two consumers. Refused while the clock is unsynced."""
+    import time
+    if time.time() < 1_700_000_000:
+        return {"ok": False, "error": "clock not synced yet; a token minted now would be dated 1970"}
+    return _ctl().request_ctl("token-refresh", wait_s=150)
 
 
 # ── wifi (nmcli) ──────────────────────────────────────────────────────

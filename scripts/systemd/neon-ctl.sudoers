@@ -1,0 +1,3 @@
+# /etc/sudoers.d/neon-ctl  (install: sudo install -m 0440 scripts/systemd/neon-ctl.sudoers /etc/sudoers.d/neon-ctl && sudo visudo -c)
+# neon-ctl runs as unitree and may restart or inspect ONLY the voice listener unit.
+unitree ALL=(root) NOPASSWD: /bin/systemctl restart neon-voice, /bin/systemctl status neon-voice, /bin/systemctl is-active neon-voice

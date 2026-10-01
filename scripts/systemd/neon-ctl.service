@@ -1,0 +1,16 @@
+[Unit]
+Description=NEON G1 - host control channel for the dashboard (.memory/ctl: recreate / restart-voice / token-refresh)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/unitree/neon-the-g1
+ExecStart=/usr/bin/python3 /home/unitree/neon-the-g1/scripts/neon_ctl.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

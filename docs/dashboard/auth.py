@@ -438,6 +438,21 @@ def finish_authentication(request: Request, challenge_id: str, credential: dict)
     return {"ok": True, "token": token, "credential_id": cred_id}
 
 
+CLOCK_SANE_EPOCH = 1_700_000_000  # 2023-11; the Jetson boots at 1970 until NTP
+
+
+def clock_synced() -> bool:
+    """False while the wall clock still reads the 1970 boot default (no RTC battery)."""
+    return time.time() > CLOCK_SANE_EPOCH
+
+
+def _token_claims(tok: str) -> dict:
+    try:
+        return jwt.decode(tok, _jwt_secret(), algorithms=["HS256"], options={"verify_exp": False})
+    except Exception:
+        return {}
+
+
 def service_token(name: str = "service") -> str:
     """Return a long-lived JWT for internal service-to-service calls
     (e.g. the thinker fetching camera frames from the dashboard). Stable
@@ -445,17 +460,24 @@ def service_token(name: str = "service") -> str:
 
     This lets trusted co-located processes bypass the interactive passkey
     flow while still riding the same signed-JWT auth the middleware checks.
+
+    A cached token is reused only while it verifies AND is not expired AND
+    was not minted at a 1970 clock (iat before CLOCK_SANE_EPOCH); such a
+    token decodes fine but every consumer gets 401 from the middleware.
+    Minting refuses while the clock is unsynced, so the 1980-dated token
+    cannot be produced again.
     """
     store = _load()
     toks = store.setdefault("service_tokens", {})
     if name in toks:
-        # validate still-decodable (secret unchanged); else reissue
-        try:
-            jwt.decode(toks[name], _jwt_secret(), algorithms=["HS256"],
-                       options={"verify_exp": False})
+        claims = _token_claims(toks[name])
+        if claims and float(claims.get("iat", 0)) >= CLOCK_SANE_EPOCH \
+                and float(claims.get("exp", 0)) > time.time() + 60:
             return toks[name]
-        except Exception:
-            pass
+    if not clock_synced():
+        raise RuntimeError(
+            "refusing to mint a service token: the clock is not synced yet "
+            f"(time.time()={int(time.time())}); wait for time-sync.target")
     now = int(time.time())
     payload = {"sub": f"service:{name}", "name": name, "iat": now,
                "exp": now + 3650 * 86400}  # ~10y
