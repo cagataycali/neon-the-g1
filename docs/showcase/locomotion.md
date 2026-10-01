@@ -2,8 +2,11 @@
 
 <span class="read-badge">45s</span>
 
-Walking, turning, posture — **the dangerous stuff**. Every command needs
-explicit user approval in the agent loop.
+Walking, turning, posture — **the dangerous stuff**. The user's explicit
+request is the consent: NEON looks first (`take_photo`), walks if the path is
+clear, otherwise says the specific reason. Every walk and turn measures its
+own displacement on `rt/odommodestate` and reports `moved=true/false`; the
+model may only say "done" when the tool says it moved.
 
 !!! danger "Robot can fall"
     Clear floor, operator within reach, ~500 ms stop latency. See [safety](../guide/safety.md).
@@ -60,13 +63,11 @@ sequenceDiagram
     participant L as 🚶 LocoClient
 
     U->>A: "walk forward 30 cm"
-    A->>A: g1_get_state() · check fsm · battery
-    A-->>U: confirm? (approval gate)
-    U->>A: "yes"
-    A->>F: g1_set_fsm(501)
-    F-->>A: fsm=501 ready
-    A->>L: Move(0.2,0,0) 1.5s → stop
-    A-->>U: ✅ walked · fsm=501
+    A->>A: take_photo("path clear for 0.3 m?") · fsm=501?
+    A-->>U: "walking forward thirty centimetres"
+    A->>L: SetVelocity(0.2,0,0) 1.5s
+    A->>A: odometry before/after → moved=true, 0.28 m
+    A-->>U: ✅ moved 0.28 m
 ```
 
 
