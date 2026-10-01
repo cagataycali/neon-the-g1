@@ -48,6 +48,7 @@ nav:
       - use_unitree (universal): tools/use-unitree.md
       - use_dds (generic pub/sub): tools/use-dds.md
       - Sensing: tools/sensing.md
+      - Motion generation: tools/motion-gen.md
   - Guide:
       - Safety model: guide/safety.md
       - Architecture: guide/architecture.md

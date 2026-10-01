@@ -24,8 +24,11 @@ def g1_mytool(param: int = 0, network_interface: str = "eth0") -> dict:
             "content": [{"text": f"MyMethod rc={decode_code(rc)}"}]}
 ```
 
-Then in `tools/__init__.py`: `from .g1_mytool import g1_mytool` → append to the
-right bundle → `python3.11 -m pytest tests/` (verifies ToolResult shape + import sanity).
+Then in `tools/__init__.py`: `from .g1_mytool import g1_mytool`, append it to the
+right bundle (the catalog counts follow at the next docs build) and run
+`python3 -m pytest tests/` (ToolResult shape, import sanity). Every tool handed
+to an agent is wrapped by `tools/tool_log.py`, so your calls appear in the
+activity log without any code of yours.
 
 ## a universal SDK call
 
@@ -39,47 +42,40 @@ Only make a composed tool if it needs FSM gating, mutex, or rich parsing.
 
 ## a sensor (no DDS)
 
-```python
-@tool
-def my_sensor(action: str = "read") -> dict:
-    """What it reads."""
-    data = _do_read()
-    return {"status": "success", "content": [{"text": f"{len(data)} samples"}, {"json": data}]}
-```
+Same shape without `ensure_dds`; return `{"text": ...}` and `{"json": data}`
+content blocks and register it in `G1_SENSING_TOOLS`.
 
-Register in `G1_SENSING_TOOLS`.
+## a persona
 
-## a listener
+`g1.py` is the one place: a prompt builder next to `_telegram_prompt`, a tool
+list from `build_tools` or `build_voice_tools`, and a `NEON_PERSONA` name so
+its calls are attributed in `agent_log`. `telegram_listener.py` is the
+smallest example (one agent per incoming message).
 
-```bash
-export TELEGRAM_BOT_TOKEN=... TELEGRAM_ALLOWED_USERS=12345
-make tg          # or: docker compose up neon-telegram
-```
-
-`telegram_listener.py` reads these and spawns a telegram-persona agent per
-incoming message.
-
-## an MCP server
+## an MCP client
 
 ```bash
-devduck --mcp                                   # stdio (Claude Desktop)
-# or consume external servers:
-export MCP_SERVERS='{"mcpServers":{"x":{"command":"uvx","args":["some-mcp"]}}}'
+uvx --from neon-the-g1 neon-mcp --safe          # stdio for Claude Code / Desktop, no walking
+neon-mcp --http --port 8022                      # HTTP, several clients
+neon-mcp --no-robot                              # cross-persona stack only, no DDS
 ```
 
-All its tools appear in neon automatically.
+`neon/mcp.py` serves the toolset over the Model Context Protocol. Without
+`--safe` a remote client can walk the robot; read [safety](safety.md) first.
 
 ## a doc page
 
 1. `docs/section/page.md` (open with a `<span class="read-badge">…</span>`)
-2. add to `nav:` in `mkdocs.yml`
-3. `python3.11 -m mkdocs serve` to preview
+2. add to `nav:` in `mkdocs.yml`; numbers come from `{{facts:...}}` tokens
+   (`docs/hooks/facts.py`), never typed
+3. `pip install -r requirements-docs.txt && mkdocs build --strict` (CI runs the
+   same on push to `main` and deploys to Pages)
 
 Match the tone: **minimalist, dense, specific. No fluff.**
 
 ## contribute
 
-Fork → branch → `python3.11 -m pytest tests/` green → Conventional Commits
+Fork → branch → `python3 -m pytest tests/` green → Conventional Commits
 (`feat:`/`fix:`/`docs:`) → PR. Non-trivial? Open an issue first.
 
 
