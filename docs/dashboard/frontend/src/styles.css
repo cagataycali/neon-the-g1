@@ -57,7 +57,8 @@ a { color: var(--sr-accent) }
 .txt-muted { color: var(--sr-muted) } .txt-green, .ok { color: var(--sr-accent) } .txt-warn, .bad { color: var(--sr-warn) }
 /* legacy colour classes kept for any caller: they resolve to ink or the one warn colour, never to cyan or pink */
 .txt-cyan { color: var(--sr-fg) }
-.empty { color: var(--sr-muted); font: 12px var(--sr-mono); text-align: center; padding: 16px 0 }
+/* muted text that can sit on the chip or viewer surface uses the deeper grey (5.3:1 on #f4f4f4) */
+.empty { color: var(--sr-ink-3); font: 12px var(--sr-mono); text-align: center; padding: 16px 0 }
 
 /* icons: 24x24 line icons stroked with currentColor (components/Icons.tsx) */
 .ic { display: inline-flex; width: 14px; height: 14px; flex: none; vertical-align: -2px }
@@ -237,7 +238,7 @@ button.pill:hover:not(:disabled), .vpill:hover:not(:disabled), .ctab:hover:not(:
 .term .code { border: 0; border-radius: 0 }
 .iframe-wrap { display: flex; flex-direction: column; gap: 10px }
 .teleop-iframe { width: 100%; aspect-ratio: 9/13; border: 1px solid var(--sr-rule); border-radius: var(--sr-radius); background: var(--sr-viewer-bg) }
-.iframe-note { font-size: 12px; color: var(--sr-muted); line-height: 1.5 } .iframe-note a { word-break: break-all }
+.iframe-note { font-size: 12px; color: var(--sr-ink-3); line-height: 1.5 } .iframe-note a { word-break: break-all }
 
 /* agent dock: floating message stream + fixed composer */
 .agent-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; pointer-events: none }

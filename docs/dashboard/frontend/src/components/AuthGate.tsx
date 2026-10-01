@@ -44,7 +44,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const blocked = busy || !!insecure || !!badRp
 
   return (
-    <div className="gate" data-testid="auth-gate">
+    <main className="gate" data-testid="auth-gate">
       <div className="gate-card">
         <Brand />
         <h1 className="gate-title">{setup ? 'Seal this robot with a passkey' : 'Sign in to the G1 cockpit'}</h1>
@@ -87,6 +87,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           <span>passkeys only, no passwords</span>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -61,7 +61,7 @@ function Dashboard() {
       </header>
 
       {teleop ? (
-        <div className="teleop-full"><TeleopPanel /></div>
+        <main className="teleop-full" aria-label="Teleop"><TeleopPanel /></main>
       ) : (
         <>
           {/* center: camera / depth / lidar stage */}

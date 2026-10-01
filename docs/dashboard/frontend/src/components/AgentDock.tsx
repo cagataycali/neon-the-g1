@@ -57,7 +57,7 @@ export default function AgentDock() {
   const CHIPS = ['What do you see?', 'Wave at me', 'Battery?', 'Stand up']
 
   return (
-    <div className="agent-dock">
+    <section className="agent-dock" aria-label="Agent">
       {/* messages float above the composer, fading up the page */}
       <div className="msg-stream">
         {msgs.slice(-8).map((m, i, arr) => (
@@ -87,7 +87,7 @@ export default function AgentDock() {
           <button className="composer-send" onClick={send} disabled={busy || ready === false} aria-label="Send" title="Send (Enter)">{Ico.send()}</button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 
