@@ -105,9 +105,13 @@ survive logout and reboot.
 
 ### Rebuild + redeploy after frontend changes
 
+`docker-compose.yml` mounts `./docs/dashboard` over the image, so the container serves the
+**host's** `frontend/dist`. Build it on the Jetson, then restart the container:
+
 ```bash
-cd docs/dashboard/frontend && nvm use 20 && npm run build
-systemctl --user restart neon-dashboard
+cd ~/neon-the-g1 && git pull
+cd docs/dashboard/frontend && npm install && npm run build && cd -
+docker compose restart neon-dashboard        # or: make dashboard (rebuilds the image too)
 ```
 
 ## Cloudflare tunnel (one-time setup, already done)
