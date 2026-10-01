@@ -13,6 +13,7 @@ EVERY persona shares:
 """
 from __future__ import annotations
 import os
+import sys
 from datetime import datetime
 from typing import Iterable, Optional
 
@@ -58,8 +59,14 @@ adb_recorder = _try_import("strands_adb",                "recorder")   # 📱 sc
 
 
 # canonical tool list
-def build_tools(include_telegram: bool = True, include_robot: bool = True) -> list:
-    """Single source of truth for what tools NEON exposes."""
+def build_tools(include_telegram: bool = True, include_robot: bool = True,
+                persona: Optional[str] = None) -> list:
+    """Single source of truth for what tools NEON exposes.
+
+    Every tool is wrapped by :mod:`tools.tool_log` so each call lands in the
+    journal and in agent_log (role="tool") under ``persona`` (default: the
+    NEON_PERSONA env var, else "shell").
+    """
     t = [
         memory, shell, environment, image_reader,
         prompts, manage_messages, manage_tools_tool, make,
@@ -73,19 +80,32 @@ def build_tools(include_telegram: bool = True, include_robot: bool = True) -> li
     for extra in (use_github, use_spotify, adb_tool, adb_recorder):
         if extra is not None:
             t.append(extra)
-    return t
+    return _logged(t, persona)
 
 
 
 
 # slim voice toolset (latency-critical for OpenAI Realtime)
 # 22 tools instead of 69 → faster session config + faster tool picks.
-def build_voice_tools() -> list:
+def _logged(tools: list, persona: Optional[str]) -> list:
+    """Wrap a tool list for call logging (see tools/tool_log.py)."""
+    from tools.tool_log import wrap_tools
+    return wrap_tools(tools, persona or os.getenv("NEON_PERSONA", "shell"))
+
+
+def build_voice_tools(persona: Optional[str] = None) -> list:
     """Slim tool list for the bidi voice agent — minimizes OpenAI Realtime
     session config bytes and reduces first-token latency.
 
     NEON can still load extra tools at runtime via `manage_tools`.
+    Every tool is wrapped for call logging (journal + agent_log role="tool")
+    under ``persona`` (default: NEON_PERSONA env, else "dashboard" when the
+    dashboard's chat_agent imports us, else "voice").
     """
+    if persona is None:
+        persona = os.getenv("NEON_PERSONA") or (
+            "dashboard" if "chat_agent" in sys.modules or "docs.dashboard.chat_agent" in sys.modules
+            else "voice")
     from tools.g1_state import g1_get_state, g1_read_lowstate
     from tools.g1_posture import g1_set_fsm, g1_balance_stand
     from tools.g1_arm import g1_arm_action, g1_release_arm, g1_list_arm_actions
@@ -121,7 +141,7 @@ def build_voice_tools() -> list:
         tools.append(adb_tool)
     if adb_recorder is not None:
         tools.append(adb_recorder)
-    return tools
+    return _logged(tools, persona)
 
 
 # shared mission preamble
@@ -504,7 +524,7 @@ def build_shell_agent() -> Agent:
     """
     return Agent(
         model=MODEL_ID,
-        tools=build_voice_tools(),
+        tools=build_voice_tools(persona="shell"),
         system_prompt=_shell_prompt(),
     )
 
@@ -533,7 +553,7 @@ def build_agent(
 
     return Agent(
         model=MODEL_ID,
-        tools=build_tools(include_telegram=True, include_robot=True),
+        tools=build_tools(include_telegram=True, include_robot=True, persona=persona),
         system_prompt=prompt,
     )
 
@@ -638,7 +658,7 @@ def build_voice_agent(
     model = _build_bidi_model(provider, voice)
     _patch_session_config(model, vad_threshold, silence_duration_ms)
 
-    tools = build_voice_tools() + [stop_conversation]
+    tools = build_voice_tools(persona="voice") + [stop_conversation]
     agent = BidiAgent(model=model, tools=tools, system_prompt=_voice_prompt())
 
     audio_io = G1BidiAudioIO(
