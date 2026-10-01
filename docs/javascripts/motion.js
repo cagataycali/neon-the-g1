@@ -3,7 +3,8 @@
  *   - the content column fades in after an instant-navigation swap (never on the first paint),
  *   - the landing's stat pills count up once when they scroll into view,
  *   - the "On this page" bar travels to the active entry,
- *   - the theme toggle cross-fades through the View Transitions API where the browser has it.
+ *   - the theme toggle cross-fades through the View Transitions API where the browser has it,
+ *   - and, not a motion, the instant-navigation progress bar gets an accessible name.
  * Everything here is skipped under prefers-reduced-motion, and every hook re-runs on Material's
  * document$ so it survives instant navigation. No fetches, no layout reads in a loop, no timers
  * that outlive their element.
@@ -74,7 +75,12 @@
     }, true);
   }
 
-  function run() { enter(); countUp(); tocBar(); themeFade(); }
+  function names() {
+    // Material's instant-navigation progress bar is a nameless progressbar (axe aria-progressbar-name).
+    for (const bar of document.querySelectorAll(".md-progress:not([aria-label])")) bar.setAttribute("aria-label", "Loading");
+  }
+
+  function run() { enter(); countUp(); tocBar(); themeFade(); names(); }
   if (window.document$?.subscribe) window.document$.subscribe(run);
   else if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
   else run();

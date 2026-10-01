@@ -17,7 +17,7 @@ extra_css:
 
 extra_javascript:
   # mermaid fences are rendered by Material itself (pre.mermaid), themed by the --md-mermaid-* tokens in neon.css
-  - javascripts/motion.js?v=1
+  - javascripts/motion.js?v=2
 
 nav:
   - Home: index.md

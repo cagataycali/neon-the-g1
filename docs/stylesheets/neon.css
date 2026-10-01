@@ -90,7 +90,7 @@
   --md-code-hl-color: rgba(0, 204, 96, 0.16);
   --md-code-hl-keyword-color: #f97583; --md-code-hl-operator-color: #f97583; --md-code-hl-string-color: #9ecbff;
   --md-code-hl-function-color: #b392f0; --md-code-hl-number-color: #79b8ff; --md-code-hl-constant-color: #79b8ff;
-  --md-code-hl-special-color: #ffab70; --md-code-hl-generic-color: #85e89d; --md-code-hl-comment-color: #6a737d;
+  --md-code-hl-special-color: #ffab70; --md-code-hl-generic-color: #85e89d; --md-code-hl-comment-color: #8b949e; /* GitHub Dark comment grey lifted to 4.6:1 on #24292e */
   --md-code-hl-name-color: var(--md-code-fg-color); --md-code-hl-variable-color: var(--md-code-fg-color); --md-code-hl-punctuation-color: var(--md-code-fg-color);
   --md-typeset-color: #b6b6b6;
   --md-typeset-kbd-color: var(--sr-charcoal-1);
@@ -360,11 +360,12 @@
 .md-typeset :is(h2, h3).danger::before { background: var(--sr-fg); }
 
 /* Admonitions flat and outlined; the accent is the green except for warnings, which take the amber. */
-.md-typeset .admonition, .md-typeset details { border: 1px solid var(--md-default-fg-color--lightest); border-left: 3px solid var(--sr-accent); font-size: 0.72rem; }
-.md-typeset .admonition-title, .md-typeset summary { background: var(--sr-chip-bg); font-family: var(--sr-mono); font-weight: 600; }
-.md-typeset .admonition-title::before, .md-typeset summary::before, .md-typeset summary::after { background-color: var(--sr-accent); }
-.md-typeset :is(.admonition, details):is(.warning, .danger, .failure, .bug, .caution, .attention) { border-left-color: var(--sr-warn); }
-.md-typeset :is(.warning, .danger, .failure, .bug, .caution, .attention) > :is(.admonition-title, summary)::before { background-color: var(--sr-warn); }
+/* [class] lifts these to the specificity of Material's per-type rules (.admonition.note, .note > .admonition-title), so every type reads the same. */
+.md-typeset :is(.admonition, details)[class] { border: 1px solid var(--md-default-fg-color--lightest); border-left: 3px solid var(--sr-accent); font-size: 0.72rem; }
+.md-typeset [class] > :is(.admonition-title, summary) { background: var(--sr-chip-bg); font-family: var(--sr-mono); font-weight: 600; }
+.md-typeset [class] > :is(.admonition-title, summary)::before, .md-typeset [class] > summary::after { background-color: var(--sr-accent); }
+.md-typeset :is(.admonition, details):is(.warning, .danger, .failure, .bug, .caution, .attention)[class] { border-left-color: var(--sr-warn); }
+.md-typeset :is(.warning, .danger, .failure, .bug, .caution, .attention)[class] > :is(.admonition-title, summary)::before { background-color: var(--sr-warn); }
 
 /* Media, mermaid, tables, misc chrome. */
 .md-typeset img, .md-typeset video { border: 1px solid var(--md-default-fg-color--lightest); border-radius: var(--sr-radius); }
