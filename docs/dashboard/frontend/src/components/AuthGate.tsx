@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { fetchStatus, register, login, getToken, clearToken, type AuthStatus } from '../lib/auth'
+import { Brand } from './Brand'
+import { Ico } from './Icons'
 
+/** The Gate: the first thing a team mate sees. Register / login / clearToken semantics are unchanged. */
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus | null>(null)
   const [authed, setAuthed] = useState<boolean>(!!getToken())
@@ -17,9 +20,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('neon-auth-expired', onExpired)
   }, [])
 
-  // auth disabled entirely → pass through
+  // auth disabled entirely -> pass through
   if (status && status.enabled === false) return <>{children}</>
-  // already have a session token → render app (server 401 will bounce back)
+  // already have a session token -> render app (server 401 will bounce back)
   if (authed && status && !status.setup_required) return <>{children}</>
 
   const doRegister = async () => {
@@ -38,39 +41,41 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const setup = status?.setup_required
   const insecure = status && status.secure_context === false
   const badRp = status && status.rpid_usable === false
+  const blocked = busy || !!insecure || !!badRp
 
   return (
-    <div className="gate">
+    <main className="gate" data-testid="auth-gate">
       <div className="gate-card">
-        <div className="gate-mark">N</div>
-        <h1 className="gate-title">NEON<span>·</span>G1</h1>
-        <p className="gate-sub">
-          {setup ? 'Seal this robot with a passkey' : 'Unlock with your passkey'}
-        </p>
+        <Brand />
+        <h1 className="gate-title">{setup ? 'Seal this robot with a passkey' : 'Sign in to the G1 cockpit'}</h1>
+        <p className="gate-sub">The Unitree G1 cockpit: cameras, lidar, telemetry and the agent.</p>
 
         {(insecure || badRp) && (
-          <div className="gate-warn">{status?.warning || 'This origin can’t run passkeys. Open over HTTPS with a hostname.'}</div>
+          <div className="gate-warn" role="alert"><span className="ic">{Ico.alert()}</span><span>{status?.warning || 'This origin cannot run passkeys. Open over HTTPS with a hostname.'}</span></div>
         )}
-        {err && <div className="gate-err">{err}</div>}
+        {err && <div className="gate-err" role="alert"><span className="ic">{Ico.alert()}</span><span>{err}</span></div>}
 
         {setup ? (
           <>
             {status?.bootstrap_required && (
-              <input className="gate-input" type="password" placeholder="bootstrap token"
-                value={bootstrap} onChange={(e) => setBootstrap(e.target.value)} />
+              <>
+                <label className="lbl" htmlFor="gate-bootstrap">Bootstrap token</label>
+                <input id="gate-bootstrap" className="gate-input mono" type="password" placeholder="from NEON_AUTH_BOOTSTRAP_TOKEN in .env" autoComplete="off"
+                  value={bootstrap} onChange={(e) => setBootstrap(e.target.value)} />
+              </>
             )}
-            <button className="gate-btn primary" onClick={doRegister} disabled={busy || !!insecure || !!badRp}>
-              {busy ? 'creating…' : '🔑 Create admin passkey'}
+            <button className="gate-btn primary" onClick={doRegister} disabled={blocked} aria-busy={busy}>
+              <span className="ic">{Ico.key()}</span>{busy ? 'creating' : 'Create the admin passkey'}
             </button>
             <p className="gate-note">
-              The private key never leaves your device (Touch ID / Face ID / security key).
-              After this, the whole interface is sealed.
+              The private key never leaves your device (Touch ID, Face ID or a security key).
+              After this, the whole interface is sealed; more passkeys are added in Configuration.
             </p>
           </>
         ) : (
           <>
-            <button className="gate-btn primary" onClick={doLogin} disabled={busy || !!insecure || !!badRp}>
-              {busy ? 'verifying…' : '🔓 Unlock with passkey'}
+            <button className="gate-btn primary" onClick={doLogin} disabled={blocked} aria-busy={busy}>
+              <span className="ic">{Ico.key()}</span>{busy ? 'verifying' : 'Continue with passkey'}
             </button>
             <button className="gate-btn ghost" onClick={() => { clearToken(); refresh() }}>
               use a different device
@@ -78,9 +83,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           </>
         )}
         <div className="gate-foot">
-          {status?.rp_id && <span>rp: {status.rp_id}</span>}
+          <span>{status?.rp_id ? `rp ${status.rp_id}` : ''}</span>
+          <span>passkeys only, no passwords</span>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,5 +1,6 @@
 import type { LogEntry, LogStats } from '../types'
 import { ago } from '../lib/util'
+import { Ico } from './Icons'
 
 export default function LogFeed({ log, stats, embedded = false }: { log: LogEntry[]; stats: LogStats; embedded?: boolean }) {
   const rev = [...log].reverse()
@@ -18,7 +19,7 @@ export default function LogFeed({ log, stats, embedded = false }: { log: LogEntr
             <div className="log-meta">
               <span className="log-persona">{e.persona}</span>
               <span className="log-role">{e.role}</span>
-              <span className="log-ts">{ago(e.ts)}</span>
+              <time className="log-ts" dateTime={e.ts}>{ago(e.ts)}</time>
             </div>
             <div className="log-text">{e.text}</div>
           </div>
@@ -27,5 +28,5 @@ export default function LogFeed({ log, stats, embedded = false }: { log: LogEntr
     </>
   )
   if (embedded) return body
-  return <div className="card span-8"><div className="card-title"><span className="ic">🧬</span> Cross-Persona Reasoning Log</div>{body}</div>
+  return <div className="card span-8"><div className="card-title"><span className="ic">{Ico.activity()}</span> Cross-persona reasoning log</div>{body}</div>
 }

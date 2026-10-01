@@ -1,5 +1,6 @@
 import type { G1State, LowState } from '../types'
 import { isErr, fmt } from '../lib/util'
+import { Ico } from './Icons'
 
 const ARM_READY_MM = new Set([5, 6])
 
@@ -22,12 +23,12 @@ export default function StateCard({ s, ls, embedded = false }: { s?: G1State; ls
         {degraded && <span className="badge warn">LowState</span>}
       </div>
       <div className="metric" style={{ marginTop: 10 }}>
-        <span className="val txt-cyan">{stateOff ? mm : (fsm ?? '—')}</span>
+        <span className="val">{stateOff ? mm : (fsm ?? '--')}</span>
         <span className="unit">{stateOff ? 'mode_machine' : (s?.fsm_name ?? 'unknown')}</span>
       </div>
       {!stateOff && (
         <div style={{ marginTop: 10 }}>
-          <div className="metric-row"><span className="k">FSM mode</span><span className="v">{s?.fsm_mode ?? '—'}</span></div>
+          <div className="metric-row"><span className="k">FSM mode</span><span className="v">{s?.fsm_mode ?? '--'}</span></div>
           <div className="metric-row"><span className="k">Stand h</span><span className="v">{fmt(s?.stand_height, 3)}</span></div>
         </div>
       )}
@@ -36,9 +37,9 @@ export default function StateCard({ s, ls, embedded = false }: { s?: G1State; ls
 
   if (embedded) return (
     <div className="panel">
-      <div className="panel-title"><span className="ic">🧠</span> Controller</div>
+      <div className="panel-title"><span className="ic">{Ico.cpu()}</span> Controller</div>
       {body}
     </div>
   )
-  return <div className="card span-4"><div className="card-title"><span className="ic">🧠</span> Controller State</div>{body}</div>
+  return <div className="card span-4"><div className="card-title"><span className="ic">{Ico.cpu()}</span> Controller state</div>{body}</div>
 }

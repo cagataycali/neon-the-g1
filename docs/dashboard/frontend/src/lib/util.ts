@@ -2,10 +2,10 @@ export const isErr = (s?: { status?: string }) =>
   !s || s.status === 'error' || s.status === 'unavailable'
 
 export const fmt = (n: number | null | undefined, d = 1) =>
-  n === null || n === undefined || Number.isNaN(n) ? '—' : n.toFixed(d)
+  n === null || n === undefined || Number.isNaN(n) ? '--' : n.toFixed(d)
 
 export const deg = (rad?: number) =>
-  rad === undefined || rad === null ? '—' : (rad * 180 / Math.PI).toFixed(0)
+  rad === undefined || rad === null ? '--' : (rad * 180 / Math.PI).toFixed(0)
 
 export const ago = (ts: string) => {
   const t = new Date(ts.replace(' ', 'T') + 'Z').getTime()
