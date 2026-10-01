@@ -2,7 +2,7 @@
 
 <span class="read-badge">90s</span>
 
-Teleoperate the G1 **straight from the Quest 3 browser** — no APK, no sideload.
+Teleoperate the G1 **straight from the Quest 3 browser**: no APK, no sideload.
 A WebXR page tracks your hands/controllers/head and streams poses to a bridge on
 the robot, which runs IK and publishes to the arm controller over DDS.
 
@@ -15,7 +15,7 @@ the robot, which runs IK and publishes to the arm controller over DDS.
 ```mermaid
 flowchart LR
     Q["Quest 3 browser<br/>native WebXR"]
-      -- "WSS · Vuer-format<br/>column-major SE(3) 4×4" --> B
+      -- "WSS, Vuer-format<br/>column-major SE(3) 4×4" --> B
     subgraph ROBOT["G1 / Jetson"]
         B["xr_bridge<br/>WSS :8012 + HTTPS :8013"] --> PS["WebXRPoseSource"]
         PS --> TV["televuer wrapper"] --> IK["xr_teleoperate IK"] --> DDS["ArmController → DDS"]
@@ -39,7 +39,7 @@ consumes, so the upstream transform and IK run unchanged over our WSS transport.
 
 The page pulls the G1's binocular head cam over WebRTC from Unitree's
 **teleimager** (`/offer`, port `60001`, side-by-side stereo 480×1280) and renders
-each half to one eye — stereo parallax for free.
+each half to one eye, stereo parallax for free.
 
 | mode | you see |
 |---|---|
@@ -73,7 +73,7 @@ python -m neon.teleop.xr_bridge --input-mode controller --motion --network-inter
 ## on the Quest
 
 1. Quest Browser → `https://<robot-ip>:8013/`, accept the cert once.
-2. Pick input (hand/controller) + send rate (30–90 Hz).
+2. Pick input (hand/controller) + send rate (30-90 Hz).
 3. **Enter XR & Teleop**, grant tracking.
 4. Wrist poses drive the arms; **pinch** (hands) / **trigger** (controllers) = gripper.
 
@@ -85,8 +85,8 @@ decoded by `WebXRPoseSource` into the surface `televuer.TeleVuer` exposes.
 ## safety
 
 - Control loop starts only after the first valid motion frame.
-- Arm speed ramps gradually — no jump on connect.
-- **No walking by default** — opt-in (`--motion`), clamped ±0.3, right-**A = stop**.
+- Arm speed ramps gradually, no jump on connect.
+- **No walking by default**: opt-in (`--motion`), clamped ±0.3, right-**A = stop**.
 - FSM gating + arm mutex + battery refusal inherited from the DDS layer.
 - Keep clear. Have an e-stop ready.
 

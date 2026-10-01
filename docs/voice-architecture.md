@@ -2,7 +2,7 @@
 
 <span class="read-badge">2min</span>
 
-NEON's bidi voice loop is a realtime architecture — with one twist: audio out goes to the **G1 chest speaker via
+NEON's bidi voice loop is a realtime architecture, with one twist: audio out goes to the **G1 chest speaker via
 DDS** (`AudioClient.PlayStream`), not a PortAudio device.
 
 ## signal chain
@@ -22,7 +22,7 @@ USB mic (16k mono; DJI receiver or Brio, auto-picked by VOICE_MIC_NAME)  → raw
 ```
 
 !!! warning "Critical timing"
-    `ref_buf` is fed **post-PlayStream**, in the writer thread — not at enqueue
+    `ref_buf` is fed **post-PlayStream**, in the writer thread, not at enqueue
     time. The speaker is async-queued, so feeding the AEC reference on enqueue
     would misalign it by a variable amount (queue depth). Feeding it right after
     `PlayStream()` returns makes `stream_delay_ms=120` a *constant* delay.

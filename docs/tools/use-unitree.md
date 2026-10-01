@@ -1,6 +1,6 @@
 # use_unitree
 
-<span class="read-badge">60s · universal</span>
+<span class="read-badge">60s, universal</span>
 
 One tool. The whole SDK.
 
@@ -9,7 +9,7 @@ use_unitree(service_name="loco", operation_name="StandUp", parameters={})
 ```
 
 Inspired by `use_aws`. **AST-verified** against the local `unitree_sdk2_python/`
-clone at import time — hallucinated calls are caught before they touch DDS.
+clone at import time, hallucinated calls are caught before they touch DDS.
 
 ## services
 

@@ -7,20 +7,20 @@ motor stays idle; the eighth makes the robot tell the truth about what happened.
 
 ```mermaid
 flowchart TD
-  U(["📨 message"]) --> L1["① allowlist"]
+  U(["message"]) --> L1["① allowlist"]
   L1 --> L2["② model plan"]
   L2 --> L3{"③ tool class?"}
-  L3 -->|"🟢 read-only"| OK1(["✅"])
-  L3 -->|"🟡 motion"| L4["④ FSM check"]
-  L4 -->|"wrong"| R1["🛑 rc=7404"]
+  L3 -->|"read-only"| OK1(["ok"])
+  L3 -->|"motion"| L4["④ FSM check"]
+  L4 -->|"wrong"| R1["rc=7404"]
   L4 -->|"ok"| L5["⑤ arm mutex"]
-  L5 -->|"locked"| R2["🛑 rc=7400"]
+  L5 -->|"locked"| R2["rc=7400"]
   L5 -->|"free"| L6["⑥ clamp"]
   L6 --> L7["⑦ request + look (walking)"]
-  L7 -->|"not clear"| R4["🛑 refused, reason named"]
+  L7 -->|"not clear"| R4["refused, reason named"]
   L7 -->|"clear"| L8["⑧ measure: odometry before / after"]
   L8 -->|"moved=false"| R5["did not move, says so"]
-  L8 -->|"moved=true"| OK2(["✅ moved 0.28 m"])
+  L8 -->|"moved=true"| OK2(["moved 0.28 m"])
   classDef gate stroke:#666464,stroke-width:1.5px
   classDef refuse stroke:#946e00,stroke-width:1.5px
   classDef ok stroke:#007a3d,stroke-width:1.5px
@@ -46,7 +46,7 @@ A raw publish to the five motor, BMS and hand topics needs `unsafe=True`
 (`g1_dds_publish(topic="rt/lowcmd", payload={...}, unsafe=True)`); the flag
 forces intent. Details on [use_dds](../tools/use-dds.md).
 
-## emergency stop — always safe
+## emergency stop, always safe
 
 ```python
 g1_stop_move()     # vx=vy=vyaw=0, any FSM

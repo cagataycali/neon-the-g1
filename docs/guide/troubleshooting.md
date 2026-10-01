@@ -4,16 +4,16 @@
 
 | symptom | rc | fix |
 |---|:-:|---|
-| nothing responds | 3104 | DDS can't reach the bus — see below |
+| nothing responds | 3104 | DDS can't reach the bus, see below |
 | arm won't move | 7404 | wrong FSM → `g1_set_fsm(500)` |
 | arm holding | 7401 | `g1_release_arm()` |
-| arm occupied | 7400 | another writer — kill stale process |
+| arm occupied | 7400 | another writer, kill stale process |
 | walking refused | 7302 | `g1_set_fsm(501)` first |
-| SLAM/lidar silent | — | `g1_lidar_switch(on=True)` then `g1_slam_start()` |
+| SLAM/lidar silent | - | `g1_lidar_switch(on=True)` then `g1_slam_start()` |
 | "the robot did not move" | 0 | `moved=false`: not in FSM 501, or a request under 0.1 m; say `set fsm 501` |
-| no photo, `401` in the log | — | camera token minted at the 1970 boot clock; `make token-refresh` |
-| voice silent, tools work | — | snoozed; `make voice-status`, unmute from the dashboard pill or `make unmute` |
-| model changed, persona still old | — | "Apply to all personas" in Configuration, or `docker compose up -d --force-recreate` |
+| no photo, `401` in the log | - | camera token minted at the 1970 boot clock; `make token-refresh` |
+| voice silent, tools work | - | snoozed; `make voice-status`, unmute from the dashboard pill or `make unmute` |
+| model changed, persona still old | - | "Apply to all personas" in Configuration, or `docker compose up -d --force-recreate` |
 
 ## nothing responds (rc=3104) { .danger }
 

@@ -34,7 +34,7 @@ Then walk it through the space (`walk forward 2m`, `turn 90 right`, …), then:
 pose = g1_slam_pose()   # after ~5s ICP converge
 ```
 
-> Localized in 'living-room' · x=1.23 y=0.47 yaw=12° · near the door.
+> Localized in 'living-room', x=1.23 y=0.47 yaw=12°, near the door.
 
 ## list maps
 
@@ -44,5 +44,5 @@ g1_slam_list_maps()   # → [{name, size_kb, points, saved}, ...]
 
 ## tips
 
-- Rooms need visual diversity for ICP (bare walls drift — add a few obstacles).
+- Rooms need visual diversity for ICP (bare walls drift, add a few obstacles).
 - ICP uses ~15-20% of one Jetson core. Maps are pointclouds, not meshes.

@@ -26,9 +26,9 @@ Returns a single frame as a Strands image block (the LLM sees it directly).
 Color vs depth is chosen by **action**, not source. With the proxy set it
 fetches the dashboard snapshot; without it, it opens the device.
 
-- **RealSense D435i** — color + depth · 640×480 · rectified
-- **Logitech Brio 4K** — chest-mounted · 1920×1080
-- **any V4L2 device** — by path or index
+- **RealSense D435i**: color + depth, 640×480, rectified
+- **Logitech Brio 4K**: chest-mounted, 1920×1080
+- **any V4L2 device**: by path or index
 
 ## take_photo
 
@@ -49,7 +49,7 @@ g1_asr(duration_s=3.0)                    # onboard mic → text (API 1002)
 g1_play_wav(file_path="/path/clip.wav")   # 16 kHz mono PCM → chest speaker
 ```
 
-## g1_speak — full bidi voice
+## g1_speak, full bidi voice
 
 Brio mic → AEC → bidi model → G1 chest speaker (DDS). Has the entire G1 toolset
 wired in.
@@ -85,12 +85,12 @@ kiss-icp on the LiDAR stream (standalone from Unitree's onboard SLAM).
 
 | tool | what |
 |---|---|
-| `g1_slam_start` · `g1_slam_stop` | toggle worker |
+| `g1_slam_start`, `g1_slam_stop` | toggle worker |
 | `g1_slam_pose` | pose estimate (xyz + quat) |
 | `g1_slam_reset` | clear map |
 | `g1_slam_accumulate` | build global map for N s |
-| `g1_slam_save(name)` · `g1_slam_load(name)` | persist |
-| `g1_slam_list_maps` · `g1_slam_stats` | maps + drift |
+| `g1_slam_save(name)`, `g1_slam_load(name)` | persist |
+| `g1_slam_list_maps`, `g1_slam_stats` | maps + drift |
 
 !!! tip "Measure real travel"
     `g1_slam_start` → short `g1_walk_forward` → `g1_slam_pose` tells you how far
