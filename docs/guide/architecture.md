@@ -10,7 +10,7 @@ How `neon` fits inside the G1's runtime.
 Unitree G1+
 ├─ Jetson Orin NX  (192.168.123.164)  ← runs neon
 │    neon.service → .venv/bin/python agent.py   (or docker compose)
-│      Strands loop · G1_ALL_TOOLS (53) · telegram/voice listeners
+│      Strands loop · G1_ALL_TOOLS ({{facts:all_tools}}) · telegram/voice listeners
 │    unitree_sdk2_python/  (local clone; pip wheel broken)
 │    eth0 · CycloneDDS multicast
 ▼

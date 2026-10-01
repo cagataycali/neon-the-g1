@@ -16,11 +16,12 @@ All `rt/*` topics currently discoverable on the G1 CycloneDDS domain.
 | `rt/utlidar/cloud_livox_mid360` | 10 Hz | `PointCloud2_` | Livox Mid-360 point cloud |
 | `rt/lf/lowstate` | low-freq | `LowState_` | Low-freq LowState variant |
 | `rt/lf/secondary_imu` | low-freq | `LowState_` | Secondary IMU |
-| `rt/lf/sportmodestate` | low-freq | `SportModeState_` | Motion state (low-freq) |
+| `rt/lf/sportmodestate` | silent | `SportModeState_` | declared; no samples seen on the G1 (2026-10-01), use `rt/odommodestate` |
 | `rt/mainboardstate` | 1 Hz | `MainBoardState_` | Fan / board temps |
 | `rt/pressuresensorstate` | 50 Hz | `PressSensorState_` | Foot pressure sensors |
 | `rt/wirelesscontroller` | on-event | `WirelessController_` | Remote joystick (silent if unpaired) |
-| `rt/odom` | — | `Odometry_` | Robot odometry (nav_msgs) |
+| `rt/odommodestate` (also `rt/lf/odommodestate`) | live | `SportModeState_` | position[3] in the odom frame, velocity[3], imu rpy: the odometry `g1_walk_forward` / `g1_turn` read before and after a command (`G1_ODOM_TOPIC` overrides) |
+| `rt/odom` | silent | `Odometry_` | declared, no samples seen on the G1 (2026-10-01) |
 | `rt/unitree_slam/odom` | — | `Odometry_` | Unitree SLAM odometry |
 | `rt/unitree_slam/global_map` | — | `PointCloud2_` | Unitree SLAM global map |
 | `rt/utlidar/lidar_state` | — | `LidarState_` | LiDAR sensor state |

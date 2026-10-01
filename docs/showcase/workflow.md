@@ -49,13 +49,11 @@ No data dependencies → one round-trip.
 
 ## model
 
-NEON runs on a Bedrock model by default (`NEON_MODEL_ID`,
-default `global.anthropic.claude-opus-4-8`). Point it at a different Bedrock
-model id to trade latency for cost:
-
-```bash
-export NEON_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
-```
+NEON runs on a Bedrock model (`NEON_MODEL_ID`, default
+`{{facts:default_model}}`). Point it at a lighter model id to trade quality
+for latency: set it in `.env`, or from the dashboard (Configuration, model,
+then "Apply to all personas"), which writes the same line and recreates the
+persona containers through the host `neon-ctl` service.
 
 ## resilience
 

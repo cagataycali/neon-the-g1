@@ -18,13 +18,14 @@ which clones the Unitree SDK (the pip wheel is broken) and exports
 
 ## 2 / pick a model
 
-NEON runs on a Bedrock model by default. Provide Bedrock credentials before
-`make run`:
+NEON runs on a Bedrock model. Provide Bedrock credentials before `make run`;
+the model id can be changed later from the dashboard (Configuration, model)
+without editing files:
 
 ```bash
 export AWS_BEARER_TOKEN_BEDROCK=...        # Bedrock bearer token (preferred)
 export AWS_DEFAULT_REGION=us-west-2
-export NEON_MODEL_ID=global.anthropic.claude-opus-4-8   # override the default
+export NEON_MODEL_ID={{facts:default_model}}   # the default; any Bedrock model id works
 ```
 
 ## 3 / talk to it

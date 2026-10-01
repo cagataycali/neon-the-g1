@@ -8,7 +8,7 @@
 
 [![status](https://img.shields.io/badge/status-LIVE_on_G1-00ff88?style=flat-square)](#status)
 [![docs](https://img.shields.io/badge/docs-github.io-00cc60?style=flat-square)](https://cagataycali.github.io/neon-the-g1)
-[![tools](https://img.shields.io/badge/tools-53-ff2a6d?style=flat-square)](docs/tools/catalog.md)
+[![tools](https://img.shields.io/badge/tools-55-ff2a6d?style=flat-square)](https://cagataycali.github.io/neon-the-g1/tools/catalog/)
 [![license](https://img.shields.io/badge/license-MIT-b967ff?style=flat-square)](LICENSE)
 
 </div>
@@ -28,8 +28,8 @@
 ```
 
 NEON is **one** agent with **four** personas - REPL, voice, telegram, dispatch -
-all sharing the same memory, the same toolset (53 robot tools + memory + telegram
-+ voice_say + take_photo + dispatch + use_github + ...), and the same cross-persona
+all sharing the same memory, the same toolset (55 robot tools + 12 cross-persona
+tools: memory, telegram, voice_say, take_photo, dispatch, phone, voice_control, ...), and the same cross-persona
 log. Talk to it via the chest speaker, DM it on Telegram, or `make run` for a REPL -
 they all see what the others are doing.
 
@@ -195,7 +195,7 @@ telegram persona sees what was said. All three personas share `.memory/mem.db`.
 | **cross-persona** | `memory`, `voice_say`, `telegram`, `dispatch`, `agent_log` |
 | **escape hatches** | `use_unitree` (any SDK method, AST-verified) · `g1_dds_*` |
 
-53 robot tools + 14 lookout-stack tools. [→ catalog](https://cagataycali.github.io/neon-the-g1/tools/catalog/)
+55 robot tools + 12 cross-persona tools; the counts on the site are derived from `tools/__init__.py` at build time. [→ catalog](https://cagataycali.github.io/neon-the-g1/tools/catalog/)
 
 
 ## 🧩 strands-robots - sim + VLA policies (two layers, one agent)
@@ -266,7 +266,6 @@ thumbstick walking (right-A = stop). Built on
 - arm actions auto-release + mutex on `rt/armsdk` (no parallel calls - rc=7400)
 - FSM 0 (ZeroTorque) collapses the robot - via `g1_set_fsm(0)`, gantry-only (no dedicated tool)
 - `g1_safe_*` posture tools refuse if FSM=None (dead controller - needs physical recovery)
-- battery < 15% → motion tools refuse
 
 [→ safety model](https://cagataycali.github.io/neon-the-g1/guide/safety/)
 
@@ -291,7 +290,7 @@ Export from `tools/__init__.py`. [→ extending guide](https://cagataycali.githu
 
 ## 🔌 MCP server — drive NEON from Claude Code / Desktop / Cursor
 
-Expose the **full NEON toolset** (53 FSM-gated G1 robot tools + memory +
+Expose the **full NEON toolset** (55 FSM-gated G1 robot tools + memory +
 telegram + voice_say + take_photo + dispatch) over the Model Context Protocol,
 so any MCP client can drive the robot:
 
@@ -334,7 +333,7 @@ neon-mcp --no-robot            # cross-persona stack only (no DDS)
 
 | component | status | notes |
 |---|---|---|
-| 🤖 robot DDS | ✅ live | FSM gating, all 53 tools verified against on-robot SDK |
+| 🤖 robot DDS | ✅ live | FSM gating, the robot tools verified against the on-robot SDK |
 | 🎙 voice (bidi) | ✅ live | OpenAI Realtime, AEC clean, English + multilingual |
 | 💬 telegram | ✅ live | multi-turn + slash commands + photo/voice relay |
 | 🦴 SLAM (kiss-icp) | ✅ live | optional, runs on Jetson |

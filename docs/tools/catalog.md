@@ -1,8 +1,11 @@
 # tool catalog
 
-<span class="read-badge">90s · 53 tools</span>
+<span class="read-badge">90s, {{facts:all_tools}} robot tools</span>
 
-Every `@tool` in `tools/`, grouped by safety class.
+Every robot `@tool` exported by `tools/__init__.py`, grouped by safety class.
+The counts on this page are read from that file at build time, so they match
+the code on `main`. The {{facts:lookout_tools}} cross-persona tools (memory,
+voice, Telegram, dispatch, phone, ...) are listed at the end.
 
 <div class="motion-legend" markdown>
 <span><span class="dot safe"></span>safe — read-only / self-bounded</span>
@@ -10,7 +13,7 @@ Every `@tool` in `tools/`, grouped by safety class.
 <span><span class="dot danger"></span>danger — can fall/collapse</span>
 </div>
 
-## state / 9 { .safe }
+## state / {{facts:state_tools}} { .safe }
 
 | tool | what |
 |---|---|
@@ -22,7 +25,7 @@ Every `@tool` in `tools/`, grouped by safety class.
 | `g1_pressure` | foot pressure (4× per foot) |
 | `g1_joint_reference` · `g1_joint_name` · `g1_joint_index` | joint name ⇄ index + gains |
 
-## posture / 7 { .motion }
+## posture / {{facts:posture_tools}} { .motion }
 
 | tool | what |
 |---|---|
@@ -32,7 +35,7 @@ Every `@tool` in `tools/`, grouped by safety class.
 | `g1_balance_stand` | re-engage balance controller |
 | `g1_safe_squat_to_stand` · `g1_safe_lie_to_stand` · `g1_safe_stand_to_squat` | Damp-preamble transitions |
 
-## arm / 4 { .motion }
+## arm / {{facts:arm_tools}} { .motion }
 
 Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 
@@ -40,10 +43,10 @@ Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 |---|---|
 | `g1_arm_action(action=...)` | any gesture by name, FSM auto-transition |
 | `g1_release_arm` | back to neutral |
-| `g1_list_arm_actions` | static list of 16 gestures |
+| `g1_list_arm_actions` | the SDK `action_map`: 15 gestures + `release arm` |
 | `g1_get_arm_action_list_from_robot` | live list from controller |
 
-## audio / 3 { .safe }
+## audio / {{facts:audio_tools}} { .safe }
 
 | tool | what |
 |---|---|
@@ -53,36 +56,46 @@ Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
 
 TTS/volume/LED → `use_unitree("audio", …)`.
 
-## sensing / camera 2 / lidar 4 / slam 9 { .safe }
+## sensing / camera {{facts:camera_tools}} / lidar {{facts:lidar_tools}} / slam {{facts:slam_tools}} / dds {{facts:dds_tools}} { .safe }
 
 | tool | what |
 |---|---|
-| `use_camera` | V4L2 / RealSense / UVC → image block |
-| `take_photo` | inject frame into voice agent's context |
+| `use_camera` | RealSense / Brio / any V4L2 device → image block; pulls the shared frame from the dashboard when `NEON_CAMERA_PROXY` is set |
+| `capture_camera` | one JPEG returned as data (base64, optional save), no agent context needed: for dashboards, fleet planes, scripts |
 | `g1_lidar_state` · `_snapshot` · `_switch` · `_stats` | Livox MID-360 |
 | `g1_slam_*` | kiss-icp: start/stop/pose/reset/accumulate/save/load/list_maps/stats |
+| `g1_dds_list_topics` · `_discover` · `_snapshot` | inspect the bus |
+| `g1_dds_subscribe` · `_read` · `_unsubscribe` · `_stats` | stateful subscriptions |
+| `g1_dds_publish(topic, payload, unsafe=True)` | raw publish; `unsafe=True` required on the five motor/BMS/hand topics |
 
-## locomotion / 7 { .danger }
+## locomotion / {{facts:locomotion_tools}} { .danger }
 
-**Robot will fall if misused. Always ask the user first.**
+**Robot will fall if misused.** An explicit request to walk is the consent;
+the agent looks first (`take_photo`), walks only in FSM 501, and every walk
+and turn measures its own displacement on `rt/odommodestate`: the result says
+`moved=true` with the metres, or `moved=false` and why. "Done" is only said
+when it moved. See [safety](../guide/safety.md).
 
 | tool | what |
 |---|---|
 | `g1_move_velocity(vx,vy,vyaw,duration)` | direct velocity, clamped |
-| `g1_walk_forward(distance,speed)` | high-level |
-| `g1_turn(angle_rad,yaw_rate)` | turn in place (+CCW) |
+| `g1_walk_forward(distance,speed)` | distance clamped to 0.1 - 1.0 m, speed 0.05 - 0.5 m/s (at least 0.15 under 0.3 m); returns `moved`, `requested_m`, `measured_m` |
+| `g1_turn(angle_rad,yaw_rate)` | turn in place (+CCW), yaw rate clamped 0.1 - 0.6 rad/s; returns `measured_rad` |
 | `g1_stop_move` | vx=vy=vyaw=0 (always safe) |
 | `g1_wave_hand_loco` · `g1_shake_hand_loco` | walk + gesture |
 | `g1_set_task_id` | switch walking controller |
 
-## universal / 1 + DDS / 8
+## motion generation / {{facts:motion_gen_tools}} { .danger }
+
+| tool | what |
+|---|---|
+| `kimodo(action, prompt, csv, confirm, on_gantry)` | NVIDIA Kimodo text-to-motion: `list` / `preview` the `motions/*.csv` clips, `generate` off-box, `play` streams joints on `rt/lowcmd`. `play` is a dry run unless `confirm=True` **and** `on_gantry=True`. |
+
+## universal / {{facts:universal_tools}}
 
 | tool | what |
 |---|---|
 | `use_unitree(service, operation, parameters)` | **any** SDK RPC, AST-verified |
-| `g1_dds_list_topics` · `_discover` · `_snapshot` | inspect the bus |
-| `g1_dds_subscribe` · `_read` · `_unsubscribe` · `_stats` | stateful subs |
-| `g1_dds_publish(topic, payload, unsafe=True)` | raw publish ⚠ |
 
 `use_unitree` services: `loco` · `arm` · `audio` · `motion_switcher` · `vui` · `robot_state`.
 
@@ -92,17 +105,21 @@ From `tools/__init__.py`:
 
 | name | count | includes |
 |---|:---:|---|
-| `G1_STATE_TOOLS` | 9 | read-only + battery + joints |
-| `G1_POSTURE_TOOLS` | 7 | FSM + height + safe transitions |
-| `G1_ARM_TOOLS` | 4 | gestures |
-| `G1_AUDIO_TOOLS` | 3 | speak / wav / asr |
-| `G1_SENSING_TOOLS` | 22 | camera + lidar + slam + dds |
-| `G1_LOCOMOTION_TOOLS` | 7 | 🔴 walking |
-| `G1_UNIVERSAL_TOOLS` | 1 | `use_unitree` |
-| `G1_SAFE_TOOLS` | 46 | everything except walking |
-| `G1_ALL_TOOLS` | 53 | everything |
+| `G1_STATE_TOOLS` | {{facts:state_tools}} | read-only + battery + joints |
+| `G1_POSTURE_TOOLS` | {{facts:posture_tools}} | FSM + height + safe transitions |
+| `G1_ARM_TOOLS` | {{facts:arm_tools}} | gestures |
+| `G1_AUDIO_TOOLS` | {{facts:audio_tools}} | speak / wav / asr |
+| `G1_SENSING_TOOLS` | {{facts:sensing_tools}} | cameras + lidar + slam + dds |
+| `G1_UNIVERSAL_TOOLS` | {{facts:universal_tools}} | `use_unitree` |
+| `G1_SAFE_TOOLS` | {{facts:safe_tools}} | everything above: no walking, no motion generation |
+| `G1_LOCOMOTION_TOOLS` | {{facts:locomotion_tools}} | walking (danger) |
+| `G1_MOTION_GEN_TOOLS` | {{facts:motion_gen_tools}} | `kimodo` (danger) |
+| `G1_ALL_TOOLS` | {{facts:all_tools}} | everything |
+| `G1_LOOKOUT_TOOLS` | {{facts:lookout_tools}} | cross-persona: memory, voice_say, dispatch, telegram, take_photo, prompts, manage_messages, manage_tools, make, kimodo, phone, voice_control |
 
-Default: `G1_TOOLS == G1_ALL_TOOLS`.
+Default: `G1_TOOLS == G1_ALL_TOOLS`. `G1_SAFE_TOOLS` is what `neon-mcp --safe`
+serves; the personas on the robot get `G1_ALL_TOOLS` (telegram, thinker) or
+the slim 27-tool voice list in `g1.build_voice_tools` (voice, shell, dashboard).
 
 ## dig deeper
 
