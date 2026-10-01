@@ -6,7 +6,9 @@ hide:
 
 <div class="hero" markdown>
 
-<img src="assets/neon.svg" alt="neon" class="logo"/>
+<img src="assets/mark.svg" alt="" class="logo"/>
+
+<p class="hero-title">neon</p>
 
 <p class="tagline">a strands agent on the unitree g1+ · on the edge</p>
 
