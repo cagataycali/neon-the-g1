@@ -29,9 +29,7 @@ use_camera(action="capture", source="realsense")   # inline image block → mode
 ```
 
 ```python
-# inside the voice agent — model counts natively:
-take_photo(question="How many people? Any chairs?")
-# depth-aware:
+take_photo(question="How many people? Any chairs?")      # any persona
 use_camera(action="capture_both", source="realsense")   # color + depth heatmap
 ```
 
@@ -44,4 +42,6 @@ use_camera(action="capture_both", source="realsense")   # color + depth heatmap
 ## tips
 
 - RealSense at eye level → better social framing. Brio (1080p) is chest-mounted.
+- The frame comes from the dashboard's snapshot API (the cameras' single owner);
+  no photo and `401` in the log means `make token-refresh`.
 - Debug: `use_camera(action="capture", source="realsense", save_path="/tmp/frame.jpg")`.

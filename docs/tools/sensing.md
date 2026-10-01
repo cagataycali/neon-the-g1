@@ -5,6 +5,15 @@
 Everything `neon` uses to **see and hear**. Vision via V4L2/RealSense; audio via
 the G1's onboard AudioClient + the bidi voice agent.
 
+## one camera owner
+
+V4L2 and RealSense devices are single-open, so the dashboard container is the
+only process that opens them. Every other persona reads
+`GET /api/camera/<realsense_color|brio>/snapshot` on the dashboard with a
+service token (`NEON_CAMERA_PROXY`, `NEON_CAMERA_PROXY_TOKEN`); one camera,
+many readers, the same frame the cockpit shows. A `401` means a stale token
+(see [troubleshooting](../guide/troubleshooting.md#cameras)).
+
 ## use_camera
 
 ```python
@@ -14,7 +23,8 @@ use_camera(action="capture", source="realsense")
 ```
 
 Returns a single frame as a Strands image block (the LLM sees it directly).
-Color vs depth is chosen by **action**, not source.
+Color vs depth is chosen by **action**, not source. With the proxy set it
+fetches the dashboard snapshot; without it, it opens the device.
 
 - **RealSense D435i** — color + depth · 640×480 · rectified
 - **Logitech Brio 4K** — chest-mounted · 1920×1080
@@ -22,12 +32,14 @@ Color vs depth is chosen by **action**, not source.
 
 ## take_photo
 
-Injects a frame straight into the **voice agent's** multimodal context (only
-inside a running bidi voice agent — see `g1_speak`).
+The agent's own eyes, in every persona. In a voice session the JPEG goes into
+the realtime stream and the model answers in audio; in the dashboard chat,
+the REPL, Telegram and the thinker it comes back as a tool-result image block.
+`NEON_DASHBOARD_CAM` picks the default camera.
 
 ```python
 take_photo(question="What do you see?")
-take_photo(question="What's on my whiteboard?", device=1)  # 0=RealSense 1=Brio
+take_photo(question="What's on my whiteboard?", hires=True)
 ```
 
 ## audio

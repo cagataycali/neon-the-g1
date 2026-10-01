@@ -40,15 +40,14 @@ USB mic (16k mono; DJI receiver or Brio, auto-picked by VOICE_MIC_NAME)  → raw
 
 1. **Tune `stream_delay_ms` first.** Time `g1_speak(action="say", text="ping")`.
    Emits ~120ms later → keep 120. Almost instant → drop to 80/60 in 20ms steps.
-2. **Verify Brio selected** — `g1_speak(action="debug")` → look for
-   `device_index=N rate=16000`. `None` = wrong default mic.
-3. **Verify ref_buf fed** — `g1_speak(action="status")`: if `g1_frames_sent`
-   climbs but `ref_buf_qsize` stays 0, AEC has no signal to subtract → echo.
-4. **Diagnostic bypass** — `VOICE_NO_AEC=1 make voice`. Echo gone → AEC tuning.
-   Echo persists → server-VAD triggers on speaker bleed; raise `vad_threshold`
-   to 0.9, `silence_duration_ms` to 1000+.
-5. **Self-interrupting** (shorter and shorter utterances) → bump `vad_threshold`
-   0.7 → 0.85.
+2. **Mic picked?** `g1_speak(action="debug")` shows `device_index=N rate=16000`;
+   `None` means the wrong default mic (`VOICE_MIC_NAME`).
+3. **ref_buf fed?** `g1_speak(action="status")`: `g1_frames_sent` climbing with
+   `ref_buf_qsize` at 0 means the AEC has nothing to subtract.
+4. **Bypass** `VOICE_NO_AEC=1 make voice`: echo gone, tune the AEC; echo stays,
+   the server VAD fires on speaker bleed, raise `vad_threshold` to 0.9 and
+   `silence_duration_ms` past 1000.
+5. **Self-interrupting**: `vad_threshold` 0.7 to 0.85.
 
 ## cross-persona briefings
 

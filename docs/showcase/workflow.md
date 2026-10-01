@@ -18,23 +18,14 @@ sequenceDiagram
     N-->>P: "waved 👋"
 ```
 
-**End-to-end: ~2-4 s** — dominated by Telegram long-poll + model planning.
-Motor execution is the fastest part (~400 ms).
+**End-to-end: ~2-4 s**, dominated by Telegram long-poll and model planning;
+the motor is the fastest part. Each call lands as a `tool` row in the activity
+log, so "waved" can be checked against `rc=0`.
 
 ## parallel tool calls
 
-One message fans out into a batch:
-
-```python
-# "wave hello and tell me what you see" →
-[
-    g1_get_state(),                        # free
-    g1_arm_action(action='high wave'),     # FSM-gated, auto-release
-    use_camera(action='capture', source='realsense'),
-]
-```
-
-No data dependencies → one round-trip.
+"wave hello and tell me what you see" fans out into `g1_get_state`,
+`g1_arm_action` and `take_photo` in one round-trip: no data dependencies.
 
 ## latency budget
 
@@ -59,7 +50,7 @@ persona containers through the host `neon-ctl` service.
 
 - Telegram down → REPL over SSH still works.
 - DDS drops → tools return `rc=3104`, agent reports it.
-- MCU crash → systemd restarts agent; `sport_mode` is separate.
+- A persona crash → compose `restart: unless-stopped`; the MCU's `sport_mode` is a separate box.
 - Model API fails → tools still run; only planning is offline.
 
 
