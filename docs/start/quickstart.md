@@ -36,15 +36,15 @@ The default model is `{{facts:default_model}}`; the full variable list is on
 <div class="terminal" markdown>
 <span class="p">&gt;</span> check state
 
-<span class="ok">mode=ai · fsm=500 · arm_ready=True · soc=86%</span>
+<span class="ok">mode=ai, fsm=500, arm_ready=True, soc=86%</span>
 
 <span class="p">&gt;</span> wave hello
 
-<span class="ok">g1_arm_action('high wave') rc=0 · released</span>
+<span class="ok">g1_arm_action('high wave') rc=0, released</span>
 </div>
 
 You want `arm_ready=True` and `fsm ∈ {500, 501, 801}`. If `arm_ready=False`,
-say `set fsm 500` first — the arm won't move from Damp.
+say `set fsm 500` first, the arm won't move from Damp.
 
 ## enable control (arm the G1)
 
@@ -58,8 +58,8 @@ app. This hands motor control to neon over DDS.
 ## safe first commands
 
 !!! tip "Green zone"
-    `check state` · `battery` · `wave` · `shake hand` · `heart` · `clap` ·
-    `hug` · `stand up` · `sit down` · `damp` · `set stand height 0.75`
+    `check state`, `battery`, `wave`, `shake hand`, `heart`, `clap` ·
+    `hug`, `stand up`, `sit down`, `damp`, `set stand height 0.75`
 
 !!! danger "Walking is by request only"
     `walk forward 50cm` is the consent; nothing else is. NEON looks at the

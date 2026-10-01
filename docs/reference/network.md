@@ -1,6 +1,6 @@
 # network
 
-<span class="read-badge">45s · ref</span>
+<span class="read-badge">45s, ref</span>
 
 Where `neon`, the MCU, and your laptop all sit.
 
@@ -8,21 +8,21 @@ Where `neon`, the MCU, and your laptop all sit.
 
 ```mermaid
 flowchart LR
-  subgraph LAN["🏠 your LAN · WiFi"]
-    M["💻 Mac dev<br/>192.168.1.0/24"]
+  subgraph LAN["your LAN, WiFi"]
+    M["Mac dev<br/>192.168.1.0/24"]
   end
 
-  subgraph G1["🤖 Unitree G1"]
+  subgraph G1["Unitree G1"]
     direction TB
-    J["🧠 Jetson Orin NX<br/>192.168.123.164<br/>runs neon agent"]
-    C["⚙️ Main MCU<br/>192.168.123.161<br/>sport_mode · loco_service<br/>arm_action"]
-    Motors["🦾 motors · arms<br/>🔊 audio · 💡 LEDs"]
+    J["Jetson Orin NX<br/>192.168.123.164<br/>runs neon agent"]
+    C["Main MCU<br/>192.168.123.161<br/>sport_mode, loco_service<br/>arm_action"]
+    Motors["motors, arms<br/>audio, LEDs"]
 
     J -.->|"CycloneDDS multicast<br/>on eth0"| C
     C -->|"SPI bus"| Motors
   end
 
-  M <-->|"SSH · WiFi"| J
+  M <-->|"SSH, WiFi"| J
   M <-->|"optional ethernet"| C
 
   classDef dev stroke:#007a3d,stroke-width:1.5px
@@ -36,7 +36,7 @@ flowchart LR
 | host | iface | ip | role |
 |---|---|---|---|
 | Jetson | `eth0` | `192.168.123.164/24` | our agent runs here |
-| MCU | `eth0` | `192.168.123.161/24` | Unitree embedded — no SSH |
+| MCU | `eth0` | `192.168.123.161/24` | Unitree embedded, no SSH |
 | Jetson | `wlan0` | DHCP on your LAN, `ubuntu.local` over mDNS | companion WiFi: SSH, dashboard, Telegram |
 | your Mac | `en0` / `en5` | WiFi or static `192.168.123.100` via USB-C → RJ45 | dev machine |
 
@@ -76,7 +76,7 @@ System Settings → Network → USB 10/100/1000 LAN →
   Router:  (blank)
 ```
 
-Don't assign `.161` or `.164` — those are the robot.
+Don't assign `.161` or `.164`, those are the robot.
 
 ## CycloneDDS
 
@@ -99,7 +99,7 @@ Nothing exposed by default on the robot itself. When the compose stack runs:
 | port | service |
 |---|---|
 | 8080 | neon-dashboard (HTTPS, self-signed; also published through a Cloudflare tunnel, see [dashboard](../guide/dashboard.md)) |
-| 8012 / 8013 | WebXR teleop bridge (WSS / HTTPS) — only when running |
+| 8012 / 8013 | WebXR teleop bridge (WSS / HTTPS), only when running |
 | N/A | Telegram uses long-poll (no inbound port) |
 
 ## sanity checks

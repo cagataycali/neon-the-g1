@@ -2,7 +2,7 @@
 
 <span class="read-badge">~3s</span>
 
-Camera → multimodal model → one sentence back. No YOLO — the model sees the
+Camera → multimodal model → one sentence back. No YOLO, the model sees the
 frame directly.
 
 **Prereqs:** RealSense D435i (or Brio 4K), a multimodal model.

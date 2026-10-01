@@ -2,7 +2,7 @@
 
 <span class="read-badge">45s</span>
 
-Walking, turning, posture — **the dangerous stuff**. The user's explicit
+Walking, turning, posture, **the dangerous stuff**. The user's explicit
 request is the consent: NEON looks first (`take_photo`), walks if the path is
 clear, otherwise says the specific reason. Every walk and turn measures its
 own displacement on `rt/odommodestate` and reports `moved=true/false`; the

@@ -2,7 +2,7 @@
 
 <span class="read-badge">60s</span>
 
-Add a tool, a sensor, a listener, an MCP server — no refactors needed.
+Add a tool, a sensor, a persona or an MCP client: no refactors needed.
 
 ## a composed tool
 
@@ -32,7 +32,7 @@ activity log without any code of yours.
 
 ## a universal SDK call
 
-You don't wrap it — it's already reachable:
+You don't wrap it, it's already reachable:
 
 ```python
 use_unitree(service_name="loco", operation_name="MyNewRpc", parameters={"foo": 1})

@@ -31,7 +31,7 @@ docker compose logs -f neon-telegram | grep -i telegram   # "listener starting"
 
 ```
 you:  check state       → FSM 500, arm_ready, 86%. All green.
-you:  wave hello        → waved 👋
+you:  wave hello        → waved
 you:  what do you see    → (photo) A person at a desk with a laptop.
 ```
 

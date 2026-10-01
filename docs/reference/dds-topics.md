@@ -1,6 +1,6 @@
 # DDS topics
 
-<span class="read-badge">60s · ref</span>
+<span class="read-badge">60s, ref</span>
 
 All `rt/*` topics currently discoverable on the G1 CycloneDDS domain.
 
@@ -12,7 +12,7 @@ All `rt/*` topics currently discoverable on the G1 CycloneDDS domain.
 | `rt/bmsstate` / `rt/lf/bmsstate` | 1 Hz | `BmsState_` | SOC, SOH, voltage, current, cycles |
 | `rt/multiplestate` | 50 Hz | `LowState_` | Combined state (FSM id, mode, balance, stand height) |
 | `rt/inspire/state` | 50 Hz | `HandState_` | Inspire hand finger positions |
-| `rt/head/cam/image_color` (?) | — | — | head cam RGB — NOT in codebase; verify live via `g1_dds_discover()` before use |
+| `rt/head/cam/image_color` (?) | - | - | head cam RGB, NOT in codebase; verify live via `g1_dds_discover()` before use |
 | `rt/utlidar/cloud_livox_mid360` | 10 Hz | `PointCloud2_` | Livox Mid-360 point cloud |
 | `rt/lf/lowstate` | low-freq | `LowState_` | Low-freq LowState variant |
 | `rt/lf/secondary_imu` | low-freq | `LowState_` | Secondary IMU |
@@ -22,9 +22,9 @@ All `rt/*` topics currently discoverable on the G1 CycloneDDS domain.
 | `rt/wirelesscontroller` | on-event | `WirelessController_` | Remote joystick (silent if unpaired) |
 | `rt/odommodestate` (also `rt/lf/odommodestate`) | live | `SportModeState_` | position[3] in the odom frame, velocity[3], imu rpy: the odometry `g1_walk_forward` / `g1_turn` read before and after a command (`G1_ODOM_TOPIC` overrides) |
 | `rt/odom` | silent | `Odometry_` | declared, no samples seen on the G1 (2026-10-01) |
-| `rt/unitree_slam/odom` | — | `Odometry_` | Unitree SLAM odometry |
-| `rt/unitree_slam/global_map` | — | `PointCloud2_` | Unitree SLAM global map |
-| `rt/utlidar/lidar_state` | — | `LidarState_` | LiDAR sensor state |
+| `rt/unitree_slam/odom` | - | `Odometry_` | Unitree SLAM odometry |
+| `rt/unitree_slam/global_map` | - | `PointCloud2_` | Unitree SLAM global map |
+| `rt/utlidar/lidar_state` | - | `LidarState_` | LiDAR sensor state |
 
 ## RPC request/response
 
@@ -41,15 +41,15 @@ Every `Client` class in the SDK maps to a pair:
 
 Payload: `{"api_id": int, "parameter": str_json, "priority": int}` → response `{"code": int, "data": str_json}`.
 
-## publish (dangerous — need `unsafe=True` via `g1_dds_publish`)
+## publish (dangerous, need `unsafe=True` via `g1_dds_publish`)
 
 | Topic | Type | What |
 |---|---|---|
-| `rt/lowcmd` | `LowCmd_` | ⚠ direct motor torques — will collapse the robot if misused |
+| `rt/lowcmd` | `LowCmd_` | direct motor torques, will collapse the robot if misused |
 | `rt/armsdk` | `LowCmd_` | arm gesture id (single-writer, use `g1_arm_action`) |
 | `rt/bmscmd` | `BmsCmd_` | battery commands |
 | `rt/inspire/cmd` | `HandCmd_` | Inspire hand commands |
-| `rt/user_lowcmd` | `LowCmd_` | ⚠ user low-level cmd |
+| `rt/user_lowcmd` | `LowCmd_` | user low-level cmd |
 | `rt/utlidar/switch` | `String_` | LiDAR ON/OFF switch (use `g1_lidar_switch`) |
 
 ## discover live
@@ -60,7 +60,7 @@ the live bus; `g1_dds_snapshot(topic)` decodes one sample. See [use_dds](../tool
 ## DDS config
 
 - CycloneDDS config: `/home/unitree/cyclonedds_ws/cyclonedds.xml`
-- Interface: **eth0** (not eth1, not WiFi — those don't see the motor bus)
+- Interface: **eth0** (not eth1, not WiFi, those don't see the motor bus)
 - Domain: 0
 - Env: `CYCLONEDDS_URI=file:///home/unitree/cyclonedds_ws/cyclonedds.xml`
 

@@ -8,9 +8,9 @@ the code on `main`. The {{facts:lookout_tools}} cross-persona tools (memory,
 voice, Telegram, dispatch, phone, ...) are listed at the end.
 
 <div class="motion-legend" markdown>
-<span><span class="dot safe"></span>safe — read-only / self-bounded</span>
-<span><span class="dot motion"></span>motion — FSM/mutex-gated</span>
-<span><span class="dot danger"></span>danger — can fall/collapse</span>
+<span><span class="dot safe"></span>safe, read-only / self-bounded</span>
+<span><span class="dot motion"></span>motion, FSM/mutex-gated</span>
+<span><span class="dot danger"></span>danger, can fall/collapse</span>
 </div>
 
 ## state / {{facts:state_tools}} { .safe }
@@ -23,21 +23,21 @@ voice, Telegram, dispatch, phone, ...) are listed at the end.
 | `g1_battery` | SOC, SOH, voltage, current, cycles |
 | `g1_mainboard` | CPU/GPU/MCU temp, RAM, fan |
 | `g1_pressure` | foot pressure (4× per foot) |
-| `g1_joint_reference` · `g1_joint_name` · `g1_joint_index` | joint name ⇄ index + gains |
+| `g1_joint_reference`, `g1_joint_name`, `g1_joint_index` | joint name ⇄ index + gains |
 
 ## posture / {{facts:posture_tools}} { .motion }
 
 | tool | what |
 |---|---|
 | `g1_set_fsm` | any FSM id → rich `{before, after, rc, message}` |
-| `g1_set_stand_height` | 0.65 – 0.85 m (clamped) |
+| `g1_set_stand_height` | 0.65-0.85 m (clamped) |
 | `g1_set_swing_height` | stride height for walking |
 | `g1_balance_stand` | re-engage balance controller |
-| `g1_safe_squat_to_stand` · `g1_safe_lie_to_stand` · `g1_safe_stand_to_squat` | Damp-preamble transitions |
+| `g1_safe_squat_to_stand`, `g1_safe_lie_to_stand`, `g1_safe_stand_to_squat` | Damp-preamble transitions |
 
 ## arm / {{facts:arm_tools}} { .motion }
 
-Auto-release by default. `rt/armsdk` is single-writer — never parallelize.
+Auto-release by default. `rt/armsdk` is single-writer, never parallelize.
 
 | tool | what |
 |---|---|
@@ -62,10 +62,10 @@ TTS/volume/LED → `use_unitree("audio", …)`.
 |---|---|
 | `use_camera` | RealSense / Brio / any V4L2 device → image block; pulls the shared frame from the dashboard when `NEON_CAMERA_PROXY` is set |
 | `capture_camera` | one JPEG returned as data (base64, optional save), no agent context needed: for dashboards, fleet planes, scripts |
-| `g1_lidar_state` · `_snapshot` · `_switch` · `_stats` | Livox MID-360 |
+| `g1_lidar_state`, `_snapshot`, `_switch`, `_stats` | Livox MID-360 |
 | `g1_slam_*` | kiss-icp: start/stop/pose/reset/accumulate/save/load/list_maps/stats |
-| `g1_dds_list_topics` · `_discover` · `_snapshot` | inspect the bus |
-| `g1_dds_subscribe` · `_read` · `_unsubscribe` · `_stats` | stateful subscriptions |
+| `g1_dds_list_topics`, `_discover`, `_snapshot` | inspect the bus |
+| `g1_dds_subscribe`, `_read`, `_unsubscribe`, `_stats` | stateful subscriptions |
 | `g1_dds_publish(topic, payload, unsafe=True)` | raw publish; `unsafe=True` required on the five motor/BMS/hand topics |
 
 ## locomotion / {{facts:locomotion_tools}} { .danger }
@@ -82,7 +82,7 @@ when it moved. See [safety](../guide/safety.md).
 | `g1_walk_forward(distance,speed)` | distance clamped to 0.1 - 1.0 m, speed 0.05 - 0.5 m/s (at least 0.15 under 0.3 m); returns `moved`, `requested_m`, `measured_m` |
 | `g1_turn(angle_rad,yaw_rate)` | turn in place (+CCW), yaw rate clamped 0.1 - 0.6 rad/s; returns `measured_rad` |
 | `g1_stop_move` | vx=vy=vyaw=0 (always safe) |
-| `g1_wave_hand_loco` · `g1_shake_hand_loco` | walk + gesture |
+| `g1_wave_hand_loco`, `g1_shake_hand_loco` | walk + gesture |
 | `g1_set_task_id` | switch walking controller |
 
 ## motion generation / {{facts:motion_gen_tools}} { .danger }
@@ -97,7 +97,7 @@ when it moved. See [safety](../guide/safety.md).
 |---|---|
 | `use_unitree(service, operation, parameters)` | **any** SDK RPC, AST-verified |
 
-`use_unitree` services: `loco` · `arm` · `audio` · `motion_switcher` · `vui` · `robot_state`.
+`use_unitree` services: `loco`, `arm`, `audio`, `motion_switcher`, `vui`, `robot_state`.
 
 ## bundles
 

@@ -1,6 +1,6 @@
 # joints
 
-<span class="read-badge">60s · ref</span>
+<span class="read-badge">60s, ref</span>
 
 G1+ has **29 motor joints** plus optional **Inspire hand joints** (6 per hand).
 Every index below is confirmed against `tools/g1_joints.py` (mirrors the SDK
@@ -10,11 +10,11 @@ Every index below is confirmed against `tools/g1_joints.py` (mirrors the SDK
 
 ```mermaid
 flowchart TB
-  T["🧍 waist<br/>12, 13, 14"]
-  LA["🦾 left arm<br/>15 → 21"]
-  RA["🦾 right arm<br/>22 → 28"]
-  LL["🦵 left leg<br/>0 → 5"]
-  RL["🦵 right leg<br/>6 → 11"]
+  T["waist<br/>12, 13, 14"]
+  LA["left arm<br/>15 → 21"]
+  RA["right arm<br/>22 → 28"]
+  LL["left leg<br/>0 → 5"]
+  RL["right leg<br/>6 → 11"]
 
   T --> LA
   T --> RA
@@ -30,8 +30,8 @@ flowchart TB
 ```
 
 !!! note "No head motors"
-    The 29-DoF G1 has no head/neck joints — head LED + orientation are handled
-    by the audio/VUI service, not the motor bus. Indices 22–28 are the right arm.
+    The 29-DoF G1 has no head/neck joints, head LED + orientation are handled
+    by the audio/VUI service, not the motor bus. Indices 22-28 are the right arm.
 
 ## full index (`g1_joint_reference`)
 
@@ -40,7 +40,7 @@ flowchart TB
 > canonical form is PascalCase. Kp/Kd are the SDK low-level recommended gains
 > (from `tools/g1_joints.py::KP_RECOMMENDED` / `KD_RECOMMENDED`).
 
-### legs (0–11)
+### legs (0-11)
 
 | idx | name | Kp | Kd |
 |:---:|---|:---:|:---:|
@@ -57,7 +57,7 @@ flowchart TB
 | 10 | `RightAnklePitch` | 40 | 1 |
 | 11 | `RightAnkleRoll` | 40 | 1 |
 
-### waist (12–14)
+### waist (12-14)
 
 | idx | name | Kp | Kd | note |
 |:---:|---|:---:|:---:|---|
@@ -65,7 +65,7 @@ flowchart TB
 | 13 | `WaistRoll` | 40 | 1 | invalid on 23dof/29dof w/ waist locked |
 | 14 | `WaistPitch` | 40 | 1 | invalid on 23dof/29dof w/ waist locked |
 
-### arms (15–28)
+### arms (15-28)
 
 | idx | name | Kp | Kd | note |
 |:---:|---|:---:|:---:|---|

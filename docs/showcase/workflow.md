@@ -7,15 +7,15 @@ What actually happens when you text `wave hello` from your phone.
 ```mermaid
 sequenceDiagram
     autonumber
-    participant P as 📱 phone
-    participant N as 🧠 neon (Jetson)
-    participant M as ⚙️ G1 MCU
+    participant P as phone
+    participant N as neon (Jetson)
+    participant M as G1 MCU
     P->>N: telegram: "wave hello"
     N->>M: g1_get_state → {fsm:500, arm_ready:true}
-    N->>M: g1_arm_action(high wave) · id=26
+    N->>M: g1_arm_action(high wave), id=26
     M-->>N: rc=0
     N->>M: release (id=99)
-    N-->>P: "waved 👋"
+    N-->>P: "waved "
 ```
 
 **End-to-end: ~2-4 s**, dominated by Telegram long-poll and model planning;

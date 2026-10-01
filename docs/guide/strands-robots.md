@@ -7,13 +7,13 @@ agent toolset.
 
 | you call | what drives NEON |
 |---|---|
-| `Robot("g1")` | **simulation** (MuJoCo, CPU) — safe, no hardware |
+| `Robot("g1")` | **simulation** (MuJoCo, CPU), safe, no hardware |
 | `Robot("g1", mode="real", robot_ip=...)` | joints via **LeRobot** `unitree_g1` driver, running a **policy** |
-| `tools/` DDS tools | the **live controller** over CycloneDDS — FSM-gated, real-time |
+| `tools/` DDS tools | the **live controller** over CycloneDDS, FSM-gated, real-time |
 | `neon()` | **both**, in one agent |
 
 !!! note "DDS ≠ LeRobot path"
-    `Robot(mode="real")` streams joint targets from a VLA policy via LeRobot — it
+    `Robot(mode="real")` streams joint targets from a VLA policy via LeRobot, it
     does **not** route through the DDS tools. The DDS tools are a separate
     live-control layer (FSM gates, arm mutex, chest speaker). `neon()` gives the
     agent both: **DDS for presence/gestures/walking, `Robot()` for
@@ -25,10 +25,10 @@ agent toolset.
 flowchart LR
     A[Agent tools=neon] --> L1
     A --> L2
-    subgraph L1[Layer 1 · live DDS · ON the robot]
+    subgraph L1[Layer 1, live DDS, ON the robot]
         S[state/battery] --- ARM[gestures] --- W[walking] --- AUD[voice] --- SEN[lidar·slam·cam]
     end
-    subgraph L2[Layer 2 · strands-robots]
+    subgraph L2[Layer 2, strands-robots]
         SIM[MuJoCo sim] --- POL[VLA policies] --- DS[dataset+train] --- MESH[Zenoh mesh]
     end
 ```
@@ -44,7 +44,7 @@ Agent(tools=neon(mode="real", robot_ip="192.168.123.161"))("wave, then walk 0.3 
 ```
 
 `Robot("g1")` and `Robot("neon")` both resolve to the upstream `unitree_g1`
-(46-DOF) — no new assets downloaded.
+(46-DOF), no new assets downloaded.
 
 ## `neon()` knobs
 
