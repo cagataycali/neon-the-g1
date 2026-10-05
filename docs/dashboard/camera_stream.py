@@ -19,6 +19,8 @@ API (per camera id):
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import threading
 import time
 from typing import Dict, List, Optional
@@ -32,12 +34,16 @@ try:
 except Exception:
     _CV2 = False
 
+# pyrealsense2 is NEVER imported in this process: see rs_worker.py. Its
+# device enumeration holds the GIL while blocking in the kernel's USB hub lock,
+# which froze the whole dashboard when a USB port was flapping (2026-10-05).
+# _RS only says whether the worker can run.
 try:
+    import importlib.util as _ilu
     import os as _os_rs
     if _os_rs.getenv("NEON_NO_REALSENSE", "").lower() in ("1", "true", "yes"):
         raise ImportError("RealSense disabled via NEON_NO_REALSENSE")
-    import pyrealsense2 as rs
-    _RS = True
+    _RS = _ilu.find_spec("pyrealsense2") is not None
 except Exception:
     _RS = False
 
@@ -62,99 +68,169 @@ _DEPTH_MAX_MM = 4000
 
 
 class _SharedRealSense:
-    """Single RealSense pipeline shared by color + depth cams.
+    """Single RealSense source shared by the colour + depth cams.
 
     The D435i cannot be opened by two independent rs.pipeline() instances
-    (second fails with 'failed to set power state'). So we open ONE pipeline
-    streaming both color and depth, and hand out the latest frame of each
-    kind to whichever _Cam asks. Reference-counted start/stop.
+    (second fails with 'failed to set power state'), so ONE source streams
+    both and hands the latest JPEG of each kind to whichever _Cam asks.
+
+    The pipeline lives in a child process (rs_worker.py) so that libusb /
+    pybind11 stalls can never hold this process's GIL. The reader thread
+    parses frames off the child's stdout; a watchdog restarts the child when
+    it exits or stops producing (with back-off), and ``acquire`` never blocks.
     """
     _instance = None
-    _lock = __import__("threading").Lock()
+    _lock = threading.Lock()
 
-    def __init__(self, width=640, height=480, fps=15):
-        self.width, self.height, self.fps = width, height, fps
-        self._pipe = None
+    STALL_S = 12.0          # no frame for this long -> restart the worker
+    BACKOFF_S = (2, 5, 10, 20, 30)
+
+    def __init__(self, width=640, height=480, fps=15, quality=70):
+        self.width, self.height, self.fps, self.quality = width, height, fps, quality
+        self._plock = threading.Lock()
+        self._proc = None
+        self._reader = None
         self._refs = 0
-        self._plock = __import__("threading").Lock()
-        self._latest_color = None
-        self._latest_depth = None
-        self._grab_lock = __import__("threading").Lock()
+        self._latest_color: Optional[bytes] = None
+        self._latest_depth: Optional[bytes] = None
+        self._last_frame = 0.0
+        self._started_at = 0.0
+        self._restarts = 0
+        self.error: Optional[str] = None
 
     @classmethod
-    def get(cls, width=640, height=480, fps=15):
+    def get(cls, width=640, height=480, fps=15, quality=70):
         with cls._lock:
             if cls._instance is None:
-                cls._instance = _SharedRealSense(width, height, fps)
+                cls._instance = _SharedRealSense(width, height, fps, quality)
             return cls._instance
 
-    def acquire(self):
+    # -- lifecycle -----------------------------------------------------------
+    def _spawn(self) -> None:
+        """Start the worker (non-blocking). Caller holds _plock."""
+        import subprocess
+        env = dict(os.environ, RS_WIDTH=str(self.width), RS_HEIGHT=str(self.height),
+                   RS_FPS=str(self.fps), RS_JPEG_Q=str(self.quality))
+        worker = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rs_worker.py")
+        self._proc = subprocess.Popen([sys.executable, worker], stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, env=env, bufsize=0)
+        self._started_at = time.time()
+        self._last_frame = 0.0
+        self._reader = threading.Thread(target=self._read_loop, args=(self._proc,),
+                                        daemon=True, name="rs-reader")
+        self._reader.start()
+        threading.Thread(target=self._stderr_loop, args=(self._proc,), daemon=True,
+                         name="rs-stderr").start()
+        log.info(f"shared RealSense worker started (pid {self._proc.pid})")
+
+    def acquire(self) -> bool:
         with self._plock:
-            if self._pipe is None:
-                # pipe.start() is a blocking C call that can HANG forever if the
-                # D435i USB is in a bad power state. Time-box it in a worker
-                # thread so a wedged camera can never deadlock the dashboard.
-                import threading as _t
-                result = {"pipe": None, "err": None}
-                def _do_start():
-                    try:
-                        pipe = rs.pipeline()
-                        cfg = rs.config()
-                        cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
-                        cfg.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, self.fps)
-                        pipe.start(cfg)
-                        result["pipe"] = pipe
-                    except Exception as e:
-                        result["err"] = e
-                th = _t.Thread(target=_do_start, daemon=True, name="rs-start")
-                th.start()
-                th.join(timeout=8.0)
-                if th.is_alive():
-                    log.warning("📷 RealSense pipe.start() timed out (8s) — camera unavailable")
-                    return False
-                if result["err"] is not None:
-                    log.warning(f"📷 RealSense start failed: {result['err']}")
-                    return False
-                self._pipe = result["pipe"]
-                log.info("📷 shared RealSense pipeline started (color+depth)")
             self._refs += 1
+            if self._proc is None or self._proc.poll() is not None:
+                self._spawn()
             return True
 
-    def release(self):
+    def release(self) -> None:
+        # The dashboard is the single RealSense owner; keep the worker warm so
+        # a camera re-open (fail counter in _Cam) never churns the pipeline.
         with self._plock:
-            self._refs -= 1
-            if self._refs <= 0 and self._pipe is not None:
-                try:
-                    self._pipe.stop()
-                except Exception:
-                    pass
-                self._pipe = None
-                self._refs = 0
-                log.info("📷 shared RealSense pipeline stopped")
+            self._refs = max(0, self._refs - 1)
 
-    def _pump(self):
-        """Grab one frameset and cache color+depth. Thread-safe."""
-        with self._grab_lock:
-            if self._pipe is None:
+    def shutdown(self) -> None:
+        with self._plock:
+            self._kill()
+
+    def _kill(self) -> None:
+        p = self._proc
+        self._proc = None
+        if p is None:
+            return
+        try:
+            p.kill()
+            p.wait(timeout=3)
+        except Exception:
+            pass
+
+    # -- child I/O -----------------------------------------------------------
+    def _stderr_loop(self, proc) -> None:
+        try:
+            for line in iter(proc.stderr.readline, b""):
+                text = line.decode("utf-8", "replace").rstrip()
+                if text:
+                    log.info(text)
+                    if "failed" in text or "no frames" in text:
+                        self.error = text
+        except Exception:
+            pass
+
+    def _read_loop(self, proc) -> None:
+        import struct
+        f = proc.stdout
+        try:
+            while True:
+                head = f.read(9)
+                if len(head) < 9:
+                    break
+                if head[:4] != b"NEON":
+                    # resync on garbage
+                    continue
+                kind, n = head[4:5], struct.unpack(">I", head[5:9])[0]
+                buf = bytearray()
+                while len(buf) < n:
+                    chunk = f.read(n - len(buf))
+                    if not chunk:
+                        return
+                    buf.extend(chunk)
+                data = bytes(buf)
+                if kind == b"C":
+                    self._latest_color = data
+                elif kind == b"D":
+                    self._latest_depth = data
+                self._last_frame = time.time()
+                self.error = None
+        except Exception as e:
+            log.debug(f"rs reader: {e}")
+        finally:
+            rc = proc.poll()
+            log.warning(f"shared RealSense worker ended (rc={rc})")
+
+    def _watchdog(self) -> None:
+        """Called on every read: restart a dead or stalled worker (bounded back-off)."""
+        with self._plock:
+            if self._refs <= 0:
                 return
-            frames = self._pipe.wait_for_frames(timeout_ms=1000)
-            cf = frames.get_color_frame()
-            df = frames.get_depth_frame()
-            if cf:
-                self._latest_color = np.asanyarray(cf.get_data())
-            if df:
-                depth = np.asanyarray(df.get_data())
-                clipped = np.clip(depth, 0, _DEPTH_MAX_MM).astype(np.float32)
-                d8 = (clipped / _DEPTH_MAX_MM * 255).astype(np.uint8)
-                self._latest_depth = cv2.applyColorMap(d8, cv2.COLORMAP_TURBO)
+            p = self._proc
+            now = time.time()
+            dead = p is None or p.poll() is not None
+            ref = self._last_frame or self._started_at
+            stalled = (not dead) and ref and (now - ref) > self.STALL_S
+            if not (dead or stalled):
+                return
+            wait = self.BACKOFF_S[min(self._restarts, len(self.BACKOFF_S) - 1)]
+            if now - self._started_at < wait:
+                return
+            if stalled:
+                log.warning(f"shared RealSense worker stalled {now - ref:.0f}s, restarting")
+                self._kill()
+            self._restarts += 1
+            if self._last_frame:
+                self._restarts = 1       # it worked once: short back-off
+            self._spawn()
 
-    def read_color(self):
-        self._pump()
+    # -- reads (never block) -------------------------------------------------
+    def read_color(self) -> Optional[bytes]:
+        self._watchdog()
         return self._latest_color
 
-    def read_depth(self):
-        self._pump()
+    def read_depth(self) -> Optional[bytes]:
+        self._watchdog()
         return self._latest_depth
+
+    def status(self) -> dict:
+        p = self._proc
+        return {"worker_pid": p.pid if p else None, "alive": bool(p and p.poll() is None),
+                "restarts": self._restarts, "error": self.error,
+                "last_frame_age": round(time.time() - self._last_frame, 2) if self._last_frame else None}
 
 
 class _Cam:
@@ -213,7 +289,7 @@ class _Cam:
             self._error = "pyrealsense2 missing"
             return False
         try:
-            self._rs_shared = _SharedRealSense.get(self.width, self.height, self.fps)
+            self._rs_shared = _SharedRealSense.get(self.width, self.height, self.fps, self.quality)
             self._rs_shared.acquire()
             self._rs_pipe = True  # marker: using shared pipeline
             self._backend = f"realsense:{self.kind}"
@@ -269,7 +345,11 @@ class _Cam:
                     time.sleep(0.05)
                     continue
                 fails = 0
-                jpg = _jpeg(frame, self.quality)
+                # the RealSense worker hands out JPEG already; v4l2 gives arrays
+                jpg = bytes(frame) if isinstance(frame, (bytes, bytearray)) else _jpeg(frame, self.quality)
+                if self._rs_shared is not None and jpg is not None and jpg == self._jpeg:
+                    time.sleep(0.02)   # same frame as last time: nothing new yet
+                    continue
                 if jpg:
                     with self._lock:
                         self._jpeg = jpg
@@ -288,8 +368,9 @@ class _Cam:
             return self._jpeg
 
     def status(self) -> dict:
+        rs_st = self._rs_shared.status() if self._rs_shared is not None else None
         return {
-            "id": self.id, "kind": self.kind, "backend": self._backend,
+            "id": self.id, "kind": self.kind, "backend": self._backend, "realsense": rs_st,
             "running": self._running, "frames": self._frames,
             "resolution": [self.width, self.height], "fps": self.fps,
             "last_frame_age": round(time.time() - self._ts, 2) if self._ts else None,
