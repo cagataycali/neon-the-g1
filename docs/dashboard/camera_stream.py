@@ -84,6 +84,12 @@ class _SharedRealSense:
 
     STALL_S = 12.0          # no frame for this long -> restart the worker
     BACKOFF_S = (2, 5, 10, 20, 30)
+    # Seconds without a single frame since the first spawn before the colour
+    # cam gives up on pyrealsense2 and reads the RealSense over V4L2 instead
+    # (depth needs the SDK and goes unavailable). Measured 2026-10-05: with a
+    # flapping USB port rs.pipeline() never returned in 100 s, while the UVC
+    # colour node kept delivering frames.
+    GIVE_UP_S = float(os.getenv("NEON_RS_GIVE_UP_S", "30"))
 
     def __init__(self, width=640, height=480, fps=15, quality=70):
         self.width, self.height, self.fps, self.quality = width, height, fps, quality
@@ -95,6 +101,7 @@ class _SharedRealSense:
         self._latest_depth: Optional[bytes] = None
         self._last_frame = 0.0
         self._started_at = 0.0
+        self._first_spawn = 0.0
         self._restarts = 0
         self.error: Optional[str] = None
 
@@ -115,6 +122,7 @@ class _SharedRealSense:
         self._proc = subprocess.Popen([sys.executable, worker], stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE, env=env, bufsize=0)
         self._started_at = time.time()
+        self._first_spawn = self._first_spawn or self._started_at
         self._last_frame = 0.0
         self._reader = threading.Thread(target=self._read_loop, args=(self._proc,),
                                         daemon=True, name="rs-reader")
@@ -226,6 +234,12 @@ class _SharedRealSense:
         self._watchdog()
         return self._latest_depth
 
+    def gave_up(self) -> bool:
+        """True once the SDK has produced nothing for GIVE_UP_S since the first spawn."""
+        if self._last_frame or not self._first_spawn:
+            return False
+        return (time.time() - self._first_spawn) > self.GIVE_UP_S
+
     def status(self) -> dict:
         p = self._proc
         return {"worker_pid": p.pid if p else None, "alive": bool(p and p.poll() is None),
@@ -334,6 +348,9 @@ class _Cam:
         while self._running:
             t0 = time.time()
             try:
+                if self._rs_shared is not None and self._rs_shared.gave_up():
+                    if not self._fallback_from_realsense():
+                        break
                 frame = self._read()
                 if frame is None:
                     fails += 1
@@ -362,6 +379,41 @@ class _Cam:
             if dt < period:
                 time.sleep(period - dt)
         self._release()
+
+    def _fallback_from_realsense(self) -> bool:
+        """pyrealsense2 never delivered: colour switches to the RealSense's own
+        UVC node (plain V4L2, no libusb); depth has no SDK-less path and stops.
+        The worker is shut down so it stops resetting the camera under us."""
+        shared = self._rs_shared
+        try:
+            shared.shutdown()
+        except Exception:
+            pass
+        self._rs_shared = None
+        self._rs_pipe = None
+        if self.kind != "rs_color":
+            self._error = f"depth unavailable: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s (USB stall?)"
+            log.warning(f"📷 {self.id}: {self._error}")
+            self._running = False
+            return False
+        import importlib
+        uc = importlib.import_module("tools.use_camera")
+        env_node = os.getenv("DASHBOARD_RS_V4L2")
+        node = int(env_node) if env_node is not None else uc._find_realsense_v4l2_main()
+        cap = None
+        if node is not None:
+            cap = uc._v4l2_open(node, self.width, self.height, fourcc="YUYV", fps=self.fps) \
+                or uc._v4l2_open(node, self.width, self.height, fps=self.fps)
+        if cap is None:
+            self._error = f"pyrealsense2 stalled {shared.GIVE_UP_S:.0f}s and no RealSense V4L2 node is capturable"
+            log.warning(f"📷 {self.id}: {self._error}")
+            self._running = False
+            return False
+        self._cap = cap
+        self._backend = f"v4l2:{node} (realsense colour fallback, SDK stalled)"
+        self._error = None
+        log.warning(f"📷 {self.id}: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s; reading the RealSense over V4L2 node {node}")
+        return True
 
     def latest(self) -> Optional[bytes]:
         with self._lock:
