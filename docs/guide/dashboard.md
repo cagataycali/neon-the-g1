@@ -39,7 +39,7 @@ Left to right: the Strands wordmark and the project label, the connection pill (
 
 ## voice
 
-The microphone pill opens the Voice drawer: snooze the listener for 15 minutes, an hour, three hours or until you unmute it, and switch provider, voice and realtime model. Muted means silent: the microphone is dropped and the speaker output is gated. The same state is exposed to the agent itself through the `voice_control` tool, so "neon, be quiet for an hour" does the same thing.
+The microphone pill opens the Voice drawer: snooze the listener for 15 minutes, an hour, three hours or until you unmute it, and set the head speaker volume (minus, slider, plus: `GET`/`POST /api/voice/volume`, the robot's own audio service), and switch provider, voice and realtime model. Muted means silent: the microphone is dropped and the speaker output is gated. The same state is exposed to the agent itself through the `voice_control` tool, so "neon, be quiet for an hour" does the same thing.
 
 <figure class="shot" markdown>
 ![Voice drawer: state live, snooze buttons, provider, voice and model pickers](../assets/dashboard/voice.png){ loading=lazy }

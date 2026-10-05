@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { authedFetch } from '../lib/auth'
 import { Ico } from './Icons'
 import { Drawer } from '../App'
@@ -50,6 +50,9 @@ export function VoicePill({ st, onClick }: { st: VoiceStatus | null; onClick: ()
 export default function VoiceSheet({ st, refresh, onClose }: { st: VoiceStatus | null; refresh: () => Promise<void> | void; onClose: () => void }) {
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState(''); const [warn, setWarn] = useState(false)
   const [provider, setProvider] = useState(''); const [voice, setVoice] = useState(''); const [model, setModel] = useState('')
+  // speaker volume: null until GET /api/voice/volume answers (a DDS RPC, so it is not part of the 5 s status poll)
+  const [vol, setVol] = useState<number | null>(null); const [volErr, setVolErr] = useState(''); const [volBusy, setVolBusy] = useState(false)
+  const volStep = 10
   useEffect(() => { if (st && !provider) { setProvider(st.provider); setVoice(st.voice); setModel(st.model) } }, [st, provider])
   const dev = typeof location !== 'undefined' && location.search.includes('dev')
   const say = (m: string, w = false) => { setMsg(m); setWarn(w) }
@@ -57,6 +60,24 @@ export default function VoiceSheet({ st, refresh, onClose }: { st: VoiceStatus |
     const r = await authedFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
     return r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` }))
   }
+  const loadVolume = useCallback(async () => {
+    try {
+      const r = await authedFetch('/api/voice/volume'); const d = await r.json()
+      if (d.ok) { setVol(d.volume); setVolErr('') } else { if (typeof d.volume === 'number') setVol(d.volume); setVolErr(d.error || 'speaker unreachable') }
+    } catch { setVolErr('speaker unreachable') }
+  }, [])
+  useEffect(() => { loadVolume() }, [loadVolume])
+  const setVolume = async (body: { level: number } | { delta: number }) => {
+    setVolBusy(true)
+    const d = await post('/api/voice/volume', body)
+    setVolBusy(false)
+    if (!d.ok) { setVolErr(d.error || 'failed'); if (typeof d.volume === 'number') setVol(d.volume); return }
+    setVol(d.volume); setVolErr('')
+  }
+  // the slider commits on release; the value shown tracks the thumb while dragging
+  const commitRef = useRef<number | null>(null)
+  const sliderChange = (v: number) => { setVol(v); commitRef.current = v }
+  const sliderCommit = () => { if (commitRef.current !== null) { const v = commitRef.current; commitRef.current = null; setVolume({ level: v }) } }
   const mute = async (minutes: number | null) => {
     setBusy('muting'); const d = await post('/api/voice/mute', { minutes }); setBusy('')
     if (!d.ok) { say(d.error || 'failed', true); return }
@@ -95,6 +116,18 @@ export default function VoiceSheet({ st, refresh, onClose }: { st: VoiceStatus |
           <button className="cfg-chip" disabled={!!busy} onClick={() => mute(null)}>until I unmute</button>
         </div>
         <button className={muted ? 'gate-btn primary' : 'gate-btn'} disabled={!!busy || !muted} onClick={unmute}><span className="ic">{Ico.mic()}</span>Unmute now</button>
+
+        <div className="cfg-label">Speaker volume</div>
+        <div className="vol-row" role="group" aria-label="Speaker volume">
+          <button className="cfg-chip vol-btn" aria-label="Volume down" title={`-${volStep}`} disabled={volBusy || vol === null || vol <= 0} onClick={() => setVolume({ delta: -volStep })}>-</button>
+          <input type="range" className="vol-slider" min={0} max={100} step={5} aria-label="Speaker volume" aria-valuetext={vol === null ? 'unknown' : `${vol} percent`}
+            value={vol ?? 0} disabled={volBusy || vol === null}
+            onChange={e => sliderChange(Number(e.target.value))} onPointerUp={sliderCommit} onKeyUp={sliderCommit} onTouchEnd={sliderCommit} onBlur={sliderCommit} />
+          <button className="cfg-chip vol-btn" aria-label="Volume up" title={`+${volStep}`} disabled={volBusy || vol === null || vol >= 100} onClick={() => setVolume({ delta: volStep })}>+</button>
+          <span className="vol-val mono" aria-live="polite">{vol === null ? '--' : `${vol}%`}</span>
+          <button className="mini-btn" aria-label="Re-read volume" title="re-read from the robot" disabled={volBusy} onClick={loadVolume}><span className="ic">{Ico.refresh()}</span></button>
+        </div>
+        <div className="cfg-note">The head speaker, through the robot's audio service. Separate from mute: a muted listener keeps this level for later.{volErr && <span className="vol-err"> {volErr}</span>}</div>
 
         <div className="cfg-label">Voice profile</div>
         <div className="cfg-row">
