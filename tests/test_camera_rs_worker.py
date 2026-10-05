@@ -115,3 +115,38 @@ def test_cam_loop_passes_jpeg_through(shared, monkeypatch):
         assert cam.status()["realsense"]["alive"] in (True, False)
     finally:
         cam.stop()
+
+
+def test_colour_falls_back_to_v4l2_when_sdk_never_delivers(shared, monkeypatch, tmp_path):
+    """The worker spawns but never frames: colour switches to the UVC node, depth stops, worker is shut down."""
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_HANG", "1")
+    shared.GIVE_UP_S = 0.3
+    monkeypatch.setattr(cs, "_RS", True)
+    monkeypatch.setattr(cs, "_CV2", True)
+    monkeypatch.setattr(cs._SharedRealSense, "get", classmethod(lambda cls, *a, **k: shared))
+
+    class FakeCap:
+        def read(self):
+            return True, "array"
+        def release(self):
+            pass
+
+    import types
+    fake_uc = types.SimpleNamespace(_find_realsense_v4l2_main=lambda: 4,
+                                    _v4l2_open=lambda node, w, h, fourcc=None, fps=15: FakeCap() if node == 4 else None)
+    import importlib
+    monkeypatch.setattr(importlib, "import_module", lambda name, *a, **k: fake_uc if name == "tools.use_camera" else __import__(name))
+    monkeypatch.setattr(cs, "_jpeg", lambda frame, q=70: b"jpeg-from-" + str(frame).encode())
+
+    color = cs._Cam("realsense_color", "rs_color", width=640, height=480, fps=30, quality=70)
+    depth = cs._Cam("realsense_depth", "rs_depth", width=640, height=480, fps=30, quality=70)
+    color.start(); depth.start()
+    try:
+        assert _wait(lambda: color.latest() == b"jpeg-from-array", 4.0)
+        assert "v4l2:4" in color.status()["backend"]
+        assert _wait(lambda: depth.status()["running"] is False, 4.0)
+        assert "depth unavailable" in depth.status()["error"]
+        assert shared.status()["worker_pid"] is None
+    finally:
+        color.stop(); depth.stop()
