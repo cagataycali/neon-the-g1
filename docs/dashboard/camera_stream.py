@@ -134,6 +134,8 @@ class _SharedRealSense:
     def acquire(self) -> bool:
         with self._plock:
             self._refs += 1
+            if self.gave_up():
+                return False          # the SDK is written off for this process: no respawn churn
             if self._proc is None or self._proc.poll() is not None:
                 self._spawn()
             return True
@@ -304,7 +306,9 @@ class _Cam:
             return False
         try:
             self._rs_shared = _SharedRealSense.get(self.width, self.height, self.fps, self.quality)
-            self._rs_shared.acquire()
+            if not self._rs_shared.acquire():
+                # the SDK already gave up in this process: go straight to the fallback
+                return self._fallback_from_realsense()
             self._rs_pipe = True  # marker: using shared pipeline
             self._backend = f"realsense:{self.kind}"
             return True
@@ -380,6 +384,43 @@ class _Cam:
                 time.sleep(period - dt)
         self._release()
 
+    @staticmethod
+    def _realsense_rgb_nodes() -> List[int]:
+        """The RealSense's RGB V4L2 nodes, RGB interface first.
+
+        A D435i exposes two UVC functions: the depth module (interface 1.0:
+        depth, IR left/right, metadata) and the RGB module (interface 1.3:
+        colour + metadata). Node numbers shift on every re-enumeration, so pick
+        by sysfs interface: the highest bInterfaceNumber is the RGB module.
+        Nodes of other interfaces follow as a last resort (they are IR)."""
+        import glob
+        import re
+        by_iface: Dict[str, List[int]] = {}
+        for path in glob.glob("/sys/class/video4linux/video*"):
+            try:
+                name = open(os.path.join(path, "name")).read()
+                if "RealSense" not in name:
+                    continue
+                dev = os.path.realpath(os.path.join(path, "device"))
+                m = re.search(r":\d+\.(\d+)$", dev)
+                iface = m.group(1) if m else "?"
+                by_iface.setdefault(iface, []).append(int(path.rsplit("video", 1)[1]))
+            except Exception:
+                continue
+        ordered: List[int] = []
+        for iface in sorted(by_iface, key=lambda k: (k == "?", -int(k) if k.isdigit() else 0)):
+            ordered.extend(sorted(by_iface[iface]))
+        return ordered
+
+    @staticmethod
+    def _is_colour(frame) -> bool:
+        """IR streams come back as grey BGR; the RGB module has channel spread."""
+        try:
+            b, g, r = cv2.split(frame)
+            return float(cv2.absdiff(b, g).mean() + cv2.absdiff(g, r).mean()) > 1.0
+        except Exception:
+            return True
+
     def _fallback_from_realsense(self) -> bool:
         """pyrealsense2 never delivered: colour switches to the RealSense's own
         UVC node (plain V4L2, no libusb); depth has no SDK-less path and stops.
@@ -399,13 +440,23 @@ class _Cam:
         import importlib
         uc = importlib.import_module("tools.use_camera")
         env_node = os.getenv("DASHBOARD_RS_V4L2")
-        node = int(env_node) if env_node is not None else uc._find_realsense_v4l2_main()
-        cap = None
-        if node is not None:
-            cap = uc._v4l2_open(node, self.width, self.height, fourcc="YUYV", fps=self.fps) \
-                or uc._v4l2_open(node, self.width, self.height, fps=self.fps)
+        candidates = [int(env_node)] if env_node is not None else self._realsense_rgb_nodes()
+        if not candidates:
+            auto = uc._find_realsense_v4l2_main()
+            candidates = [auto] if auto is not None else []
+        cap, node = None, None
+        for n in candidates:
+            c = uc._v4l2_open(n, self.width, self.height, fourcc="YUYV", fps=self.fps) \
+                or uc._v4l2_open(n, self.width, self.height, fps=self.fps)
+            if c is None:
+                continue
+            ok, frame = c.read()
+            if ok and frame is not None and (env_node is not None or self._is_colour(frame)):
+                cap, node = c, n
+                break
+            c.release()
         if cap is None:
-            self._error = f"pyrealsense2 stalled {shared.GIVE_UP_S:.0f}s and no RealSense V4L2 node is capturable"
+            self._error = f"pyrealsense2 stalled {shared.GIVE_UP_S:.0f}s and no RealSense RGB V4L2 node is capturable (tried {candidates})"
             log.warning(f"📷 {self.id}: {self._error}")
             self._running = False
             return False
