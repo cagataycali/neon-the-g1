@@ -138,6 +138,15 @@ def test_colour_falls_back_to_v4l2_when_sdk_never_delivers(shared, monkeypatch, 
     import importlib
     monkeypatch.setattr(importlib, "import_module", lambda name, *a, **k: fake_uc if name == "tools.use_camera" else __import__(name))
     monkeypatch.setattr(cs, "_jpeg", lambda frame, q=70: b"jpeg-from-" + str(frame).encode())
+    monkeypatch.setattr(cs._Cam, "_realsense_rgb_nodes", staticmethod(lambda: [2, 4]))
+    monkeypatch.setattr(cs._Cam, "_is_colour", staticmethod(lambda frame: frame == "array"))
+    fake_uc._v4l2_open = lambda node, w, h, fourcc=None, fps=15: FakeCap() if node in (2, 4) else None
+
+    class IRCap(FakeCap):
+        def read(self):
+            return True, "grey"
+    _real_open = fake_uc._v4l2_open
+    fake_uc._v4l2_open = lambda node, w, h, fourcc=None, fps=15: IRCap() if node == 2 else _real_open(node, w, h, fourcc, fps)
 
     color = cs._Cam("realsense_color", "rs_color", width=640, height=480, fps=30, quality=70)
     depth = cs._Cam("realsense_depth", "rs_depth", width=640, height=480, fps=30, quality=70)
@@ -150,3 +159,30 @@ def test_colour_falls_back_to_v4l2_when_sdk_never_delivers(shared, monkeypatch, 
         assert shared.status()["worker_pid"] is None
     finally:
         color.stop(); depth.stop()
+
+
+def test_rgb_node_picker_prefers_the_highest_interface(tmp_path, monkeypatch):
+    """video0/1/3/7 on interface 1.0 (depth module), video5/6 on 1.3 (RGB) -> 5, 6 first."""
+    sysfs = tmp_path / "v4l"
+    layout = {0: "1.0", 1: "1.0", 3: "1.0", 5: "1.3", 6: "1.3", 7: "1.0", 9: None}
+    for n, iface in layout.items():
+        d = sysfs / f"video{n}"; d.mkdir(parents=True)
+        (d / "name").write_text("Intel(R) RealSense(TM) Depth Ca" if iface else "Logitech BRIO")
+        target = tmp_path / f"dev-{n}" / f"2-2.3:{iface or '1.0'}"
+        target.mkdir(parents=True)
+        (d / "device").symlink_to(target)
+    import glob as _glob
+    monkeypatch.setattr(_glob, "glob", lambda pat: [str(p) for p in sysfs.iterdir()] if "video4linux" in pat else [])
+    assert cs._Cam._realsense_rgb_nodes() == [5, 6, 0, 1, 3, 7]
+
+
+def test_no_respawn_after_give_up(shared, monkeypatch):
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_HANG", "1")
+    shared.GIVE_UP_S = 0.2
+    assert shared.acquire() is True
+    time.sleep(0.3)
+    assert shared.gave_up()
+    shared.shutdown()
+    assert shared.acquire() is False
+    assert shared.status()["worker_pid"] is None
