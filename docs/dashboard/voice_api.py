@@ -124,7 +124,10 @@ def set_profile(provider: Optional[str], voice: Optional[str], model: Optional[s
 def _volume_backend():
     """tools.voice_control's Get/SetVolume helpers + the DDS init guard.
     Raises when the robot toolset (unitree_sdk2py) is not importable here."""
-    from tools import voice_control
+    import importlib
+    # tools/__init__ re-exports the @tool of the same name, so attribute access
+    # yields the DecoratedFunctionTool; the module is what holds the helpers.
+    voice_control = importlib.import_module("tools.voice_control")
     from tools._g1_common import ensure_dds
     iface = os.getenv("G1_NETWORK_INTERFACE", os.getenv("G1_IFACE", "eth0"))
     err = ensure_dds(iface)
