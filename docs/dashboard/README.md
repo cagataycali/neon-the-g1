@@ -153,6 +153,9 @@ neon-ctl also clears an expired voice snooze every poll (belt and braces for the
   while the clock is unsynced and reissues a cached token minted at a 1970 clock, `tools/use_camera`
   re-mints once on a 401/403, and `neon-voice.service` / `neon-compose.service` order themselves
   `After=time-sync.target`.
+- **Speaker volume**: `GET /api/voice/volume` reads the head speaker level (0-100) through the G1 `AudioClient`;
+  `POST /api/voice/volume {"level": 0-100}` or `{"delta": +-10}` sets it, clamped. The Voice sheet shows a
+  minus / slider / plus row. Both are DDS RPCs with a hard 3-4 s timeout, so a wedged audio service answers 400, never hangs the sheet.
 
 Install on the Jetson (once):
 

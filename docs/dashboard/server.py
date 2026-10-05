@@ -172,6 +172,18 @@ def _safe(name: str, fn, _timeout: float = 2.5, **kwargs) -> Dict[str, Any]:
         return {"status": "error", "message": f"{name}: {e}"}
 
 
+def _hard(name: str, fn, _timeout: float, *args) -> Dict[str, Any]:
+    """Like _safe for callables that are not in _TOOLS: hard wall-clock timeout via the pool."""
+    fut = _POOL.submit(fn, *args)
+    try:
+        return fut.result(timeout=_timeout)
+    except _futures.TimeoutError:
+        return {"ok": False, "status": "error", "message": f"{name}: timed out after {_timeout}s (DDS RPC wedged?)",
+                "error": f"{name} timed out after {_timeout:g} s"}
+    except Exception as e:
+        return {"ok": False, "status": "error", "message": f"{name}: {e}", "error": f"{name}: {e}"}
+
+
 # Background-refreshed telemetry cache. The collector thread refreshes this on a
 # tick; HTTP + WS just read _SNAPSHOT (instant, never blocks).
 _SNAPSHOT: Dict[str, Any] = {"ts": 0.0, "iface": IFACE}
@@ -458,6 +470,20 @@ async def voice_mute(payload: dict | None = None):
 @app.post("/api/voice/unmute")
 async def voice_unmute():
     return JSONResponse(await asyncio.to_thread(_voice().unmute))
+
+
+@app.get("/api/voice/volume")
+async def voice_volume():
+    """{ok, volume 0-100, step}: head speaker level via AudioClient.GetVolume (DDS, hard 3 s timeout)."""
+    return JSONResponse(await asyncio.to_thread(_hard, "GetVolume", _voice().volume, 3.0))
+
+
+@app.post("/api/voice/volume")
+async def voice_volume_set(payload: dict | None = None):
+    """Body {"level": 0-100} or {"delta": +-10}: AudioClient.SetVolume, clamped. Independent of mute."""
+    p = payload or {}
+    res = await asyncio.to_thread(_hard, "SetVolume", _voice().set_volume, 4.0, p.get("level"), p.get("delta"))
+    return JSONResponse(res, status_code=200 if res.get("ok") else 400)
 
 
 @app.post("/api/voice/profile")

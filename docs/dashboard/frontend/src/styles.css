@@ -346,3 +346,12 @@ button.wifi-row:hover { border-color: var(--sr-accent) }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important }
 }
+
+/* voice sheet: speaker volume row */
+.vol-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px }
+.vol-row .vol-btn { min-width: 32px; justify-content: center; font: 600 15px var(--sr-mono); line-height: 1; padding: 3px 0 }
+.vol-row .vol-slider { flex: 1; min-width: 0; height: 28px; margin: 0; accent-color: var(--sr-accent); cursor: pointer }
+.vol-row .vol-slider:disabled { cursor: default; opacity: .5 }
+.vol-row .vol-val { min-width: 42px; text-align: right; font-size: 12px; color: var(--sr-fg); font-variant-numeric: tabular-nums }
+.vol-row .mini-btn .ic svg { width: 13px; height: 13px }
+.vol-err { color: var(--sr-warn) }
