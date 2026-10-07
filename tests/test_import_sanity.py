@@ -3,7 +3,7 @@
 Run with `python3 -m pytest tests/test_import_sanity.py -v`.
 
 What this CAN test:
-  - tools.memory / agent_log / voice_bridge / dispatch / prompts / manage_*
+  - tools.memory / agent_log / voice_bridge
   - Side-effects of `import tools.vision` (OpenAI bidi patch is
     try/except guarded, so it MUST not crash)
 
@@ -40,20 +40,17 @@ def test_voice_bridge_module():
         assert callable(fn)
 
 
-def test_prompts_module():
-    from tools.prompts import prompts, get_override
-    assert callable(prompts)
-    assert callable(get_override)
-
-
-def test_manage_messages_module():
-    from tools.manage_messages import manage_messages
-    assert callable(manage_messages)
-
-
-def test_manage_tools_module():
-    from tools.manage_tools import manage_tools
-    assert callable(manage_tools)
+def test_removed_tool_modules_are_gone():
+    """Cut from the source (owner, 2026-10-07): the robot carries no terminal, sub-agent
+    spawner, phone remote, jukebox, self-editing prompts, history/tool manager or make."""
+    import importlib
+    for mod in ("tools.dispatch", "tools.phone", "tools.use_spotify", "tools.prompts",
+                "tools.manage_messages", "tools.manage_tools", "tools.make"):
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module(mod)
+    import tools as _t
+    names = {getattr(t, "tool_name", getattr(t, "__name__", None)) for t in _t.G1_LOOKOUT_TOOLS}
+    assert not names & {"shell", "dispatch", "phone", "use_spotify", "adb", "recorder", "prompts", "manage_messages", "manage_tools", "make"}
 
 
 def test_telegram_module_no_token():
@@ -62,15 +59,6 @@ def test_telegram_module_no_token():
     assert callable(telegram)
     assert callable(download_file)
     assert callable(listen)
-
-
-def test_dispatch_module():
-    """dispatch is importable for manage_tools (not in any default list since 2026-10-07);
-    actually CALLING it would need devduck."""
-    from tools.dispatch import dispatch
-    assert callable(dispatch)
-    import tools as _t
-    assert dispatch not in _t.G1_LOOKOUT_TOOLS
 
 
 def test_vision_patch_idempotent():

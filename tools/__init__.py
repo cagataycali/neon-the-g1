@@ -140,7 +140,7 @@ G1_ALL_TOOLS = G1_SAFE_TOOLS + G1_LOCOMOTION_TOOLS + G1_MOTION_GEN_TOOLS
 G1_TOOLS = G1_ALL_TOOLS
 
 
-# cross-persona stack (memory/voice/telegram/dispatch)
+# cross-persona stack (memory/voice/telegram)
 from .memory import memory
 from .agent_log import (
     record as agent_log_record,
@@ -164,16 +164,12 @@ from .telegram import (
     listen as telegram_listen,
 )
 from .vision import take_photo
-from .prompts import prompts
-from .manage_messages import manage_messages
-from .manage_tools import manage_tools
-from .make import make
 from .voice_control import voice_control
 
-# Curated bundle for callers. dispatch and phone are no longer part of it
-# (owner, 2026-10-07); the modules stay importable for manage_tools.
+# Curated bundle for callers. Cut to what NEON uses (owner, 2026-10-07):
+# dispatch, phone/ADB, use_spotify, prompts, manage_messages, manage_tools
+# and make are gone from the source.
 G1_LOOKOUT_TOOLS = [
-    memory, voice_say, telegram, take_photo,
-    prompts, manage_messages, manage_tools, make, kimodo, voice_control,
+    memory, voice_say, telegram, take_photo, kimodo, voice_control,
 ]
 

@@ -192,11 +192,12 @@ def test_build_voice_tools_are_all_wrapped(monkeypatch):
     assert tools and not any(isinstance(t, AgentTool) and not isinstance(t, LoggedTool) for t in tools)
     names = {getattr(t, "tool_name", None) for t in tools}
     assert {"g1_walk_forward", "g1_turn", "g1_move_velocity", "g1_stop_move", "take_photo"} <= names
-    # removed on purpose (owner, 2026-10-07): a robot carries no terminal, sub-agent spawner,
-    # phone remote or jukebox by default
-    assert not names & {"shell", "dispatch", "phone", "use_spotify", "adb", "recorder"}
+    # removed from the source (owner, 2026-10-07): a robot carries no terminal, sub-agent
+    # spawner, phone remote, jukebox, self-editing prompts, history/tool manager or make
+    removed = {"shell", "dispatch", "phone", "use_spotify", "adb", "recorder", "prompts", "manage_messages", "manage_tools", "make"}
+    assert not names & removed
     full = {getattr(t, "tool_name", None) for t in g1.build_tools(persona="telegram")}
-    assert not full & {"shell", "dispatch", "phone", "use_spotify", "adb", "recorder"}
+    assert not full & removed
     # the dashboard's chat_agent (no persona argument) is attributed to "dashboard", not "voice"
     monkeypatch.setitem(sys.modules, "docs.dashboard.chat_agent", type(sys)("docs.dashboard.chat_agent"))
     monkeypatch.delenv("NEON_PERSONA", raising=False)

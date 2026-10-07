@@ -57,7 +57,6 @@ G1_NETWORK_INTERFACE=eth0               # the DDS interface, never change on the
 TELEGRAM_BOT_TOKEN=  TELEGRAM_ALLOWED_USERS=  TELEGRAM_DEFAULT_CHAT_ID=
 NEON_CAMERA_PROXY=https://localhost:8080  NEON_CAMERA_PROXY_TOKEN=   # written by make token-refresh
 NEON_NO_SPEECH=1                        # REPL without the voice auto-start
-PHONE_PIN=                              # phone tool; read by the tool, never by a prompt
 ```
 
 ## without the robot

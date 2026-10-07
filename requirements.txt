@@ -2,7 +2,6 @@
 strands-agents
 strands-agents-tools
 strands-agents[bidi]
-spotipy
 # Audio 
 pyaudio                 # mic capture
 webrtcvad               # VAD for listen_brio
@@ -26,7 +25,6 @@ kiss-icp                # pose estimation from LiDAR point clouds
 # Speech / realtime models (speech tool)
 google-genai            # Gemini Live bidi
 websockets
-websocket-client         # CDP client for phone tool (Chrome DevTools button clicks)
 
 
 # unitree_sdk2py (install separately — wheel is broken, use editable clone)

@@ -69,7 +69,7 @@ def neon(
         mode: strands-robots Robot mode — "sim" (default) | "real" | "auto".
         name: robot registry alias for Layer 2 ("g1" or "neon").
         dds: include Layer-1 live DDS robot tools (state/posture/arm/audio/...).
-        lookout: include cross-persona stack (memory/voice/telegram/dispatch/...).
+        lookout: include cross-persona stack (memory/voice/telegram/...).
         locomotion: include walking tools (g1_move_velocity, g1_walk_forward, ...).
                     Set False for a no-walk safe bundle.
         robot_tool: include the strands-robots ``Robot`` AgentTool (Layer 2).
