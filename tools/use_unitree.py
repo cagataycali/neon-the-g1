@@ -538,9 +538,9 @@ def use_unitree(
           (loco, WaveHand / ShakeHand)   ← leg motion in some FSMs
           (motion_switcher, ReleaseMode) ← robot uncontrolled
       • Use the FSM-safe @tool wrappers (g1_arm_action, g1_move_velocity,
-        g1_safe_squat_to_stand, g1_set_fsm) for routine motion — they
-        gate FSM transitions, mutex rt/armsdk, and auto-release. Reach for
-        use_unitree only when you need raw SDK access.
+        g1_walk_forward) for routine motion — they gate FSM transitions,
+        mutex rt/armsdk, and auto-release. FSM changes (Damp, Squat, stand)
+        are use_unitree("loco", "SetFsmId", {"fsm_id": <id>}).
 
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     EXAMPLES:

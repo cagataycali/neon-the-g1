@@ -19,10 +19,8 @@ opencv-python-headless  # cv2 — `headless` variant avoids GL/Qt bloat on serve
 # pyrealsense2            # RealSense D435i capture (aarch64: build from source; see README)
 ultralytics             # YOLO object detection
 
-# LiDAR + SLAM (g1_lidar, g1_slam)
+# LiDAR (g1_lidar)
 numpy
-kiss-icp                # pose estimation from LiDAR point clouds
-# open3d                  # optional: ICP relocalization (aarch64 wheel depends on Python version)
 
 # Speech / realtime models (speech tool)
 google-genai            # Gemini Live bidi

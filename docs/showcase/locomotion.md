@@ -17,9 +17,8 @@ model may only say "done" when the tool says it moved.
 | turn 90° | `g1_turn(angle_rad=1.57, yaw_rate=0.4)` |
 | strafe right | `g1_move_velocity(vx=0, vy=0.2, vyaw=0, duration=2)` |
 | **stop** (safe) | `g1_stop_move()` |
-| squat → stand | `g1_safe_squat_to_stand()` |
-| lie → stand | `g1_safe_lie_to_stand()` |
-| damp (safe) | `g1_set_fsm(1)` |
+| squat → stand | `use_unitree("loco", "SetFsmId", {"fsm_id": 500})` |
+| damp (safe) | `use_unitree("loco", "SetFsmId", {"fsm_id": 1})` |
 
 ## voice-driven walking, live
 

@@ -26,7 +26,7 @@ ports on [network](../reference/network.md), the units on [systemd](../start/sys
 
 ```mermaid
 flowchart LR
-  M(["message"]) --> I["inject live state<br/>(fsm, imu, battery, slam)"]
+  M(["message"]) --> I["inject live state<br/>(fsm, imu, battery)"]
   I --> P["model plans tool calls"]
   P --> T["execute, parallel when independent<br/>every call logged"]
   T --> R["reply"]
@@ -36,7 +36,7 @@ flowchart LR
 ```
 
 Every turn **injects live robot state** into the system prompt: the model wakes
-up knowing FSM, IMU, battery and SLAM pose from in-memory DDS buffers (under
+up knowing FSM, IMU and battery from in-memory DDS buffers (under
 50 ms). Every tool call is wrapped by `tools/tool_log.py` and lands in
 `agent_log`, which the next turn of every persona reads.
 
@@ -62,7 +62,7 @@ flowchart LR
 Composed tools are hand-written and gated (FSM, mutex, clamps, measured
 motion); `use_unitree` is AST-verified dispatch over the whole SDK; `use_dds`
 is the raw escape hatch; sensing lives outside the SDK (the dashboard's camera
-snapshot, the USB mic, kiss-icp on the lidar). Every tool on
+snapshot, the USB mic, the lidar cloud). Every tool on
 [the catalog](../tools/catalog.md).
 
 ## one agent, several personas

@@ -79,23 +79,10 @@ Livox MID-360 on the head, via SDK.
 | `g1_lidar_switch(on=True)` | power on/off |
 | `g1_lidar_stats` | averaged over N seconds |
 
-## SLAM / 9
-
-kiss-icp on the LiDAR stream (standalone from Unitree's onboard SLAM).
-
-| tool | what |
-|---|---|
-| `g1_slam_start`, `g1_slam_stop` | toggle worker |
-| `g1_slam_pose` | pose estimate (xyz + quat) |
-| `g1_slam_reset` | clear map |
-| `g1_slam_accumulate` | build global map for N s |
-| `g1_slam_save(name)`, `g1_slam_load(name)` | persist |
-| `g1_slam_list_maps`, `g1_slam_stats` | maps + drift |
-
 !!! tip "Measure real travel"
-    `g1_slam_start` → short `g1_walk_forward` → `g1_slam_pose` tells you how far
-    the robot *actually* moved vs commanded.
-
+    `g1_walk_forward` reads `rt/odommodestate` before and after the command
+    and returns `measured_m`, how far the robot *actually* moved vs commanded.
+    The kiss-icp SLAM tools were retired on 2026-10-07.
 
 ---
 

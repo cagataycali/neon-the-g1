@@ -45,7 +45,6 @@ not the request echoed back. When nothing moved the result says so:
 
 ## notes
 
-- Odometry drifts over a room; for a repeatable position use the lidar
-  (`g1_slam_pose` before and after, map frame, see [map a space](slam.md)).
+- Odometry drifts over a room; `measured_m` is per request, not a map frame.
 - Under 0.1 m is rounded up, over 1.0 m is capped: ask twice for two metres.
 - Every walk is a `tool` row in the activity log with `moved` and `measured_m`.

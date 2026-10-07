@@ -64,7 +64,7 @@ FSM_LIE2STANDUP = 702
 FSM_SQUAT2STANDUP = 706
 FSM_BALANCE_EXPERT = 801
 
-# FSM 2 = "Squat" — used by StandUp2Squat workaround in g1_safe_posture.
+# FSM 2 = "Squat" (the StandUp2Squat path).
 # Confirmed by upstream LocoController source (server-side); the SDK's
 # StandUp2Squat() helper has a bug that calls SetFsmId(706) instead of (2),
 # so we publish 2 directly. Treat as motion FSM (legs bend); not arm-ready.
@@ -303,7 +303,7 @@ def ensure_ai_mode() -> Tuple[Optional[int], Optional[Dict]]:
 # LowState cached singleton subscriber
 #
 # Multiple modules used to spin up their own ChannelSubscriber("rt/lowstate")
-# (g1_state.g1_read_lowstate, g1_safe_posture._read_avg_knee,
+# (g1_state.g1_read_lowstate,
 # _g1_common._read_mode_machine_from_lowstate). That was wasteful — three
 # DDS callback queues for the same topic — and contended on _DDS_INIT_LOCK.
 #
@@ -370,7 +370,7 @@ def _read_mode_machine_from_lowstate(net: str = "eth0") -> Optional[int]:
     """Fallback: read mode_machine from LowState DDS topic.
 
     Uses the cached singleton subscriber to avoid Init/Close churn and
-    contention with other LowState consumers (g1_state, g1_safe_posture).
+    contention with other LowState consumers (g1_state).
     """
     msg = _get_lowstate_cached(timeout=2.0)
     if msg is None:

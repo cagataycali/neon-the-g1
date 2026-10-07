@@ -33,7 +33,7 @@ flowchart TD
 |:-:|---|---|
 | 1 | **allowlist** | Telegram IDs/usernames not in `TELEGRAM_ALLOWED_USERS` dropped before the model sees them |
 | 2 | **model plan** | `prompts/base.md`: never walk uninvited or as a gesture, never `continuous=True`, never claim what the tool did not confirm |
-| 3 | **tool class** | `G1_SAFE_TOOLS` omits walking and motion generation; `neon-mcp --safe` serves it, so a remote MCP client cannot walk the robot (the on-robot personas can) |
+| 3 | **tool class** | `G1_SAFE_TOOLS` omits walking; `neon-mcp --safe` serves it, so a remote MCP client cannot walk the robot (the on-robot personas can) |
 | 4 | **FSM check** | motion needs `{500,501,801}` (arm) / `{501,801}` (walk); else `rc=7404`/`7302` |
 | 5 | **arm mutex** | `rt/armsdk` single-writer lock; foreign writer → `rc=7400` |
 | 6 | **clamp** | duration 0 to 10 s, distance 0.1 to 1.0 m per request, speed 0.05 to 0.5 m/s, yaw rate 0.1 to 0.6 rad/s ([table](../tools/composed.md)) |
@@ -50,17 +50,16 @@ forces intent. Details on [use_dds](../tools/use-dds.md).
 
 ```python
 g1_stop_move()     # vx=vy=vyaw=0, any FSM
-g1_set_fsm(1)      # Damp — soft-hold current pose
+use_unitree("loco", "SetFsmId", {"fsm_id": 1})   # Damp, soft-hold current pose
 # Ctrl-C in REPL   # drops agent, motors stay put
 ```
 
 !!! danger "Never FSM 0 (ZeroTorque)"
     Drops all torque and the robot collapses. Only safe on a gantry. There is
-    no dedicated tool for it; `g1_set_fsm(0)` and `use_unitree("loco", ...)`
-    can still reach it, which is why `use_unitree` flags `ZeroTorque`,
-    `SetFsmId`, `SetVelocity`, `Move`, `WaveHand`, `ShakeHand` and
-    `ReleaseMode` as high danger in its reply, and why `kimodo(action="play")`
-    is a dry run unless you pass `confirm=True` and `on_gantry=True`.
+    no dedicated tool for it; `use_unitree("loco", ...)` can still reach it,
+    which is why `use_unitree` flags `ZeroTorque`, `SetFsmId`, `SetVelocity`,
+    `Move`, `WaveHand`, `ShakeHand` and `ReleaseMode` as high danger in its
+    reply.
 
 ## audit trail
 

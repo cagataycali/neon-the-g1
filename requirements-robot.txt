@@ -4,8 +4,6 @@
 #   git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
 #   pip install -e ./unitree_sdk2_python
 pyrealsense2
-kiss-icp
-open3d  # optional: ICP relocalization
 pyaudio
 webrtcvad
 openai-whisper  # listen_brio + speech fallback STT

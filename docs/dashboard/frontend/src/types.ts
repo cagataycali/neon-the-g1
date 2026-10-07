@@ -53,15 +53,6 @@ export interface Mainboard {
   message?: string
 }
 
-export interface SlamPose {
-  status?: string
-  x?: number
-  y?: number
-  z?: number
-  theta?: number
-  message?: string
-}
-
 export interface Telemetry {
   ts: number
   iface?: string
@@ -69,7 +60,6 @@ export interface Telemetry {
   battery?: Battery
   lowstate?: LowState
   mainboard?: Mainboard
-  slam?: SlamPose
   lidar?: Record<string, unknown>
 }
 

@@ -53,6 +53,30 @@ def test_removed_tool_modules_are_gone():
     assert not names & {"shell", "dispatch", "phone", "use_spotify", "adb", "recorder", "prompts", "manage_messages", "manage_tools", "make"}
 
 
+def test_retired_robot_tool_modules_are_gone():
+    """Retired (owner, 2026-10-07): kimodo never reached end to end; the posture,
+    SLAM and safe-posture tools are gone, FSM control stays reachable through
+    use_unitree("loco", "SetFsmId", ...). No bundle may still carry their names."""
+    import importlib
+    for mod in ("tools.kimodo", "tools.g1_posture", "tools.g1_slam", "tools.g1_safe_posture"):
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module(mod)
+    assert not (ROOT / "motions").exists()
+    assert not (ROOT / "docs" / "tools" / "motion-gen.md").exists()
+    import tools as _t
+    for bundle in ("G1_POSTURE_TOOLS", "G1_SLAM_TOOLS", "G1_MOTION_GEN_TOOLS"):
+        assert not hasattr(_t, bundle), bundle
+    retired = {"kimodo", "g1_set_fsm", "g1_set_stand_height", "g1_set_swing_height",
+               "g1_balance_stand", "g1_safe_squat_to_stand", "g1_safe_lie_to_stand",
+               "g1_safe_stand_to_squat"} | {
+                   f"g1_slam_{s}" for s in ("start", "stop", "pose", "reset", "accumulate",
+                                            "save", "load", "list_maps", "stats")}
+    for bundle in ("G1_ALL_TOOLS", "G1_SAFE_TOOLS", "G1_SENSING_TOOLS", "G1_LOOKOUT_TOOLS"):
+        names = {getattr(t, "tool_name", getattr(t, "__name__", None)) for t in getattr(_t, bundle)}
+        assert not names & retired, (bundle, names & retired)
+    assert len(_t.G1_ALL_TOOLS) == 38
+
+
 def test_telegram_module_no_token():
     """tools/telegram.py imports cleanly even with no token — calls error politely."""
     from tools.telegram import telegram, download_file, listen

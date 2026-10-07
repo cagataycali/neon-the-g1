@@ -11,7 +11,7 @@ for:
   - `g1_lidar_switch()`     → turn the LiDAR ON/OFF via rt/utlidar/switch
   - `g1_lidar_stats()`      → basic stats about the latest cloud
 
-Other modules (e.g. g1_slam) can call `get_latest_cloud()` directly to
+Other in-process modules can call `get_latest_cloud()` directly to
 avoid dict serialization overhead.
 """
 from __future__ import annotations
@@ -114,7 +114,7 @@ def _cloud_to_numpy(msg, max_points: int = 50000) -> Optional[np.ndarray]:
         return None
 
 
-# ---- Public (intra-package) helpers used by g1_slam ----
+# ---- Public (intra-package) helpers for in-process consumers ----
 
 def get_latest_cloud() -> Optional[Any]:
     """Return the latest raw PointCloud2_ message (for in-process subscribers)."""
@@ -125,7 +125,7 @@ def get_latest_cloud() -> Optional[Any]:
 def add_cloud_callback(cb) -> Optional[str]:
     """Attach a fan-out callback that runs on every new point cloud.
 
-    Used by g1_slam to hook kiss-icp into the stream without re-subscribing.
+    Lets a consumer hook into the stream without re-subscribing.
     Dispatch happens on a polling thread (~10ms latency, NOT on the DDS
     thread) — but it shields the DDS callback from slow consumers.
     The callback receives the PointCloud2_ message and may block briefly.

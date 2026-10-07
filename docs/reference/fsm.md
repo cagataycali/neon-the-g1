@@ -39,11 +39,11 @@ the action you want.
 | 0 | OK | - |
 | **3104** | RPC timeout | check `network_interface="eth0"`, `CYCLONEDDS_URI` |
 | **7301** | LocoState not available | controller not running, wait + retry |
-| **7302** | walking blocked | FSM not 501/801, call `g1_set_fsm(501)` |
+| **7302** | walking blocked | FSM not 501/801, call `use_unitree("loco", "SetFsmId", {"fsm_id": 501})` |
 | **7400** | `rt/armsdk` occupied | another writer, never parallelize arm calls |
 | **7401** | Arm holding | call `g1_release_arm()` |
 | **7402** | Invalid action id | see `g1_list_arm_actions()` |
-| **7404** | Invalid FSM for arm | call `g1_set_fsm(500)` → 500 |
+| **7404** | Invalid FSM for arm | call `use_unitree("loco", "SetFsmId", {"fsm_id": 500})` → 500 |
 
 ## arm action ids
 

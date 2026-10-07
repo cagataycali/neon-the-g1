@@ -72,7 +72,7 @@ calls are read-only and never flagged.
 |---|---|
 | arm gesture (FSM + mutex + release) | `g1_arm_action` |
 | walking (clamps + user OK) | `g1_walk_forward` / `g1_move_velocity` |
-| squat/lie transition | `g1_safe_*` |
+| FSM change (Damp, Squat, stand) | `use_unitree("loco", "SetFsmId", {"fsm_id": ...})` |
 | **anything else in the SDK** | `use_unitree` |
 
 **Composed for safety, universal for coverage.**
