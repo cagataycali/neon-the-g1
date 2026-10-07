@@ -5,15 +5,17 @@ Architecture:
     Brio Mic (PyAudio 16k)
       ├─ AEC (WebRTC, far_buf = post-PlayStream bytes G1 actually played)
       ├─ ratecv 16k → 24k (OpenAI requires ≥24k input)
-      └─ → BidiInput → bidi model
+      └─ → InputStream (AudioDelta) → bidi model
 
     bidi model 24k audio
       ├─ ratecv 24k → 16k
       ├─ → G1 chest speaker via DDS PlayStream
       └─ POST-PlayStream → ref_buf 16k (AEC reference; correct timing)
 
-    Briefing input: SQLite poll → BidiTextInputEvent (cross-process)
-    Log output:     BidiTranscriptStreamEvent → tools.agent_log.record()
+    Briefing input: SQLite poll → TextBlock (cross-process)
+    Log output:     BidiTranscriptBlockEvent → tools.agent_log.record()
+
+strands.bidi (strands-agents >= 1.58.1); the experimental.bidi package is gone.
 
 Why feed ref_buf POST-PlayStream (not at speaker-output time):
 - The G1 chest speaker writer has a queue. If we feed ref_buf when we
@@ -38,19 +40,19 @@ import numpy as np
 import pyaudio
 from pywebrtc_audio import AudioProcessor
 
-from strands.experimental.bidi.io.audio import _BidiAudioBuffer
-from strands.experimental.bidi.types.events import (
-    BidiAudioInputEvent,
-    BidiAudioStreamEvent,
-    BidiInterruptionEvent,
+from strands.bidi._audio.buffer import AudioBuffer
+from strands.bidi.types.events import (
+    BidiAudioDeltaEvent,
+    BidiBargeInEvent,
     BidiOutputEvent,
-    BidiTextInputEvent,
-    BidiTranscriptStreamEvent,
+    BidiTranscriptBlockEvent,
 )
-from strands.experimental.bidi.types.io import BidiInput, BidiOutput
+from strands.bidi.types.io import InputStream, OutputStream
+from strands.bidi.types.media import AudioDelta
+from strands.types.content import TextBlock
 
 if TYPE_CHECKING:
-    from strands.experimental.bidi.agent.agent import BidiAgent as BidiAgentType
+    from strands.bidi import BidiAgent as BidiAgentType
 
 from tools import voice_state
 from tools.voice_bridge import pop_pending, flush_stale
@@ -297,7 +299,7 @@ class G1SpeakerWriter:
     def clear(self):
         """Drain audio queue + ref_buf + reset frame residual.
 
-        Called on BidiInterruptionEvent. AEC must NOT subtract stale audio
+        Called on BidiBargeInEvent. AEC must NOT subtract stale audio
         from the user's interruption — drain everything.
         """
         drained = 0
@@ -366,7 +368,7 @@ class G1SpeakerWriter:
 
 
 # ─── Bidi I/O classes ─────────────────────────────────────────────────────
-class _MicInput(BidiInput):
+class _MicInput(InputStream):
     """Brio mic → AEC → ratecv 16→24 → bidi model."""
 
     def __init__(self, ap: Optional[AudioProcessor], ref_buf: queue.Queue,
@@ -375,14 +377,14 @@ class _MicInput(BidiInput):
         self._ref_buf = ref_buf
         self._mute = mute
         self._device_index = device_index
-        self._buffer = _BidiAudioBuffer()
+        self._buffer = AudioBuffer()
         self._ratecv_state = None
 
     async def start(self, agent: "BidiAgentType") -> None:
-        cfg = agent.model.config["audio"]
+        cfg = agent.model.get_audio_config()["input"]
         self._channels = cfg["channels"]
         self._format = cfg["format"]
-        self._target_rate = cfg["input_rate"]
+        self._target_rate = cfg["sample_rate"]
 
         self._buffer.start()
         self._audio = pyaudio.PyAudio()
@@ -421,14 +423,11 @@ class _MicInput(BidiInput):
             pass
         self._buffer.stop()
 
-    async def __call__(self) -> BidiAudioInputEvent:
+    async def __call__(self) -> AudioDelta:
+        # The model already knows the rate and channel count it asked for
+        # (get_audio_config()["input"]); the delta carries raw PCM bytes.
         data = await asyncio.to_thread(self._buffer.get)
-        return BidiAudioInputEvent(
-            audio=base64.b64encode(data).decode("utf-8"),
-            channels=self._channels,
-            format=self._format,
-            sample_rate=self._target_rate,
-        )
+        return AudioDelta(format=self._format, source={"bytes": data})
 
     def _callback(self, in_data: bytes, frame_count: int, *_: Any):
         try:
@@ -477,7 +476,7 @@ class _MicInput(BidiInput):
         return (None, pyaudio.paContinue)
 
 
-class _G1SpeakerOutput(BidiOutput):
+class _G1SpeakerOutput(OutputStream):
     """bidi 24k → ratecv → G1 chest speaker (DDS).
 
     Note: ref_buf feeding now happens in G1SpeakerWriter._loop AFTER
@@ -492,8 +491,8 @@ class _G1SpeakerOutput(BidiOutput):
         self._was_muted = False
 
     async def start(self, agent: "BidiAgentType") -> None:
-        cfg = agent.model.config["audio"]
-        self._target_rate = cfg["output_rate"]
+        cfg = agent.model.get_audio_config()["output"]
+        self._target_rate = cfg["sample_rate"]
 
     async def stop(self) -> None:
         pass
@@ -507,10 +506,10 @@ class _G1SpeakerOutput(BidiOutput):
                 self._writer.clear()
                 self._ratecv_state = None
             self._was_muted = m
-            if m and isinstance(event, BidiAudioStreamEvent):
+            if m and isinstance(event, BidiAudioDeltaEvent):
                 return
-        if isinstance(event, BidiAudioStreamEvent):
-            pcm = base64.b64decode(event["audio"])
+        if isinstance(event, BidiAudioDeltaEvent):
+            pcm = base64.b64decode(event["audio"])  # base64 on the wire
             if self._target_rate != G1_RATE:
                 pcm16, self._ratecv_state = audioop.ratecv(
                     pcm, 2, 1, self._target_rate, G1_RATE, self._ratecv_state
@@ -519,14 +518,14 @@ class _G1SpeakerOutput(BidiOutput):
                 pcm16 = pcm
             self._writer.feed(pcm16)
 
-        elif isinstance(event, BidiInterruptionEvent):
+        elif isinstance(event, BidiBargeInEvent):
             # Drain audio queue + ref_buf + frame_residual in one call
             self._writer.clear()
             self._ratecv_state = None
 
 
-class _BriefingInput(BidiInput):
-    """Pulls briefings from voice_bridge SQLite queue → BidiTextInputEvent."""
+class _BriefingInput(InputStream):
+    """Pulls briefings from voice_bridge SQLite queue → a user TextBlock."""
     POLL_SECONDS = 2.0
     BATCH_SIZE = 5
 
@@ -539,7 +538,7 @@ class _BriefingInput(BidiInput):
     async def stop(self) -> None:
         pass
 
-    async def __call__(self) -> BidiTextInputEvent:
+    async def __call__(self) -> TextBlock:
         while True:
             await asyncio.sleep(self.POLL_SECONDS)
             rows = pop_pending(self.BATCH_SIZE)
@@ -553,11 +552,12 @@ class _BriefingInput(BidiInput):
                 lines.append(f"[{source}/{tag}] {msg}")
             briefing = "[BRIEFING] " + " | ".join(lines)
             alog("voice", "system", briefing)
-            return BidiTextInputEvent(text=briefing, role="user")
+            return TextBlock(text=briefing)
 
 
-class _LogOutput(BidiOutput):
-    """Records bidi transcripts to unified agent_log."""
+class _LogOutput(OutputStream):
+    """Records bidi transcripts to unified agent_log: one row per finished
+    utterance (BidiTranscriptBlockEvent), deltas are skipped."""
     async def start(self, agent) -> None:
         pass
 
@@ -565,11 +565,9 @@ class _LogOutput(BidiOutput):
         pass
 
     async def __call__(self, event: BidiOutputEvent) -> None:
-        if isinstance(event, BidiTranscriptStreamEvent):
-            if not event.get("is_final"):
-                return
+        if isinstance(event, BidiTranscriptBlockEvent):
             role = event.get("role", "assistant")
-            text = (event.get("text") or "").strip()
+            text = (event.get("transcript") or "").strip()
             if text:
                 alog("voice", role, text)
 
@@ -578,7 +576,7 @@ class _LogOutput(BidiOutput):
 class G1BidiAudioIO:
     """Mic + G1 chest speaker IO with WebRTC AEC + briefing channel + log channel.
 
-    `BidiProcessedAudioIO` API
+    Same shape as strands.bidi.io.audio.AudioIO (InputStream / OutputStream).
     Use:
         audio_io = G1BidiAudioIO(network_interface="eth0")
         audio_io.start_speaker()  # spin up DDS writer thread

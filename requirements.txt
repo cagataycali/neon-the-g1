@@ -1,9 +1,9 @@
 # Core agent stack
-# Pinned to the versions the Aug-13 image runs with: strands-agents 1.58.1 removed
-# strands.bidi.types.events.BidiImageInputEvent, which tools/vision.py imports (ImportError at start).
-strands-agents==1.52.0
-strands-agents[bidi]==1.52.0
-strands-agents-tools==0.8.6
+# 1.58.1 is the floor: the voice stack (g1.py, tools/vision.py, tools/g1_bidi_audio.py)
+# is written against strands.bidi, which replaced strands.experimental.bidi there.
+strands-agents>=1.58.1
+strands-agents[bidi]>=1.58.1
+strands-agents-tools
 # Audio 
 pyaudio                 # mic capture
 webrtcvad               # VAD for listen_brio

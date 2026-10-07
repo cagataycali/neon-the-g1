@@ -1,22 +1,23 @@
-"""Vision tool — capture a camera frame and inject it into the bidi voice agent.
+"""Vision tool — capture a camera frame and show it to the model.
 
-Uses BidiImageInputEvent so the realtime model sees the image natively in
-its own multimodal context (no separate vision-API round-trip):
+In a voice session the JPEG goes straight into the realtime stream as an
+ImageBlock (strands.bidi, 1.58+), so the model sees it natively in its own
+multimodal context (no separate vision-API round-trip):
 
     user speech ──┐
                   ▼
-                bidi model (gpt-realtime-2 / Gemini Live) ──► spoken reply
+                bidi model (gpt-realtime-2 / Gemini Live / Nova Sonic) ──► spoken reply
                   ▲       ▲
                   │       │
-                audio   take_photo() injects:
-                          • BidiImageInputEvent (the JPEG)
-                          • optional follow-up BidiTextInputEvent (the question)
+                audio   take_photo() sends one list:
+                          • ImageBlock(format="jpeg", source={"bytes": ...})
+                          • optional TextBlock (the question)
 
-Gemini Live handles BidiImageInputEvent out of the box. The OpenAI Realtime
-provider in strands hasn't wired image dispatch yet, so we patch
-BidiOpenAIRealtimeModel.send() at import time to add it. The wire format
-matches OpenAI's documented `input_image` content block for
-conversation.item.create.
+Every strands.bidi provider dispatches ImageBlock itself (OpenAI as an
+`input_image` content block, Gemini as inline data), so the import-time
+monkey-patch the experimental package needed is gone. In every other persona
+(dashboard chat, telegram, thinker) the JPEG comes back as a tool-result
+image block.
 
 Devices:
   Linux (G1 Jetson):
@@ -39,68 +40,11 @@ from pathlib import Path
 from typing import Optional
 
 from strands import tool
-from strands.experimental.bidi.types.events import (
-    BidiImageInputEvent,
-    BidiTextInputEvent,
-)
+from strands.types.content import TextBlock
+from strands.types.media import ImageBlock
 
 CACHE_DIR = Path(tempfile.gettempdir()) / "lookout_vision"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# ── Patch OpenAI Realtime to support BidiImageInputEvent ──────────────
-# Gemini Live already handles it; OpenAI's strands integration doesn't
-# yet (only text/audio/tool-result). The OpenAI Realtime API itself DOES
-# accept `input_image` content blocks in conversation.item.create as of
-# gpt-realtime-2.
-def _patch_openai_image_support() -> None:
-    """Add BidiImageInputEvent dispatch to BidiOpenAIRealtimeModel.
-
-    Idempotent — safe to call multiple times.
-    """
-    try:
-        from strands.experimental.bidi.models.openai_realtime import (
-            BidiOpenAIRealtimeModel,
-        )
-    except ImportError:
-        return  # OpenAI bidi not available, nothing to patch
-
-    if getattr(BidiOpenAIRealtimeModel, "_image_patched", False):
-        return
-
-    async def _send_image_content(self, image_input: BidiImageInputEvent) -> None:
-        """Send an image as an input_image content block on a user message."""
-        b64 = image_input.image
-        mime = image_input.mime_type or "image/jpeg"
-        # OpenAI accepts data: URLs OR plain b64 in image_url field.
-        # The data: URL form is the safest cross-version contract.
-        data_url = f"data:{mime};base64,{b64}"
-        item = {
-            "type": "message",
-            "role": "user",
-            "content": [{"type": "input_image", "image_url": data_url}],
-        }
-        await self._send_event({"type": "conversation.item.create", "item": item})
-
-    # Wrap the existing send() to dispatch image events to our handler.
-    _orig_send = BidiOpenAIRealtimeModel.send
-
-    async def _patched_send(self, content):
-        if isinstance(content, BidiImageInputEvent):
-            if not self._connection_id:
-                raise RuntimeError("model not started | call start before sending")
-            await self._send_image_content(content)
-            return
-        await _orig_send(self, content)
-
-    BidiOpenAIRealtimeModel._send_image_content = _send_image_content
-    BidiOpenAIRealtimeModel.send = _patched_send
-    BidiOpenAIRealtimeModel._image_patched = True
-
-
-# Patch immediately on import so anybody importing tools.vision (or
-# tools/__init__) gets image support before they construct the model.
-_patch_openai_image_support()
 
 
 # ── camera capture ────────────────────────────────────────────────────
@@ -270,6 +214,15 @@ def _capture_frame(device: int = 0) -> Path:
 
 
 # ── @tool exposed to the bidi voice agent ─────────────────────────────
+def _image_message(jpeg: bytes, question: str = "") -> list:
+    """The content blocks take_photo sends to a BidiAgent: the JPEG, then the
+    question when there is one. One list = one user message for the model."""
+    blocks: list = [ImageBlock(format="jpeg", source={"bytes": jpeg})]
+    if question.strip():
+        blocks.append(TextBlock(text=question.strip()))
+    return blocks
+
+
 @tool(context=True)
 async def take_photo(
     tool_context,
@@ -331,16 +284,10 @@ async def take_photo(
             ],
         }
 
-    img_b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
-
-    # Inject the image directly into the multimodal stream. The realtime
-    # model will see it as a user-role input_image content block.
+    # Send the image (and the question) into the multimodal stream as ONE user
+    # message; the provider turns the ImageBlock into its own wire format.
     try:
-        await agent.send(
-            BidiImageInputEvent(image=img_b64, mime_type="image/jpeg")
-        )
-        if question.strip():
-            await agent.send(BidiTextInputEvent(text=question.strip(), role="user"))
+        await agent.send(_image_message(image_path.read_bytes(), question))
     except Exception as e:
         return {
             "status": "error",
@@ -354,7 +301,7 @@ async def take_photo(
         "image_path": str(image_path),
         "question": question or "(no follow-up question — model will decide)",
         "device": device,
-        "note": "Image injected into bidi stream. Model will respond in audio.",
+        "note": "Image sent into the voice stream. Model will respond in audio.",
     }
 
 

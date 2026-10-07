@@ -15,7 +15,7 @@ keywords = ["robotics", "unitree", "g1", "strands", "agent", "vla", "humanoid", 
 # Core deps — the agent stack + strands-robots (sim/VLA/dataset/mesh layer).
 # strands-robots + strands-mcp-server are on PyPI — installed directly.
 dependencies = [
-    "strands-agents>=1.0.0,<2.0.0",
+    "strands-agents>=1.58.1,<2.0.0",
     "strands-agents-tools",
     "strands-robots>=0.4.1",
     "requests",
@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Voice personas (bidi audio → G1 chest speaker)
-voice   = ["strands-agents[bidi]", "pyaudio", "webrtcvad", "sounddevice", "google-genai", "websockets"]
+voice   = ["strands-agents[bidi]>=1.58.1", "pyaudio", "webrtcvad", "sounddevice", "google-genai", "websockets"]
 # strands-robots simulation (MuJoCo, CPU — no GPU needed)
 sim     = ["strands-robots[sim-mujoco]"]
 # LeRobot hardware/network driver path for Robot("g1", mode="real")

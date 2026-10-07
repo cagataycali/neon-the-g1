@@ -50,7 +50,7 @@ def _probe_bidi():
     try:
         import pywebrtc_audio  # noqa
         import pyaudio          # noqa
-        from strands.experimental.bidi import BidiAgent  # noqa
+        from strands.bidi import BidiAgent  # noqa
         _BIDI_OK = True
         return True
     except Exception as e:
@@ -106,7 +106,7 @@ def _runner_main(
 
         _STATE["agent"] = agent
         _STATE["audio_io"] = audio_io
-        _STATE["model_id"] = getattr(agent.model, "model_id", "default")
+        _STATE["model_id"] = (agent.model.get_config() or {}).get("model_id", "default")
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
