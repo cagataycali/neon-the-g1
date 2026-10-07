@@ -22,6 +22,10 @@ FAKE = r'''
 import struct, sys, time, os
 out = sys.stdout.buffer
 sys.stderr.write("[rs-worker] pipeline started fake\n"); sys.stderr.flush()
+# every spawn appends what it was asked to do, so tests can read the parent's intent
+if os.getenv("FAKE_SPAWN_LOG"):
+    with open(os.environ["FAKE_SPAWN_LOG"], "a") as fh:
+        fh.write("reset=%s\n" % os.getenv("RS_RESET", "0"))
 n = int(os.getenv("FAKE_FRAMES", "3"))
 for i in range(n):
     for kind, body in ((b"C", b"color-%d" % i), (b"D", b"depth-%d" % i)):
@@ -29,6 +33,7 @@ for i in range(n):
     out.flush(); time.sleep(0.02)
 if os.getenv("FAKE_HANG"):
     time.sleep(60)
+sys.exit(int(os.getenv("FAKE_EXIT", "0")))
 '''
 
 
@@ -186,3 +191,111 @@ def test_no_respawn_after_give_up(shared, monkeypatch):
     shared.shutdown()
     assert shared.acquire() is False
     assert shared.status()["worker_pid"] is None
+
+
+def _spawns(path):
+    return path.read_text().splitlines() if path.exists() else []
+
+
+def test_worker_that_never_frames_is_respawned_with_a_hardware_reset(shared, monkeypatch, tmp_path):
+    """rs_worker exits 4 when the pipeline started but no frame ever came (even after its own
+    reset); the parent's next spawn then asks for a hardware reset up front."""
+    spawn_log = tmp_path / "spawns"
+    monkeypatch.setenv("FAKE_SPAWN_LOG", str(spawn_log))
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_EXIT", "4")
+    shared.acquire()
+    assert _wait(lambda: len(_spawns(spawn_log)) >= 1)
+    assert _spawns(spawn_log)[0] == "reset=0"
+    assert _wait(lambda: shared._proc is not None and shared._proc.poll() == 4)
+    time.sleep(0.15)
+    shared.read_color()   # watchdog tick
+    assert _wait(lambda: len(_spawns(spawn_log)) >= 2, 3.0)
+    assert _spawns(spawn_log)[1] == "reset=1"
+
+
+def test_startup_leash_is_longer_than_the_steady_state_stall(shared, monkeypatch, tmp_path):
+    """Before the first frame a worker may legitimately spend a reset cycle (~25 s on the Jetson):
+    STARTUP_S applies, not STALL_S. Once frames flowed, STALL_S applies."""
+    spawn_log = tmp_path / "spawns"
+    monkeypatch.setenv("FAKE_SPAWN_LOG", str(spawn_log))
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_HANG", "1")
+    shared.STALL_S = 0.2
+    shared.STARTUP_S = 1.2
+    shared.acquire()
+    assert _wait(lambda: len(_spawns(spawn_log)) == 1)
+    pid1 = shared.status()["worker_pid"]
+    time.sleep(0.5)
+    shared.read_color()
+    assert shared.status()["worker_pid"] == pid1, "must not restart before STARTUP_S"
+    time.sleep(0.9)
+    shared.read_color()
+    assert _wait(lambda: shared.status()["worker_pid"] not in (None, pid1), 3.0)
+    assert _wait(lambda: _spawns(spawn_log)[1:2] == ["reset=1"], 3.0), "a startup stall restarts with a hardware reset"
+
+
+def test_failed_fallback_rearms_the_sdk_instead_of_giving_up_for_life(shared, monkeypatch, tmp_path):
+    """SDK gave up AND no RealSense UVC node is capturable: the camera parks with a cool-down and
+    the SDK gets a fresh attempt window (with a hardware reset) after RETRY_SDK_S."""
+    spawn_log = tmp_path / "spawns"
+    monkeypatch.setenv("FAKE_SPAWN_LOG", str(spawn_log))
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_HANG", "1")
+    shared.GIVE_UP_S = 0.3
+    shared.RETRY_SDK_S = 0.5
+    monkeypatch.setattr(cs, "_RS", True)
+    monkeypatch.setattr(cs, "_CV2", True)
+    monkeypatch.setattr(cs._SharedRealSense, "get", classmethod(lambda cls, *a, **k: shared))
+    import types, importlib
+    fake_uc = types.SimpleNamespace(_find_realsense_v4l2_main=lambda: None,
+                                    _v4l2_open=lambda node, w, h, fourcc=None, fps=15: None)
+    monkeypatch.setattr(importlib, "import_module", lambda name, *a, **k: fake_uc if name == "tools.use_camera" else __import__(name))
+    monkeypatch.setattr(cs._Cam, "_realsense_rgb_nodes", staticmethod(lambda: [2]))
+    color = cs._Cam("realsense_color", "rs_color", width=640, height=480, fps=30, quality=70)
+    color.RETRY_S = 0.1
+    color.start()
+    try:
+        assert _wait(lambda: color.status()["running"] is False, 4.0)
+        assert "retried with a hardware reset" in color.status()["error"]
+        assert shared.status()["worker_pid"] is None, "worker shut down while parked"
+        assert shared.sdk_retry_due() is False
+        assert shared.gave_up() is False, "a new attempt window is open"
+        assert _spawns(spawn_log) == ["reset=0"]
+        time.sleep(0.15)
+        color.start()                 # inside the camera cool-down: a no-op
+        assert color.status()["running"] is False
+        time.sleep(0.5)
+        color.start()                 # SDK retry due: spawns again, hardware reset first
+        assert _wait(lambda: _spawns(spawn_log) == ["reset=0", "reset=1"], 3.0)
+        assert color.status()["running"] is True
+    finally:
+        color.stop()
+
+
+def test_operator_reset_restarts_everything_now(shared, monkeypatch, tmp_path):
+    """POST /api/camera/reset -> CameraManager.reset(): worker killed, respawned with a hardware
+    reset, every grabber restarted, cool-downs cleared."""
+    spawn_log = tmp_path / "spawns"
+    monkeypatch.setenv("FAKE_SPAWN_LOG", str(spawn_log))
+    monkeypatch.setenv("FAKE_HANG", "1")        # a live worker: only the reset may respawn it
+    monkeypatch.setattr(cs, "_RS", True)
+    monkeypatch.setattr(cs, "_CV2", True)
+    monkeypatch.setattr(cs._SharedRealSense, "get", classmethod(lambda cls, *a, **k: shared))
+    cam = cs._Cam("realsense_color", "rs_color", width=640, height=480, fps=30, quality=70)
+    mgr = cs.CameraManager()
+    mgr._cams = {"realsense_color": cam}
+    mgr._built = True
+    cam.start()
+    try:
+        assert _wait(lambda: cam.latest() == b"color-2")
+        pid1 = shared.status()["worker_pid"]
+        cam._retry_at = time.time() + 999      # pretend it was parked
+        out = mgr.reset()
+        assert out["cameras"][0]["id"] == "realsense_color"
+        assert cam._retry_at == 0.0
+        assert _wait(lambda: shared.status()["worker_pid"] not in (None, pid1), 3.0)
+        assert _wait(lambda: _spawns(spawn_log) == ["reset=0", "reset=1"], 3.0)
+        assert _wait(lambda: cam.latest() is not None and cam.status()["running"], 3.0)
+    finally:
+        cam.stop()

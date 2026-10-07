@@ -607,6 +607,24 @@ async def camera_stream(cam_id: str):
     )
 
 
+@app.post("/api/camera/reset")
+async def camera_reset():
+    """Operator reset: hardware-reset the RealSense and restart every grabber.
+    The reset runs in the worker process (never on the event loop)."""
+    if _get_cam_mgr is None:
+        return JSONResponse({"cameras": [], "error": "camera module unavailable"}, status_code=503)
+    mgr = _get_cam_mgr()
+    result = await asyncio.get_running_loop().run_in_executor(None, mgr.reset)
+    alog = _TOOLS.get("agent_log")
+    if alog:
+        try:
+            alog.record("dashboard", "system", "camera reset requested from the dashboard",
+                        meta={"tool": "camera_reset"})
+        except Exception:
+            pass
+    return JSONResponse(result)
+
+
 # Back-compat: old single-camera endpoints → realsense_color
 @app.get("/api/camera/status")
 async def camera_status_legacy():
