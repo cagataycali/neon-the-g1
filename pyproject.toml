@@ -33,8 +33,8 @@ sim     = ["strands-robots[sim-mujoco]"]
 lerobot = ["strands-robots[lerobot]"]
 # Zenoh fleet mesh coordination
 mesh    = ["strands-robots[mesh]"]
-# On-robot hardware extras (aarch64/Jetson — DDS + LiDAR + SLAM + RealSense)
-robot   = ["pyrealsense2", "kiss-icp", "open3d", "ultralytics"]
+# On-robot hardware extras (aarch64/Jetson — DDS + LiDAR + RealSense)
+robot   = ["pyrealsense2", "ultralytics"]
 # WebXR teleop bridge (Quest 3 → G1). IK/DDS stack via xr_teleoperate (see docs).
 teleop  = ["websockets>=12.0", "numpy"]
 # Everything for a dev box

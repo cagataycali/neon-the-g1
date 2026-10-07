@@ -8,7 +8,7 @@
 
 [![status](https://img.shields.io/badge/status-LIVE_on_G1-00ff88?style=flat-square)](https://cagataycali.github.io/neon-the-g1)
 [![docs](https://img.shields.io/badge/docs-github.io-00cc60?style=flat-square)](https://cagataycali.github.io/neon-the-g1)
-[![tools](https://img.shields.io/badge/tools-55-ff2a6d?style=flat-square)](https://cagataycali.github.io/neon-the-g1/tools/catalog/)
+[![tools](https://img.shields.io/badge/tools-38-ff2a6d?style=flat-square)](https://cagataycali.github.io/neon-the-g1/tools/catalog/)
 [![license](https://img.shields.io/badge/license-MIT-b967ff?style=flat-square)](LICENSE)
 
 </div>
@@ -29,8 +29,8 @@ neon (chest):  "Moved twenty-eight centimetres."
 NEON is one agent with several personas: the chest speaker, Telegram, the
 passkey-gated cockpit in a browser or on your phone, the REPL over SSH, and a
 thinker that reflects every 30 s. They share one memory, one tool-call log and
-one toolset: 55 robot tools (state, posture, gestures, walking, audio, lidar,
-SLAM, DDS, cameras, motion generation) plus 12 cross-persona tools. The model
+one toolset: 38 robot tools (state, gestures, walking, audio, lidar,
+DDS, cameras) plus 5 cross-persona tools. The model
 is a Bedrock id you can change live from the cockpit; the voice runs on OpenAI
 Realtime, Nova Sonic or Gemini Live; everything that touches a motor runs on
 the Jetson over CycloneDDS.
@@ -124,8 +124,7 @@ make help                         # every target
   then measures its displacement and says "done" only when `moved=true`.
 - Arm actions are mutex-locked on `rt/armsdk` and auto-release.
 - Raw publishes to motor topics need `unsafe=True`; `use_unitree` flags the
-  seven high-danger RPCs; `kimodo` motion playback needs `confirm=True` and
-  `on_gantry=True`.
+  seven high-danger RPCs.
 - FSM 0 (ZeroTorque) collapses the robot: gantry only.
 
 [The eight gates](https://cagataycali.github.io/neon-the-g1/guide/safety/).

@@ -73,13 +73,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 120 --retries 10 -r requirements.txt
 
-# kiss-icp: PyPI now ships working aarch64 wheels (installed via requirements.txt).
-# The old git@v1.2.3 install broke on scikit-build-core>=0.8 (cmake.minimum-version
-# rejected). Verify the wheel imports; only fall back to a compatible git tag if not.
-RUN python -c "import kiss_icp; print('kiss-icp OK', kiss_icp.__version__ if hasattr(kiss_icp,'__version__') else '')" \
- || pip install --no-cache-dir \
-      "kiss-icp @ git+https://github.com/PRBonn/kiss-icp.git@v1.3.0#subdirectory=python"
-
 # ── unitree_sdk2py (editable — wheel is broken, must use clone) ──────────
 # Cloned fresh into /opt to keep image self-contained. The host-side
 # Makefile clones to ./unitree_sdk2_python/ for bare-metal dev (.venv).

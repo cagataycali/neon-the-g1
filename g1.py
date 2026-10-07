@@ -101,7 +101,6 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
             "dashboard" if "chat_agent" in sys.modules or "docs.dashboard.chat_agent" in sys.modules
             else "voice")
     from tools.g1_state import g1_get_state, g1_read_lowstate
-    from tools.g1_posture import g1_set_fsm, g1_balance_stand
     from tools.g1_arm import g1_arm_action, g1_release_arm, g1_list_arm_actions
     from tools.g1_locomotion import (
         g1_move_velocity, g1_stop_move, g1_walk_forward, g1_turn,
@@ -115,8 +114,6 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
         memory, voice_say, take_photo, telegram, voice_control,
         # State
         g1_get_state, g1_read_lowstate,
-        # Posture
-        g1_set_fsm, g1_balance_stand,
         # Arm gestures
         g1_arm_action, g1_release_arm, g1_list_arm_actions,
         # Locomotion (intentional movement)
@@ -208,7 +205,8 @@ Logitech Brio microphone mounted on the head. WebRTC AEC removes your own
 voice from the input — you don't need to worry about hearing yourself.
 
 You CAN move the body. You have the FULL G1 toolset (g1_arm_action,
-g1_safe_squat_to_stand, g1_balance_stand, etc.). Use the gesture playbook
+g1_walk_forward, etc.; FSM changes such as Damp or stand go through
+use_unitree("loco", "SetFsmId", {"fsm_id": ...})). Use the gesture playbook
 below proactively. Walking follows the movement policy above: the user's
 explicit request is the consent, look with take_photo first, walk if the
 path is clear, otherwise say the specific reason; never walk uninvited and

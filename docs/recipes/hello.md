@@ -19,14 +19,14 @@ end to end); posture changes and gestures need no confirmation round-trip.
 
 ```python
 [ g1_get_state(), g1_battery() ]        # parallel state check
-g1_set_fsm(3)                           # → Sit
-g1_safe_squat_to_stand()                # → 500 (arm_ready)
+use_unitree("loco", "SetFsmId", {"fsm_id": 3})   # → Sit
+use_unitree("loco", "SetFsmId", {"fsm_id": 500}) # → 500 (arm_ready)
 [
   use_unitree("audio", "TtsMaker", {"text": "hello", "speaker_id": 0}),
   g1_arm_action(action="high wave"),    # auto-release
 ]
-g1_safe_stand_to_squat()                # → Squat
-g1_set_fsm(1)                           # → Damp
+use_unitree("loco", "SetFsmId", {"fsm_id": 2})   # → Squat
+use_unitree("loco", "SetFsmId", {"fsm_id": 1})   # → Damp
 ```
 
 ## variations

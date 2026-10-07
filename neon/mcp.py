@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """MCP server entrypoint for neon-the-g1.
 
-Exposes the FULL NEON toolset — 53 FSM-gated Unitree G1 robot tools (state,
-posture, arms, locomotion, audio, LiDAR, SLAM, camera, DDS) plus the
+Exposes the FULL NEON toolset — the FSM-gated Unitree G1 robot tools (state,
+arms, locomotion, audio, LiDAR, camera, DDS) plus the
 cross-persona stack (memory, telegram, voice_say, take_photo,
 use_github) — over the Model Context Protocol.
 
@@ -26,7 +26,7 @@ Usage (zero-install via uvx — package name is ``neon-the-g1``):
 Or pip-installed:
     pip install "neon-the-g1[mcp]"
     neon-mcp             # stdio
-    neon-mcp --safe      # drop locomotion (state/posture/arms/audio/sensing only)
+    neon-mcp --safe      # drop locomotion (state/arms/audio/sensing only)
 
 Claude Code:
     claude mcp add neon -- uvx --from neon-the-g1 neon-mcp --safe
@@ -68,7 +68,7 @@ def main() -> None:
     parser.add_argument("--stateless", action="store_true",
                         help="Stateless HTTP mode (multi-node scalable)")
     parser.add_argument("--safe", action="store_true",
-                        help="Drop locomotion/walking tools (state/posture/arms/audio/sensing only)")
+                        help="Drop locomotion/walking tools (state/arms/audio/sensing only)")
     parser.add_argument("--no-telegram", action="store_true",
                         help="Exclude the telegram tool")
     parser.add_argument("--no-robot", action="store_true",
@@ -122,7 +122,7 @@ def main() -> None:
         logger.warning(f"live-state prompt failed ({e}); using static prompt")
         system_prompt = (
             "NEON — Unitree G1 robot agent exposed over MCP. FSM-gated control of "
-            "state, posture, arms, locomotion, audio, LiDAR, SLAM, camera + memory/"
+            "state, arms, locomotion, audio, LiDAR, camera + memory/"
             "telegram/voice. Check g1_get_state() before motion; release arms after "
             "gestures; never walk without explicit approval."
         )

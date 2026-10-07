@@ -205,7 +205,7 @@ def g1_list_fsm_states() -> Dict[str, Any]:
     📋 List all known G1 FSM ids and their meanings.
 
     Pure reference — no robot interaction. Useful to know what to pass
-    to g1_set_fsm().
+    to use_unitree("loco", "SetFsmId", {"fsm_id": <id>}).
 
     Returns:
         Dict with 'states' (id -> name) and 'arm_ready_fsms' (the safe ones).
@@ -216,7 +216,7 @@ def g1_list_fsm_states() -> Dict[str, Any]:
         "arm_ready_fsms": sorted(HANDSHAKE_FSMS),
         "message": (
             "Arm actions (handshake, wave, etc) only work when FSM ∈ "
-            f"{sorted(HANDSHAKE_FSMS)}. Use g1_set_fsm(500) to enter "
-            "ready state. Use g1_set_fsm(1) for Damp (safe limp)."
+            f"{sorted(HANDSHAKE_FSMS)}. Use use_unitree('loco', 'SetFsmId', "
+            "{'fsm_id': 500}) to enter ready state, fsm_id 1 for Damp (safe limp)."
         ),
     })

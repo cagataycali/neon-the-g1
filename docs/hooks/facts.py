@@ -26,16 +26,13 @@ TOKEN = re.compile(r"\{\{facts:([a-z_]+)\}\}")
 # bundle name in tools/__init__.py -> fact key
 BUNDLES = {
     "G1_STATE_TOOLS": "state_tools",
-    "G1_POSTURE_TOOLS": "posture_tools",
     "G1_ARM_TOOLS": "arm_tools",
     "G1_AUDIO_TOOLS": "audio_tools",
     "G1_LIDAR_TOOLS": "lidar_tools",
-    "G1_SLAM_TOOLS": "slam_tools",
     "G1_DDS_TOOLS": "dds_tools",
     "G1_SENSING_TOOLS": "sensing_tools",
     "G1_UNIVERSAL_TOOLS": "universal_tools",
     "G1_LOCOMOTION_TOOLS": "locomotion_tools",
-    "G1_MOTION_GEN_TOOLS": "motion_gen_tools",
     "G1_SAFE_TOOLS": "safe_tools",
     "G1_ALL_TOOLS": "all_tools",
     "G1_LOOKOUT_TOOLS": "lookout_tools",
@@ -72,10 +69,10 @@ def derive() -> dict[str, str]:
         if bundle not in env:
             raise ValueError(f"facts: {bundle} not found in {TOOLS_INIT}")
         facts[key] = str(len(env[bundle]))
-    # sensing = cameras + lidar + slam + dds; the camera count is the remainder
+    # sensing = cameras + lidar + dds; the camera count is the remainder
     facts["camera_tools"] = str(
         int(facts["sensing_tools"]) - int(facts["lidar_tools"])
-        - int(facts["slam_tools"]) - int(facts["dds_tools"]))
+        - int(facts["dds_tools"]))
     m = re.search(r'MODEL_ID\s*=\s*os\.getenv\("NEON_MODEL_ID",\s*"([^"]+)"\)',
                   G1_PY.read_text(encoding="utf-8"))
     if not m:

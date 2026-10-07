@@ -19,7 +19,7 @@ Browser ──► neon.cagatay.my (Cloudflare Tunnel)
                                        │
                                        ▼
                               tools/g1_state, g1_battery, g1_mainboard,
-                              g1_slam, g1_lidar, agent_log  (DDS on eth0)
+                              g1_lidar, agent_log  (DDS on eth0)
 ```
 
 ## Layout
@@ -239,7 +239,6 @@ Probed every source live on the robot. Status:
 | 📡 lidar | `rt/utlidar` (DDS sub) | ✅ live cloud |
 | 🧠 state | loco **RPC** (CheckMode/GetFsmId) | ⚠️ wedged on robot (`rc=3102/3104`) → graceful fallback |
 | 🛰️ mainboard | `rt/mainboardstate` | not published by this FW → "offline" |
-| 🗺️ slam | kiss-icp | idle until `g1_slam_start` |
 | 📹 camera | USB Brio `/dev/video0` (MJPEG) | ✅ live 1280×720 @ 15fps |
 
 ### The two bugs that were fixed

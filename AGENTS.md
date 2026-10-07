@@ -28,14 +28,11 @@ g1_work/
 │   ├── g1_battery.py     ← 🟢 SOC / voltage / current / temperature
 │   ├── g1_mainboard.py   ← 🟢 mainboard + foot-pressure telemetry
 │   ├── g1_joints.py      ← 🟢 joint index/name reference (pure data)
-│   ├── g1_posture.py     ← 🟡 MOTION: set_fsm / stand-height / balance-stand
-│   ├── g1_safe_posture.py← 🟡 Damp-preamble transitions (incident-hardened)
 │   ├── g1_arm.py         ← 🟡 ARM: g1_arm_action (any gesture), release, list
 │   ├── g1_audio.py       ← 🟢 g1_play_wav + g1_asr (TTS/LED via use_unitree)
 │   ├── g1_speak.py       ← 🎙 bidi voice control (start/stop/say)
 │   ├── g1_locomotion.py  ← 🔴 WALKING — explicit user approval required
 │   ├── g1_lidar.py       ← 🟢 Livox MID-360 state / snapshot / switch
-│   ├── g1_slam.py        ← 🟢 kiss-icp SLAM (start/pose/save/load/…)
 │   ├── g1_dds.py         ← 🟢 DDS escape hatches (list/subscribe/read/publish)
 │   ├── use_unitree.py    ← 🔨 universal SDK wrapper (use_aws pattern)
 │   ├── use_camera.py     ← V4L2/OpenCV/RealSense capture → Converse image blocks
@@ -78,7 +75,7 @@ print(g1_get_state())
 ```
 
 Robot should reply with `mode={'name':'ai',...}`, `fsm_id` ∈ {500, 501, 801},
-`arm_ready: True`. If `arm_ready: False`, call `g1_set_fsm(500)` first.
+`arm_ready: True`. If `arm_ready: False`, call `use_unitree("loco", "SetFsmId", {"fsm_id": 500})` first.
 
 ---
 
@@ -173,33 +170,31 @@ In code, also tunable: `stream_delay_ms`, `vad_threshold`,
 
 ---
 
-## 🦾 The 53 Tools at a Glance
+## 🦾 The 38 Tools at a Glance
 
-> **Count is verified.** "53" = the `G1_ALL_TOOLS` bundle (what `agent.py`
-> loads). Category counts below sum to exactly 53 (46 safe + 7 walking).
-> A raw `grep @tool tools/*.py` returns ~97 across 27 files — that extra
-> ~44 are cross-persona infra (memory, telegram, voice_*, vision)
-> and are NOT part of the G1
-> robot toolset scoped by this table. Do NOT "bump" 53 to 97.
+> **Count is verified.** "38" = the `G1_ALL_TOOLS` bundle (what `agent.py`
+> loads; `docs/hooks/facts.py` derives it from `tools/__init__.py` and the
+> docs build fails when README disagrees). Category counts below sum to
+> exactly 38 (31 safe + 7 walking). A raw `grep @tool tools/*.py` returns
+> more: the extra are cross-persona infra (memory, telegram, voice_*, vision)
+> and are NOT part of the G1 robot toolset scoped by this table.
 
 | Category | Safety | Count | Location | Exported list |
 |---|---|---|---|---|
 | State + battery + joints (read-only) | 🟢 safe | 9 | `g1_state.py`, `g1_battery.py`, `g1_mainboard.py`, `g1_joints.py` | `G1_STATE_TOOLS` |
-| Posture / FSM (incl. safe-Damp) | 🟡 motion | 7 | `g1_posture.py`, `g1_safe_posture.py` | `G1_POSTURE_TOOLS` |
 | Arm gestures | 🟡 motion | 4 | `g1_arm.py` | `G1_ARM_TOOLS` |
 | Audio + LED | 🟢 safe | 3 | `g1_audio.py`, `g1_speak.py` | `G1_AUDIO_TOOLS` |
-| Camera | 🟢 safe | 1 | `use_camera.py` | part of `G1_SENSING_TOOLS` |
+| Camera | 🟢 safe | 2 | `use_camera.py`, `vision.py` (`capture_camera`) | part of `G1_SENSING_TOOLS` |
 | LiDAR | 🟢 safe | 4 | `g1_lidar.py` | `G1_LIDAR_TOOLS` |
-| SLAM (kiss-icp) | 🟢 safe | 9 | `g1_slam.py` | `G1_SLAM_TOOLS` |
 | DDS escape hatches | 🟢 safe | 8 | `g1_dds.py` | `G1_DDS_TOOLS` |
 | Universal SDK wrapper | 🟡 varies | 1 | `use_unitree.py` | `G1_UNIVERSAL_TOOLS` |
 | **Locomotion (walking)** | 🔴 **DANGER** | 7 | `g1_locomotion.py` | `G1_LOCOMOTION_TOOLS` |
 
 **Bundles** (from `tools/__init__.py`):
-- `G1_SAFE_TOOLS` = state + posture + arm + audio + sensing + use_unitree (46 tools, no walking)
-- `G1_ALL_TOOLS` = everything (53 tools, includes walking)
+- `G1_SAFE_TOOLS` = state + arm + audio + sensing + use_unitree (31 tools, no walking)
+- `G1_ALL_TOOLS` = everything (38 tools, includes walking)
 - `G1_TOOLS` = alias for `G1_ALL_TOOLS`
-- Plus the cross-persona `G1_LOOKOUT_TOOLS` (memory / voice_say / dispatch / telegram / …)
+- Plus the cross-persona `G1_LOOKOUT_TOOLS` (memory / voice_say / telegram / take_photo / voice_control)
 
 ---
 
@@ -218,10 +213,9 @@ In code, also tunable: `stream_delay_ms`, `vad_threshold`,
 ### 3. Dangerous ops (NEVER without explicit user OK)
 | Op | Why dangerous |
 |---|---|
-| `g1_set_fsm(0)` (ZeroTorque) | Robot COLLAPSES if not on gantry |
+| `use_unitree("loco", "SetFsmId", {"fsm_id": 0})` (ZeroTorque) | Robot COLLAPSES if not on gantry |
 | `g1_move_velocity / g1_walk_forward / g1_turn` | Robot WALKS — fall risk |
 | `use_unitree(service_name="motion_switcher", operation_name="ReleaseMode")` | Leaves robot uncontrolled |
-| `g1_set_fsm(0)` | Same as zero_torque |
 
 ### 4. Emergency stop
 - `g1_stop_move()` is always safe (vx=vy=vyaw=0)
@@ -260,7 +254,7 @@ Two independent switches — you need BOTH correct:
 | 7400 | `rt/armsdk` occupied | another process is writing — don't parallelize |
 | 7401 | Arm holding | call `g1_release_arm()` |
 | 7402 | Invalid action id | see `g1_list_arm_actions()` |
-| 7404 | Invalid FSM | call `g1_set_fsm(500)` to reach 500 |
+| 7404 | Invalid FSM | call `use_unitree("loco", "SetFsmId", {"fsm_id": 500})` to reach 500 |
 
 ### Arm action map (from `g1_list_arm_actions`)
 ```

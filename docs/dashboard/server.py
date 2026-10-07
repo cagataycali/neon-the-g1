@@ -2,7 +2,7 @@
 """
 🌐 NEON G1 Dashboard backend.
 
-Polls the G1's DDS state tools (state, battery, mainboard, lidar, slam) plus
+Polls the G1's DDS state tools (state, battery, mainboard, lidar) plus
 the cross-persona memory/agent_log, exposes them over:
 
   • GET  /api/health            → liveness
@@ -79,13 +79,6 @@ def _load_tools() -> None:
         log.info("✓ G1 state tools loaded")
     except Exception as e:  # pragma: no cover
         log.warning(f"G1 state tools unavailable: {e}")
-
-    try:
-        from tools.g1_slam import g1_slam_pose, g1_slam_stats
-        _TOOLS["slam_pose"] = g1_slam_pose
-        _TOOLS["slam_stats"] = g1_slam_stats
-    except Exception as e:
-        log.debug(f"SLAM tools unavailable: {e}")
 
     try:
         from tools.g1_lidar import g1_lidar_stats
@@ -208,8 +201,6 @@ def _refresh_snapshot(include_slow: bool = True) -> Dict[str, Any]:
         if "mainboard" in _TOOLS:
             snap["mainboard"] = _safe("mainboard", _TOOLS["mainboard"], _timeout=2.5,
                                       network_interface=IFACE, timeout=1.0)
-        if "slam_pose" in _TOOLS:
-            snap["slam"] = _safe("slam_pose", _TOOLS["slam_pose"], _timeout=2.0)
         if "lidar" in _TOOLS:
             snap["lidar"] = _safe("lidar", _TOOLS["lidar"], _timeout=2.0)
     # Atomic swap: replace the dict contents in one locked step so readers
@@ -219,7 +210,7 @@ def _refresh_snapshot(include_slow: bool = True) -> Dict[str, Any]:
     with _SNAP_LOCK:
         prev = dict(_SNAPSHOT)
         merged = dict(snap)
-        for k in ("battery", "lowstate", "state", "mainboard", "slam", "lidar"):
+        for k in ("battery", "lowstate", "state", "mainboard", "lidar"):
             cur = merged.get(k)
             # if this cycle's value errored/timed out but we had a good one, keep it
             if (isinstance(cur, dict) and cur.get("status") in ("error", "unavailable", None)
