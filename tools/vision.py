@@ -103,6 +103,15 @@ def _dashboard_service_token() -> "Optional[str]":
         return None
 
 
+def _inside_dashboard() -> bool:
+    """True when THIS process is the dashboard (camera_stream is loaded and built)."""
+    for modname in ("docs.dashboard.camera_stream", "camera_stream"):
+        mod = sys.modules.get(modname)
+        if mod is not None and getattr(mod, "_MGR", None) is not None:
+            return True
+    return False
+
+
 def _capture_frame_in_process(output: Path = None, cam: str = None) -> Optional[Path]:
     """When THIS process is the dashboard (chat agent), the camera manager is a
     module away: read its latest JPEG directly. An HTTPS round trip to
@@ -207,7 +216,17 @@ def _capture_frame(device: int = 0) -> Path:
             try:
                 return _capture_frame_dashboard(cam="brio" if device else None)
             except Exception as _e:
-                # dashboard down / camera offline â fall through to raw device
+                if _inside_dashboard():
+                    # The dashboard OWNS the cameras. Opening pyrealsense2 here would
+                    # enumerate USB inside the server process while holding the GIL;
+                    # with a flapping bus that froze the whole dashboard (2026-10-07
+                    # 18:38Z: served fine until one take_photo, then no HTTP at all).
+                    # Say so instead of reaching for the raw device.
+                    raise RuntimeError(
+                        f"the dashboard's cameras hold no frame right now ({_e}); "
+                        "the camera may be resetting or the USB bus is unstable - try again in a moment"
+                    ) from _e
+                # dashboard down / camera offline (other personas) - fall through to raw device
                 print(f"[vision] dashboard snapshot failed ({_e}); trying raw device")
         return _capture_frame_linux(device=device)
     raise NotImplementedError(f"vision capture not implemented on {sysname}")
