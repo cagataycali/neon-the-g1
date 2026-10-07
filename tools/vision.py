@@ -32,6 +32,7 @@ import base64
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -158,6 +159,35 @@ def _dashboard_service_token() -> "Optional[str]":
         return None
 
 
+def _capture_frame_in_process(output: Path = None, cam: str = None) -> Optional[Path]:
+    """When THIS process is the dashboard (chat agent), the camera manager is a
+    module away: read its latest JPEG directly. An HTTPS round trip to
+    ourselves cannot work from a tool that runs on the server's own event
+    loop (the server never gets to answer: TLS handshake timed out, 2026-10-07)."""
+    mgr = None
+    for modname in ("docs.dashboard.camera_stream", "camera_stream"):
+        mod = sys.modules.get(modname)
+        if mod is not None and getattr(mod, "_MGR", None) is not None:
+            mgr = mod._MGR
+            break
+    if mgr is None:
+        return None
+    order = [cam] if cam else [_DASH_CAM] + [c for c in ("realsense_color", "brio") if c != _DASH_CAM]
+    for c in order:
+        try:
+            grabber = mgr.get(c)
+        except Exception:
+            grabber = None
+        if grabber is None:
+            continue
+        data = grabber.latest()
+        if data and len(data) >= 2000 and data[:2] == b"\xff\xd8":
+            out = output or (CACHE_DIR / f"frame_{int(time.time())}.jpg")
+            out.write_bytes(data)
+            return out
+    raise RuntimeError(f"dashboard cameras hold no frame right now ({order})")
+
+
 def _capture_frame_dashboard(output: Path = None, cam: str = None) -> Path:
     """Grab a JPEG from the dashboard's shared camera snapshot endpoint.
 
@@ -165,6 +195,9 @@ def _capture_frame_dashboard(output: Path = None, cam: str = None) -> Path:
     then the other head camera, so a process that was not handed the env var
     does not fail on a camera with no signal.
     """
+    local = _capture_frame_in_process(output=output, cam=cam)
+    if local is not None:
+        return local
     if cam is None:
         order = [_DASH_CAM] + [c for c in ("realsense_color", "brio") if c != _DASH_CAM]
         last: Exception | None = None
@@ -275,7 +308,9 @@ async def take_photo(
     bidi = agent is not None and hasattr(agent, "send")
 
     try:
-        image_path = _capture_frame(device=device)
+        # Off the event loop: the capture blocks on HTTP/USB, and in the
+        # dashboard persona this coroutine runs on the server's own loop.
+        image_path = await asyncio.to_thread(_capture_frame, device)
     except Exception as e:
         return {"status": "error", "stage": "capture", "message": str(e)}
 
