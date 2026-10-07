@@ -7,6 +7,7 @@ import LidarView from './components/LidarView'
 import TeleopPanel from './components/TeleopPanel'
 import AgentDock from './components/AgentDock'
 import LogFeed from './components/LogFeed'
+import ActivityStrip from './components/ActivityStrip'
 import VoiceSheet, { VoicePill, useVoiceStatus } from './components/VoiceSheet'
 import TelemetryGraphs from './components/TelemetryGraphs'
 import StateCard from './components/StateCard'
@@ -86,9 +87,15 @@ function Dashboard() {
           <aside className="corner tl" aria-label="Controller">
             <StateCard s={t?.state} ls={t?.lowstate} embedded />
           </aside>
-          <aside className="corner tr-below" aria-label="Posture">
-            <PostureCard ls={t?.lowstate} embedded />
-          </aside>
+          <div className="rail right">
+            <aside className="corner" aria-label="Posture">
+              <PostureCard ls={t?.lowstate} embedded />
+            </aside>
+            {/* what neon is doing right now, across voice / telegram / thinker / chat */}
+            <aside className="corner act" aria-label="Activity">
+              <ActivityStrip log={log} onMore={() => setShowLog(true)} />
+            </aside>
+          </div>
           <aside className="corner bl" aria-label="Telemetry">
             <TelemetryGraphs t={t} />
           </aside>

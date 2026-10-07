@@ -15,6 +15,7 @@ API (per camera id):
   /api/camera/{id}/stream    → multipart MJPEG
   /api/camera/{id}/snapshot  → single JPEG
   /api/cameras               → list available cameras + status
+  /api/camera/reset  (POST)  → hardware-reset the RealSense, restart every grabber
 """
 from __future__ import annotations
 
@@ -82,14 +83,22 @@ class _SharedRealSense:
     _instance = None
     _lock = threading.Lock()
 
-    STALL_S = 12.0          # no frame for this long -> restart the worker
+    STALL_S = 12.0          # frames flowed, then stopped for this long -> restart the worker
+    # A worker that has not produced its FIRST frame yet gets a longer leash:
+    # on a cold Jetson boot the D435i starts in <1 s but takes 3-8 s for the
+    # first frame or never delivers one; rs_worker then hardware-resets the
+    # camera and starts again (2 s re-enumeration + ~4 s). Measured 2026-10-07.
+    STARTUP_S = float(os.getenv("NEON_RS_STARTUP_S", "45"))
     BACKOFF_S = (2, 5, 10, 20, 30)
-    # Seconds without a single frame since the first spawn before the colour
-    # cam gives up on pyrealsense2 and reads the RealSense over V4L2 instead
-    # (depth needs the SDK and goes unavailable). Measured 2026-10-05: with a
-    # flapping USB port rs.pipeline() never returned in 100 s, while the UVC
-    # colour node kept delivering frames.
-    GIVE_UP_S = float(os.getenv("NEON_RS_GIVE_UP_S", "30"))
+    # Seconds without a single frame since the current attempt window opened
+    # before the colour cam gives up on pyrealsense2 and reads the RealSense
+    # over V4L2 instead (depth needs the SDK and goes unavailable). Measured
+    # 2026-10-05: with a flapping USB port rs.pipeline() never returned in
+    # 100 s, while the UVC colour node kept delivering frames. The window is
+    # NOT for life: when the fallback fails too, ``rearm`` opens a new one so
+    # the SDK (with a hardware reset) gets another chance after RETRY_SDK_S.
+    GIVE_UP_S = float(os.getenv("NEON_RS_GIVE_UP_S", "60"))
+    RETRY_SDK_S = float(os.getenv("NEON_RS_RETRY_SDK_S", "60"))
 
     def __init__(self, width=640, height=480, fps=15, quality=70):
         self.width, self.height, self.fps, self.quality = width, height, fps, quality
@@ -103,6 +112,9 @@ class _SharedRealSense:
         self._started_at = 0.0
         self._first_spawn = 0.0
         self._restarts = 0
+        self._reset_next = False     # next spawn asks the worker for a hardware reset
+        self.fallback_active = False # colour reads the RealSense over V4L2: the SDK must not touch it
+        self._rearm_at = 0.0         # after a failed fallback: when the SDK may be tried again
         self.error: Optional[str] = None
 
     @classmethod
@@ -118,6 +130,9 @@ class _SharedRealSense:
         import subprocess
         env = dict(os.environ, RS_WIDTH=str(self.width), RS_HEIGHT=str(self.height),
                    RS_FPS=str(self.fps), RS_JPEG_Q=str(self.quality))
+        if self._reset_next:
+            env["RS_RESET"] = "1"
+            self._reset_next = False
         worker = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rs_worker.py")
         self._proc = subprocess.Popen([sys.executable, worker], stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE, env=env, bufsize=0)
@@ -129,16 +144,36 @@ class _SharedRealSense:
         self._reader.start()
         threading.Thread(target=self._stderr_loop, args=(self._proc,), daemon=True,
                          name="rs-stderr").start()
-        log.info(f"shared RealSense worker started (pid {self._proc.pid})")
+        log.info(f"shared RealSense worker started (pid {self._proc.pid}"
+                 f"{', hardware reset first' if env.get('RS_RESET') else ''})")
 
     def acquire(self) -> bool:
         with self._plock:
             self._refs += 1
             if self.gave_up():
-                return False          # the SDK is written off for this process: no respawn churn
+                return False          # SDK written off for this attempt window: no respawn churn
             if self._proc is None or self._proc.poll() is not None:
                 self._spawn()
             return True
+
+    def rearm(self, reset: bool = True) -> None:
+        """Open a new attempt window for the SDK (the fallback failed, or the
+        operator asked for a camera reset). The next spawn hardware-resets."""
+        with self._plock:
+            self._kill()
+            self._first_spawn = 0.0
+            self._last_frame = 0.0
+            self._restarts = 0
+            self._reset_next = reset
+            self._rearm_at = time.time() + self.RETRY_SDK_S
+            self.fallback_active = False
+            self.error = None
+
+    def reset(self) -> None:
+        """Operator reset: kill the worker, hardware-reset on the next spawn, now."""
+        self.rearm(reset=True)
+        with self._plock:
+            self._rearm_at = 0.0
 
     def release(self) -> None:
         # The dashboard is the single RealSense owner; keep the worker warm so
@@ -213,15 +248,19 @@ class _SharedRealSense:
             now = time.time()
             dead = p is None or p.poll() is not None
             ref = self._last_frame or self._started_at
-            stalled = (not dead) and ref and (now - ref) > self.STALL_S
+            leash = self.STALL_S if self._last_frame else self.STARTUP_S
+            stalled = (not dead) and ref and (now - ref) > leash
             if not (dead or stalled):
                 return
             wait = self.BACKOFF_S[min(self._restarts, len(self.BACKOFF_S) - 1)]
             if now - self._started_at < wait:
                 return
             if stalled:
-                log.warning(f"shared RealSense worker stalled {now - ref:.0f}s, restarting")
+                log.warning(f"shared RealSense worker stalled {now - ref:.0f}s, restarting with a hardware reset")
                 self._kill()
+                self._reset_next = True
+            elif dead and p is not None and p.returncode == 4:
+                self._reset_next = True      # it ran but never got frames: reset the camera next time
             self._restarts += 1
             if self._last_frame:
                 self._restarts = 1       # it worked once: short back-off
@@ -237,15 +276,19 @@ class _SharedRealSense:
         return self._latest_depth
 
     def gave_up(self) -> bool:
-        """True once the SDK has produced nothing for GIVE_UP_S since the first spawn."""
+        """True once the SDK has produced nothing for GIVE_UP_S in this attempt window."""
         if self._last_frame or not self._first_spawn:
             return False
         return (time.time() - self._first_spawn) > self.GIVE_UP_S
 
+    def sdk_retry_due(self) -> bool:
+        """After a failed fallback: may a camera try the SDK again?"""
+        return self._rearm_at <= time.time()
+
     def status(self) -> dict:
         p = self._proc
         return {"worker_pid": p.pid if p else None, "alive": bool(p and p.poll() is None),
-                "restarts": self._restarts, "error": self.error,
+                "restarts": self._restarts, "error": self.error, "gave_up": self.gave_up(),
                 "last_frame_age": round(time.time() - self._last_frame, 2) if self._last_frame else None}
 
 
@@ -269,12 +312,17 @@ class _Cam:
         self._rs_pipe = None
         self._rs_shared = None
         self._backend = None
+        self._retry_at = 0.0        # a failed open is retried no sooner than this
+
+    RETRY_S = 20.0                   # cool-down after an open that failed
 
     def start(self):
         if self._running or not _CV2:
             if not _CV2:
                 self._error = "cv2 missing"
             return
+        if time.time() < self._retry_at:
+            return                   # /api/cameras polls every 4 s: do not churn the nodes
         self._running = True
         self._thread = threading.Thread(target=self._loop, daemon=True,
                                         name=f"cam-{self.id}")
@@ -306,8 +354,18 @@ class _Cam:
             return False
         try:
             self._rs_shared = _SharedRealSense.get(self.width, self.height, self.fps, self.quality)
+            if self._rs_shared.fallback_active:
+                # colour holds the RGB UVC node; an SDK pipeline would fail on it every time
+                self._error = "off while colour reads the RealSense over V4L2 (SDK stalled); use camera reset"
+                self._rs_shared = None
+                self._retry_at = time.time() + 300.0
+                return False
+            if not self._rs_shared.sdk_retry_due():
+                self._error = "RealSense SDK and V4L2 fallback both failed; waiting to retry with a hardware reset"
+                self._rs_shared = None
+                return False
             if not self._rs_shared.acquire():
-                # the SDK already gave up in this process: go straight to the fallback
+                # the SDK already gave up in this window: go straight to the fallback
                 return self._fallback_from_realsense()
             self._rs_pipe = True  # marker: using shared pipeline
             self._backend = f"realsense:{self.kind}"
@@ -344,7 +402,8 @@ class _Cam:
     def _loop(self):
         if not self._open():
             self._running = False
-            log.warning(f"📷 {self.id} open failed: {self._error}")
+            self._retry_at = max(self._retry_at, time.time() + self.RETRY_S)
+            log.warning(f"📷 {self.id} open failed: {self._error} (retry in {self._retry_at - time.time():.0f}s)")
             return
         log.info(f"📷 {self.id} opened ({self._backend})")
         period = 1.0 / max(self.fps, 1)
@@ -354,6 +413,7 @@ class _Cam:
             try:
                 if self._rs_shared is not None and self._rs_shared.gave_up():
                     if not self._fallback_from_realsense():
+                        self._retry_at = time.time() + self.RETRY_S
                         break
                 frame = self._read()
                 if frame is None:
@@ -433,9 +493,11 @@ class _Cam:
         self._rs_shared = None
         self._rs_pipe = None
         if self.kind != "rs_color":
-            self._error = f"depth unavailable: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s (USB stall?)"
+            self._error = (f"depth unavailable: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s "
+                           f"(USB stall?); SDK retried with a hardware reset in {shared.RETRY_SDK_S:.0f}s")
             log.warning(f"📷 {self.id}: {self._error}")
             self._running = False
+            shared.rearm()
             return False
         import importlib
         uc = importlib.import_module("tools.use_camera")
@@ -456,13 +518,16 @@ class _Cam:
                 break
             c.release()
         if cap is None:
-            self._error = f"pyrealsense2 stalled {shared.GIVE_UP_S:.0f}s and no RealSense RGB V4L2 node is capturable (tried {candidates})"
+            self._error = (f"pyrealsense2 stalled {shared.GIVE_UP_S:.0f}s and no RealSense RGB V4L2 node is "
+                           f"capturable (tried {candidates}); SDK retried with a hardware reset in {shared.RETRY_SDK_S:.0f}s")
             log.warning(f"📷 {self.id}: {self._error}")
             self._running = False
+            shared.rearm()
             return False
         self._cap = cap
         self._backend = f"v4l2:{node} (realsense colour fallback, SDK stalled)"
         self._error = None
+        shared.fallback_active = True
         log.warning(f"📷 {self.id}: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s; reading the RealSense over V4L2 node {node}")
         return True
 
@@ -563,6 +628,27 @@ class CameraManager:
         self._build()
         for c in self._cams.values():
             c.start()
+
+    def reset(self) -> dict:
+        """Operator reset: stop every grabber, hardware-reset the RealSense via
+        the worker's next spawn, start again right away (no cool-downs)."""
+        self._build()
+        for c in self._cams.values():
+            c.stop()
+        for c in self._cams.values():
+            t = c._thread
+            if t is not None and t.is_alive():
+                t.join(timeout=2.0)
+        shared = _SharedRealSense._instance
+        if shared is not None:
+            shared.reset()
+        for c in self._cams.values():
+            c._retry_at = 0.0
+            c._error = None
+            c._frames = 0
+            c._ts = 0.0
+            c.start()
+        return {"cameras": [c.status() for c in self._cams.values()]}
 
 
 _MGR: Optional[CameraManager] = None
