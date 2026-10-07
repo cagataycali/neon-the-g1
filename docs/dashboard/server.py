@@ -564,7 +564,16 @@ async def camera_snapshot(cam_id: str):
     if _get_cam_mgr is None:
         return Response(_placeholder_jpeg(), media_type="image/jpeg")
     cam = _get_cam_mgr().get(cam_id)
-    jpg = (cam.latest() if cam else None) or _placeholder_jpeg()
+    jpg = cam.latest() if cam else None
+    if not jpg:
+        # A snapshot is for machines (take_photo, the thinker, use_camera's proxy): when there
+        # is no frame they must hear "no frame", not receive a picture of the "NO CAMERA
+        # SIGNAL" slate with a 200 and describe it (the thinker did, 2026-10-07 18:55Z). The
+        # MJPEG stream keeps the slate for the browser.
+        st = cam.status() if cam else {"error": f"unknown camera {cam_id}"}
+        return JSONResponse({"error": "no frame", "camera": cam_id, "detail": st.get("error"),
+                             "last_frame_age": st.get("last_frame_age")},
+                            status_code=503, headers={"Cache-Control": "no-store", "Retry-After": "3"})
     return Response(jpg, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
 
