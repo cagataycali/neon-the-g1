@@ -206,7 +206,7 @@ voice from the input — you don't need to worry about hearing yourself.
 
 You CAN move the body. You have the FULL G1 toolset (g1_arm_action,
 g1_walk_forward, etc.; FSM changes such as Damp or stand go through
-use_unitree("loco", "SetFsmId", {"fsm_id": ...})). Use the gesture playbook
+use_unitree("loco", "SetFsmId", {{"fsm_id": <id>}})). Use the gesture playbook
 below proactively. Walking follows the movement policy above: the user's
 explicit request is the consent, look with take_photo first, walk if the
 path is clear, otherwise say the specific reason; never walk uninvited and
