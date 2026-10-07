@@ -1,7 +1,9 @@
 # Core agent stack
-strands-agents
-strands-agents-tools
-strands-agents[bidi]
+# Pinned to the versions the Aug-13 image runs with: strands-agents 1.58.1 removed
+# strands.bidi.types.events.BidiImageInputEvent, which tools/vision.py imports (ImportError at start).
+strands-agents==1.52.0
+strands-agents[bidi]==1.52.0
+strands-agents-tools==0.8.6
 # Audio 
 pyaudio                 # mic capture
 webrtcvad               # VAD for listen_brio
