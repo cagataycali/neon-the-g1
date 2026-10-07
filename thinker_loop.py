@@ -36,6 +36,7 @@ import signal
 import time
 import traceback
 from datetime import datetime
+from pathlib import Path
 
 # Make sure repo root is on path when run directly
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +63,28 @@ def _build():
     return build_agent("thinker")
 
 
+PHOTO_PATH = os.getenv("THINKER_PHOTO", "/tmp/thinker_view.jpg")
+
+
+def _look() -> bytes | None:
+    """Grab the head-camera frame BEFORE the model turn and save it at PHOTO_PATH.
+
+    The model used to be told to call use_camera(action='save'), which hands
+    back a file path: it never saw the pixels, so captions said nothing about
+    the picture ("I didn't look at the image before sending it", 2026-10-07).
+    Now the frame is captured here and goes into the user message as an image
+    block, so the cycle STARTS from what NEON sees; the saved file is what
+    telegram(send_photo) sends."""
+    try:
+        from tools.vision import _capture_frame_dashboard
+        path = _capture_frame_dashboard(output=Path(PHOTO_PATH))
+        data = Path(path).read_bytes()
+        return data if len(data) > 2000 and data[:2] == b"\xff\xd8" else None
+    except Exception as e:
+        print(f"[{_now()}] 📷 thinker could not get a frame: {e}", flush=True)
+        return None
+
+
 def cycle(agent) -> None:
     """One reflection cycle."""
     t0 = time.time()
@@ -83,11 +106,19 @@ def cycle(agent) -> None:
     except Exception as e:
         print(f"[{_now()}] ⚠️  thinker prompt refresh failed: {e}", flush=True)
 
-    # The "user" turn is always the same — it kicks the model to reflect.
-    user_turn = (
+    # Look first: the frame goes INTO the turn as an image block (see _look).
+    jpeg = _look()
+    photo_line = (
+        f"  1. The photo above is what you see RIGHT NOW (saved at {PHOTO_PATH}). Start from it: "
+        "name what is in the frame (people, objects, light, anything that changed).\n"
+        if jpeg else
+        f"  1. No frame is available this cycle (camera resetting or USB unstable); say so in the "
+        "caption and skip the photo. Do NOT call use_camera or take_photo to work around it.\n"
+    )
+    user_text = (
         "Run an active heartbeat cycle. NEON is alive — show it.\n"
         "MANDATORY this cycle (do steps 1+3+4 every time, vary step 2):\n"
-        "  1. Take a photo: use_camera(action='save', save_path='/tmp/thinker_view.jpg', source='auto').\n"
+        + photo_line +
         "  2. PICK ONE physical action — ROTATE through them, do NOT repeat the same one as last cycle:\n"
         "       (a) gesture: g1_arm_action(action_id=N) where N is one of {17 clap, 18 high-five, "
         "           19 hug, 20 heart, 23 right-hand-up, 26 high-wave} — only if arm_ready=True.\n"
@@ -95,9 +126,11 @@ def cycle(agent) -> None:
         "       (c) LED color shift: use_unitree(component='audio', action='LedControl', "
         "           kwargs={'R':R,'G':G,'B':B}) — match the vibe (blue calm, green happy, "
         "           purple thinking, orange playful, red alert). Always safe.\n"
-        "  3. Telegram a photo + 1-sentence caption (what NEON saw + what it just did) "
-        "via telegram(action='send_photo', chat_id from env, file_path='/tmp/thinker_view.jpg', caption=...). "
-        "The caption should mention which action you took. Examples:\n"
+        "  3. Telegram the photo + 1-sentence caption (what NEON SAW in it + what it just did) "
+        f"via telegram(action='send_photo', chat_id from env, file_path='{PHOTO_PATH}', caption=...)"
+        " — or telegram(action='send') with the caption alone when there is no frame. "
+        "The caption describes the picture and names the action; read battery/FSM from the live "
+        "state block, never from a previous cycle. Examples:\n"
         "  \"Saw the keyboard; pulsed LEDs purple.\"\n"
         "  \"Empty room; clapped to keep the limbs warm; battery 78%.\"\n"
         "  \"Looking left; waved at the empty doorway.\"\n"
@@ -105,6 +138,7 @@ def cycle(agent) -> None:
         "Do steps in parallel where possible. Be terse. NEON is unhinged & alive — "
         "no \"as an AI\" energy. ONE action per cycle, then ship it."
     )
+    user_turn = build_turn(user_text, jpeg)
 
     try:
         result = agent(user_turn)
@@ -119,6 +153,14 @@ def cycle(agent) -> None:
 
     dur = time.time() - t0
     print(f"[{_now()}] 🧠 thinker cycle done in {dur:.1f}s", flush=True)
+
+
+def build_turn(text: str, jpeg: bytes | None):
+    """The user turn: the frame first (as an image content block), then the text.
+    Without a frame it is the plain string."""
+    if not jpeg:
+        return text
+    return [{"image": {"format": "jpeg", "source": {"bytes": jpeg}}}, {"text": text}]
 
 
 def main():
