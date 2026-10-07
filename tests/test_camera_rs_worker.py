@@ -299,3 +299,51 @@ def test_operator_reset_restarts_everything_now(shared, monkeypatch, tmp_path):
         assert _wait(lambda: cam.latest() is not None and cam.status()["running"], 3.0)
     finally:
         cam.stop()
+
+
+def test_frozen_v4l2_fallback_hands_the_camera_back_to_the_sdk(shared, monkeypatch, tmp_path):
+    """Colour on the UVC fallback stops getting frames: releasing it clears fallback_active and
+    rearms the SDK (the bus storm that froze the node may have passed), instead of the camera
+    refusing its own reopen until an operator reset."""
+    spawn_log = tmp_path / "spawns"
+    monkeypatch.setenv("FAKE_SPAWN_LOG", str(spawn_log))
+    monkeypatch.setenv("FAKE_FRAMES", "0")
+    monkeypatch.setenv("FAKE_HANG", "1")
+    shared.GIVE_UP_S = 0.3
+    shared.RETRY_SDK_S = 0.4
+    monkeypatch.setattr(cs, "_RS", True)
+    monkeypatch.setattr(cs, "_CV2", True)
+    monkeypatch.setattr(cs._SharedRealSense, "get", classmethod(lambda cls, *a, **k: shared))
+    frames = {"ok": True}
+
+    class Cap:
+        def read(self):
+            return (True, "array") if frames["ok"] else (False, None)
+        def release(self):
+            pass
+
+    import types, importlib
+    fake_uc = types.SimpleNamespace(_find_realsense_v4l2_main=lambda: 4,
+                                    _v4l2_open=lambda node, w, h, fourcc=None, fps=15: Cap() if node == 4 else None)
+    monkeypatch.setattr(importlib, "import_module", lambda name, *a, **k: fake_uc if name == "tools.use_camera" else __import__(name))
+    monkeypatch.setattr(cs, "_jpeg", lambda frame, q=70: b"jpeg-from-" + str(frame).encode())
+    monkeypatch.setattr(cs._Cam, "_realsense_rgb_nodes", staticmethod(lambda: [4]))
+    monkeypatch.setattr(cs._Cam, "_is_colour", staticmethod(lambda frame: True))
+    color = cs._Cam("realsense_color", "rs_color", width=640, height=480, fps=200, quality=70)
+    color.RETRY_S = 0.1
+    color.start()
+    try:
+        assert _wait(lambda: color.latest() == b"jpeg-from-array", 4.0)
+        assert shared.fallback_active is True
+        frames["ok"] = False                       # the UVC node freezes
+        assert _wait(lambda: shared.fallback_active is False, 6.0), "release must clear the flag"
+        assert shared.gave_up() is False, "a new SDK attempt window is open"
+        assert _wait(lambda: color.status()["running"] is False, 4.0), "the loop ends restartable, not stuck"
+        color.start()                                    # inside the cool-down: a no-op
+        assert color.status()["running"] is False
+        time.sleep(0.5)
+        color.start()                                    # what /api/cameras polling does
+        assert _wait(lambda: _spawns(spawn_log)[-1:] == ["reset=1"], 6.0), "the SDK is retried with a reset"
+        assert color.status()["running"] is True
+    finally:
+        color.stop()

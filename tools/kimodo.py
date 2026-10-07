@@ -410,10 +410,6 @@ def kimodo(
 
         # (b) dispatch to GPU peer
         if peer_id:
-            try:
-                from .dispatch import dispatch as _dispatch  # local dispatcher if present
-            except Exception:
-                _dispatch = None
             gen_cmd = (
                 f"cd /tmp && python3 -m kimodo.scripts.generate '{prompt}' "
                 f"--model {model} --duration {duration} --output /tmp/{stem}.csv "

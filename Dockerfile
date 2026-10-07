@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev libusb-1.0-0-dev python3-dev \
     libasound2-dev libportaudio2 portaudio19-dev \
     libxcb1 libgl1 libglib2.0-0 \
-    android-tools-adb ffmpeg \
+    ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
 # ── CycloneDDS 0.10.2 (matches unitree_sdk2py's wire format) ─────────────

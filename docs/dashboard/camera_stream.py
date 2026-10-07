@@ -311,6 +311,7 @@ class _Cam:
         self._cap = None
         self._rs_pipe = None
         self._rs_shared = None
+        self._fallback_of = None    # the shared source colour fell back FROM (to hand it back)
         self._backend = None
         self._retry_at = 0.0        # a failed open is retried no sooner than this
 
@@ -385,12 +386,22 @@ class _Cam:
         return None
 
     def _release(self):
+        was_fallback = self._cap is not None and self._fallback_of is not None
         try:
             if self._cap is not None:
                 self._cap.release()
         except Exception:
             pass
         self._cap = None
+        if was_fallback:
+            # The V4L2 fallback died too (a frozen UVC node, usually a flapping USB port). Hand
+            # the camera back to the SDK with a fresh attempt window and a hardware reset instead
+            # of blocking our own reopen with "off while colour reads over V4L2" for ever.
+            shared, self._fallback_of = self._fallback_of, None
+            shared.fallback_active = False
+            shared.rearm()
+            log.warning(f"📷 {self.id}: V4L2 fallback stopped delivering; SDK retried with a hardware "
+                        f"reset in {shared.RETRY_SDK_S:.0f}s")
         try:
             if self._rs_shared is not None:
                 self._rs_shared.release()
@@ -421,6 +432,8 @@ class _Cam:
                     if fails > 30:
                         self._release()
                         if not self._open():
+                            self._retry_at = max(self._retry_at, time.time() + self.RETRY_S)
+                            log.warning(f"📷 {self.id} reopen failed: {self._error} (retry in {self._retry_at - time.time():.0f}s)")
                             break
                         fails = 0
                     time.sleep(0.05)
@@ -443,6 +456,9 @@ class _Cam:
             if dt < period:
                 time.sleep(period - dt)
         self._release()
+        # a loop that ended on its own (reopen failed, fallback failed) must be restartable:
+        # CameraManager.list()/get() call start() again once the cool-down has passed
+        self._running = False
 
     @staticmethod
     def _realsense_rgb_nodes() -> List[int]:
@@ -528,6 +544,7 @@ class _Cam:
         self._backend = f"v4l2:{node} (realsense colour fallback, SDK stalled)"
         self._error = None
         shared.fallback_active = True
+        self._fallback_of = shared
         log.warning(f"📷 {self.id}: pyrealsense2 produced no frame in {shared.GIVE_UP_S:.0f}s; reading the RealSense over V4L2 node {node}")
         return True
 

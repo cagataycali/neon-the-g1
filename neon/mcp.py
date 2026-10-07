@@ -3,8 +3,8 @@
 
 Exposes the FULL NEON toolset — 53 FSM-gated Unitree G1 robot tools (state,
 posture, arms, locomotion, audio, LiDAR, SLAM, camera, DDS) plus the
-cross-persona stack (memory, telegram, voice_say, take_photo, dispatch,
-use_github, use_spotify) — over the Model Context Protocol.
+cross-persona stack (memory, telegram, voice_say, take_photo,
+use_github) — over the Model Context Protocol.
 
 That means you can drive the physical G1 from Claude Code, Claude Desktop,
 Kiro, Cursor, or any MCP-compatible client.

@@ -5,7 +5,7 @@
 Every robot `@tool` exported by `tools/__init__.py`, grouped by safety class.
 The counts on this page are read from that file at build time, so they match
 the code on `main`. The {{facts:lookout_tools}} cross-persona tools (memory,
-voice, Telegram, dispatch, phone, ...) are listed at the end.
+voice, Telegram, ...) are listed at the end.
 
 <div class="motion-legend" markdown>
 <span><span class="dot safe"></span>safe, read-only / self-bounded</span>
@@ -115,7 +115,7 @@ From `tools/__init__.py`:
 | `G1_LOCOMOTION_TOOLS` | {{facts:locomotion_tools}} | walking (danger) |
 | `G1_MOTION_GEN_TOOLS` | {{facts:motion_gen_tools}} | `kimodo` (danger) |
 | `G1_ALL_TOOLS` | {{facts:all_tools}} | everything |
-| `G1_LOOKOUT_TOOLS` | {{facts:lookout_tools}} | cross-persona: memory, voice_say, dispatch, telegram, take_photo, prompts, manage_messages, manage_tools, make, kimodo, phone, voice_control |
+| `G1_LOOKOUT_TOOLS` | {{facts:lookout_tools}} | cross-persona: memory, voice_say, telegram, take_photo, kimodo, voice_control |
 
 Default: `G1_TOOLS == G1_ALL_TOOLS`.
 
@@ -130,9 +130,6 @@ The tools every persona carries besides the robot ones (`G1_LOOKOUT_TOOLS`).
 | `voice_control(action, minutes, level)` | the agent on its own voice: mute, snooze, unmute, status, speaker volume |
 | `take_photo(question, hires)` | a frame from the dashboard camera into the model (audio reply in voice, image block elsewhere) |
 | `telegram(action, chat_id, text)` | send messages and photos to the owner's chat |
-| `prompts` | read, override and reset a persona's own system prompt |
-| `manage_messages` / `manage_tools` | compact own history / load extra tools at runtime |
-| `make` | run a Makefile target from inside the agent |
 | `kimodo` | [motion generation](motion-gen.md) |
 
 ## who sees what
@@ -145,11 +142,8 @@ so each call lands as a `tool` row in `agent_log`.
 | voice, REPL, dashboard chat | `build_voice_tools` | 9 cross-persona + 14 robot tools (state 2, posture 2, arm 3, locomotion 4, audio 2, `use_camera`); small on purpose for realtime latency |
 | telegram, thinker | `build_tools` | 10 cross-persona + `telegram` + all {{facts:all_tools}} robot tools + GitHub when installed |
 
-Not carried any more (since 2026-10-07): `shell`, `dispatch`, `phone` / ADB and `use_spotify`. The modules are still in `tools/` and `manage_tools` can load one for a session when a person asks.
+Removed from the source (2026-10-07): `shell`, `dispatch`, `phone` / ADB (`adb`, `recorder`), `use_spotify`, `prompts`, `manage_messages`, `manage_tools` and `make`. The toolset is exactly what `g1.py` builds.
 | `neon-mcp --safe` | `G1_SAFE_TOOLS` | {{facts:safe_tools}} robot tools, no walking, no `kimodo` |
-
-Need lidar, SLAM or DDS by voice? The prompt says so: load them on demand with
-`manage_tools`.
 
 ## dig deeper
 

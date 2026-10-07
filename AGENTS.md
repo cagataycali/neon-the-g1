@@ -44,12 +44,7 @@ g1_work/
 │   ├── agent_log.py      ← unified cross-persona reasoning log
 │   ├── voice_bridge.py   ← briefing queue → voice persona (voice_say)
 │   ├── telegram.py       ← Telegram Bot API + history
-│   ├── dispatch.py       ← spawn devduck sub-agents (cron / run_at)
 │   ├── vision.py         ← take_photo (bidi image injection)
-│   ├── prompts.py        ← per-persona prompt overrides (SQLite)
-│   ├── manage_messages.py← trim/compact own history
-│   ├── manage_tools.py   ← load/create tools at runtime
-│   ├── use_spotify.py    ← Spotify playback control
 │   └── voice_switch.py   ← swap voice profile/model/provider live
 │
 ├── unitree_sdk2_python/  ← local SDK clone (pip wheel is BROKEN on G1 — see below)
@@ -101,7 +96,6 @@ neon uses **strands bidi voice architecture**, audio output goes to the G1 chest
 | Persistent memory| `tools/memory.py`  (sqlite + fs notes)           | `memory(action='kv_set'|'note_write'|'log_add')`   |
 | Cross-persona log| `tools/agent_log.py` (sqlite)                    | injected into every persona's system prompt        |
 | Briefing bus     | `tools/voice_bridge.py` (sqlite queue)           | `voice_say(text=..., importance=1|2)`              |
-| Sub-agents       | `tools/dispatch.py` (devduck spawner)            | `dispatch(prompt=..., schedule=..., run_at=...)`   |
 | Vision (bidi)    | `tools/vision.py` (BidiImageInputEvent)          | `take_photo(question="what do you see?")`          |
 
 ### Personas (sharing the same memory + tools)
@@ -184,8 +178,8 @@ In code, also tunable: `stream_delay_ms`, `vad_threshold`,
 > **Count is verified.** "53" = the `G1_ALL_TOOLS` bundle (what `agent.py`
 > loads). Category counts below sum to exactly 53 (46 safe + 7 walking).
 > A raw `grep @tool tools/*.py` returns ~97 across 27 files — that extra
-> ~44 are cross-persona infra (memory, telegram, dispatch, prompts,
-> voice_*, vision, use_spotify, manage_*) and are NOT part of the G1
+> ~44 are cross-persona infra (memory, telegram, voice_*, vision)
+> and are NOT part of the G1
 > robot toolset scoped by this table. Do NOT "bump" 53 to 97.
 
 | Category | Safety | Count | Location | Exported list |

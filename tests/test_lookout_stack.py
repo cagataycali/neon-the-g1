@@ -1,4 +1,4 @@
-"""Smoke tests memory/agent_log/voice_bridge/dispatch.
+"""Smoke tests memory/agent_log/voice_bridge.
 
 These tests DO NOT require:
   - DDS / unitree_sdk2_python (g1 robot connection)
@@ -12,8 +12,6 @@ They DO verify:
   - log_add + log_recent
   - voice_bridge push + pop_pending + flush_stale + stats
   - agent_log record + recent + format_for_prompt + clear
-  - dispatch table init (no actual run — that needs devduck)
-  - prompts get/set/reset
 """
 from __future__ import annotations
 import os
@@ -39,7 +37,7 @@ def isolated_memory(tmp_path, monkeypatch):
     fake_root = tmp_path / "fake_repo"
     (fake_root / "tools").mkdir(parents=True)
     # Symlink the actual tools/ into fake_root/tools so imports resolve
-    for f in ("memory.py", "agent_log.py", "voice_bridge.py", "prompts.py"):
+    for f in ("memory.py", "agent_log.py", "voice_bridge.py"):
         src = ROOT / "tools" / f
         if src.exists():
             (fake_root / "tools" / f).symlink_to(src)
@@ -47,10 +45,10 @@ def isolated_memory(tmp_path, monkeypatch):
     monkeypatch.chdir(fake_root)
     monkeypatch.syspath_prepend(str(fake_root))
     # Force re-import so module-level Path() resolves to the fake root
-    for mod in ("tools.memory", "tools.agent_log", "tools.voice_bridge", "tools.prompts"):
+    for mod in ("tools.memory", "tools.agent_log", "tools.voice_bridge"):
         sys.modules.pop(mod, None)
     yield
-    for mod in ("tools.memory", "tools.agent_log", "tools.voice_bridge", "tools.prompts"):
+    for mod in ("tools.memory", "tools.agent_log", "tools.voice_bridge"):
         sys.modules.pop(mod, None)
 
 
@@ -116,11 +114,3 @@ def test_agent_log_roundtrip():
     assert clear() == 2
 
 
-def test_prompts_set_get_reset():
-    from tools.prompts import prompts, get_override
-    assert "(no override)" in prompts(action="get", persona="voice") or \
-           prompts(action="get", persona="voice") != ""
-    prompts(action="set", persona="voice", text="be very brief")
-    assert get_override("voice") == "be very brief"
-    prompts(action="reset", persona="voice")
-    assert get_override("voice") is None

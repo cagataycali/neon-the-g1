@@ -62,7 +62,7 @@ Telegram `/unmute`. Not muted and still quiet: `journalctl -u neon-voice -n 50`
 - Pick a lighter Bedrock model in Configuration (applies to the dashboard at
   once, "Apply to all personas" recreates the rest)
 - Too many heavy tool calls: check the activity log for stray vision calls
-- Context overflow: `manage_messages(action='compact')`
+- Context overflow: start a fresh thread (dashboard: Reset; Telegram: /reset)
 
 ## "pip wheel broken" { .safe }
 

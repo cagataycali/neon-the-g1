@@ -34,11 +34,7 @@ from tools.memory import memory
 from tools.agent_log import format_for_prompt as _agent_log_block
 from tools.voice_bridge import voice_say
 from tools.telegram import telegram, format_history_for_prompt
-from tools.manage_messages import manage_messages
-from tools.manage_tools import manage_tools as manage_tools_tool
-from tools.make import make
 from tools.voice_control import voice_control
-from tools.prompts import prompts, get_override as _prompt_override
 from tools.vision import take_photo  # bidi-aware (OpenAI patch applied at import)
 
 # devduck-provided tools (optional dependencies)
@@ -51,10 +47,11 @@ def _try_import(modpath: str, name: str):
 
 use_github   = _try_import("devduck.tools.use_github",   "use_github")
 
-# Removed on purpose (owner, 2026-10-07): shell (arbitrary commands on the
-# robot), dispatch (sub-agents), phone + strands-adb (the Pixel on the back),
-# use_spotify. NEON is a robot, not a terminal or a jukebox; manage_tools can
-# still load any of them for one session if a human asks.
+# Removed from the source (owner, 2026-10-07): shell (arbitrary commands on
+# the robot), dispatch (sub-agents), phone + ADB (the Pixel on the back),
+# use_spotify, prompts (self-editing system prompts), manage_messages,
+# manage_tools (runtime tool loading) and make. NEON is a robot, not a
+# terminal, a jukebox or its own operator; the toolset is what this file says.
 
 
 # canonical tool list
@@ -68,7 +65,6 @@ def build_tools(include_telegram: bool = True, include_robot: bool = True,
     """
     t = [
         memory, environment, image_reader,
-        prompts, manage_messages, manage_tools_tool, make,
         voice_say, take_photo, voice_control,
     ]
     if include_telegram:
@@ -96,7 +92,6 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
     """Slim tool list for the bidi voice agent — minimizes OpenAI Realtime
     session config bytes and reduces first-token latency.
 
-    NEON can still load extra tools at runtime via `manage_tools`.
     Every tool is wrapped for call logging (journal + agent_log role="tool")
     under ``persona`` (default: NEON_PERSONA env, else "dashboard" when the
     dashboard's chat_agent imports us, else "voice").
@@ -117,8 +112,7 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
 
     tools = [
         # Cross-persona infrastructure (always-on)
-        memory, prompts, manage_messages, manage_tools_tool, make,
-        voice_say, take_photo, telegram, voice_control,
+        memory, voice_say, take_photo, telegram, voice_control,
         # State
         g1_get_state, g1_read_lowstate,
         # Posture
@@ -154,8 +148,9 @@ _BASE = _load_prompt("base", fallback="You are NEON, a Unitree G1 humanoid robot
 
 
 def _resolve_body(persona: str, default_body: str) -> str:
-    override = _prompt_override(persona)
-    return override if override else default_body
+    """The persona prompt is the one in prompts/*.md plus the builder's text.
+    (Runtime overrides via the ``prompts`` tool were removed 2026-10-07.)"""
+    return default_body
 
 
 # persona prompt builders
@@ -261,12 +256,6 @@ When the user says "look at me", "what do you see", "describe my desk",
 "is anyone in the room", "look at the screen": call take_photo(question=...).
 The image is injected as a real BidiImageInputEvent so YOU see it — no
 separate vision API. You will then reply in audio based on what you saw.
-
-## Self-modification rights
-You have FULL permission to modify your own system prompt when the user asks.
-Use prompts(action='set', persona='voice', text='...') to update.
-Examples: tone changes, new rules, different focus.
-You can revert with prompts(action='reset', persona='voice').
 
 Time: {datetime.now():%Y-%m-%d %H:%M}
 """

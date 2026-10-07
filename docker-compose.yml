@@ -35,7 +35,6 @@ services:
       - ./telegram_events:/app/telegram_events
       - ./whatsapp_events:/app/whatsapp_events
       - ./tools:/app/tools   # live tools (camera dashboard-proxy fix) without rebuild
-      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - CYCLONEDDS_URI=/cyclonedds/cyclonedds.xml
@@ -61,16 +60,11 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
-      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
       - NEON_CAMERA_PROXY
       - NEON_CAMERA_PROXY_TOKEN
       - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
-      # 🎵 Spotify
-      - SPOTIFY_CLIENT_ID
-      - SPOTIFY_CLIENT_SECRET
-      - SPOTIFY_REDIRECT_URI
       # 🐙 GitHub (use_github tool)
       - GITHUB_TOKEN
     stdin_open: true             # interactive REPL
@@ -95,7 +89,6 @@ services:
       - /dev:/dev                              # camera nodes (/dev/video*)
       - ./docs/dashboard:/app/docs/dashboard  # dashboard backend + built frontend
       - ./tools:/app/tools                     # live tools (camera + auth helpers)
-      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
       - ~/.aws:/root/.aws:ro
       - /home/unitree/cyclonedds_ws:/cyclonedds:ro
       - ./.memory:/app/.memory                 # shared agent_log + memory + auth store
@@ -124,7 +117,6 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
-      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
       - NEON_DASHBOARD_CAM      # take_photo source: realsense_color (brio has no signal)
       - NEON_CAMERA_PROXY       # use_camera pulls the shared frame from the dashboard (self, over host network)
@@ -156,7 +148,6 @@ services:
       - ./.memory:/app/.memory
       - ./telegram_events:/app/telegram_events
       - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
-      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - G1_NETWORK_INTERFACE=eth0
@@ -172,13 +163,9 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
-      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
       - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
-      - SPOTIFY_CLIENT_ID
-      - SPOTIFY_CLIENT_SECRET
-      - SPOTIFY_REDIRECT_URI
       # 🐙 GitHub (use_github tool)
       - GITHUB_TOKEN
     entrypoint: ["python", "thinker_loop.py"]
@@ -207,7 +194,6 @@ services:
       - ./.memory:/app/.memory
       - ./telegram_events:/app/telegram_events
       - ./tools:/app/tools   # live tools (camera proxy fix) without rebuild
-      - ~/.android:/root/.android   # 📱 adb keys (authorized phone) for phone tool
     environment:
       - G1_IFACE=eth0
       - G1_NETWORK_INTERFACE=eth0
@@ -222,13 +208,9 @@ services:
       - TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS
       - TELEGRAM_DEFAULT_CHAT_ID
-      - PHONE_PIN               # phone tool unlock PIN (tools/phone.py)
       - NEON_MODEL_ID           # agent model (dashboard Configuration > model)
       - STRANDS_MODEL_ID
       - TELEGRAM_HISTORY_LIMIT
-      - SPOTIFY_CLIENT_ID
-      - SPOTIFY_CLIENT_SECRET
-      - SPOTIFY_REDIRECT_URI
       # 🐙 GitHub (use_github tool)
       - GITHUB_TOKEN
     entrypoint: ["python", "telegram_listener.py"]
