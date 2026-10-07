@@ -2,7 +2,6 @@
 strands-agents
 strands-agents-tools
 strands-agents[bidi]
-strands-adb>=0.19.4          # adb tool: control attached Android device over USB
 spotipy
 # Audio 
 pyaudio                 # mic capture

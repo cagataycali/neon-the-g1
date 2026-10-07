@@ -12,18 +12,27 @@ export default function AgentDock() {
   const [ready, setReady] = useState<boolean | null>(null)
   const [tools, setTools] = useState(0)
   const endRef = useRef<HTMLDivElement>(null)
+  const streamRef = useRef<HTMLDivElement>(null)
+  // Follow the stream only while the reader is at the bottom; scrolling up to
+  // read earlier turns must never be undone by the next token.
+  const [stuck, setStuck] = useState(true)
+  const onScroll = () => {
+    const el = streamRef.current; if (!el) return
+    setStuck(el.scrollHeight - el.scrollTop - el.clientHeight < 24)
+  }
 
   useEffect(() => {
     const poll = () => authedFetch('/api/chat/status').then(r => r.json())
       .then(d => { setReady(!!d.ready); setTools(d.tools || 0) }).catch(() => setReady(false))
     poll(); const id = setInterval(poll, 8000); return () => clearInterval(id)
   }, [])
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, busy])
+  useEffect(() => { if (stuck) endRef.current?.scrollIntoView({ block: 'end' }) }, [msgs, busy, stuck])
 
   const send = async () => {
     const prompt = input.trim()
     if (!prompt || busy) return
     setInput('')
+    setStuck(true)   // your own message always brings the view back down
     setMsgs(m => [...m, { id: ++_id, role: 'user', text: prompt }])
     setBusy(true)
     const aid = ++_id
@@ -59,9 +68,9 @@ export default function AgentDock() {
   return (
     <section className="agent-dock" aria-label="Agent">
       {/* messages float above the composer, fading up the page */}
-      <div className="msg-stream">
-        {msgs.slice(-8).map((m, i, arr) => (
-          <div className={`fmsg ${m.role}`} key={m.id} style={{ opacity: Math.max(0.35, 1 - (arr.length - 1 - i) * 0.12) }}>
+      <div className="msg-stream" ref={streamRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Conversation">
+        {msgs.map((m, i, arr) => (
+          <div className={`fmsg ${m.role}`} key={m.id} style={{ opacity: stuck ? Math.max(0.35, 1 - (arr.length - 1 - i) * 0.12) : 1 }}>
             {m.reasoning && <ReasoningBlock text={m.reasoning} live={busy && m.id === msgs[msgs.length - 1]?.id && !m.text} />}
             {m.tool && <div className="fmsg-tool"><span className="fmsg-tool-dot" aria-hidden="true" />{m.tool}</div>}
             {m.text ? <div className="fmsg-text">{m.text}</div>

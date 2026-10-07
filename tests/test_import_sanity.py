@@ -65,9 +65,12 @@ def test_telegram_module_no_token():
 
 
 def test_dispatch_module():
-    """dispatch is importable; actually CALLING it would need devduck."""
+    """dispatch is importable for manage_tools (not in any default list since 2026-10-07);
+    actually CALLING it would need devduck."""
     from tools.dispatch import dispatch
     assert callable(dispatch)
+    import tools as _t
+    assert dispatch not in _t.G1_LOOKOUT_TOOLS
 
 
 def test_vision_patch_idempotent():
