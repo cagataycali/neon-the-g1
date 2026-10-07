@@ -35,7 +35,7 @@ from tools.agent_log import format_for_prompt as _agent_log_block
 from tools.voice_bridge import voice_say
 from tools.telegram import telegram, format_history_for_prompt
 from tools.voice_control import voice_control
-from tools.vision import take_photo  # bidi-aware (OpenAI patch applied at import)
+from tools.vision import take_photo  # voice: ImageBlock into the stream; elsewhere an image result
 
 # devduck-provided tools (optional dependencies)
 def _try_import(modpath: str, name: str):
@@ -249,10 +249,10 @@ How to handle briefings:
   to natural prose.
 - If multiple briefings batched, summarize in one sentence.
 
-## take_photo (bidi vision)
+## take_photo (voice vision)
 When the user says "look at me", "what do you see", "describe my desk",
 "is anyone in the room", "look at the screen": call take_photo(question=...).
-The image is injected as a real BidiImageInputEvent so YOU see it — no
+The image goes straight into your own stream as an image block so YOU see it — no
 separate vision API. You will then reply in audio based on what you saw.
 
 Time: {datetime.now():%Y-%m-%d %H:%M}
@@ -543,72 +543,79 @@ _DEFAULT_VOICES = {
 }
 
 
-def _build_bidi_model(provider: str, voice: Optional[str] = None):
-    """Return a BidiModel instance for the requested provider."""
-    provider = provider.lower()
-    v = voice or _DEFAULT_VOICES.get(provider)
-
-    if provider in ("nova_sonic", "novasonic", "nova"):
-        from strands.experimental.bidi.models import BidiNovaSonicModel
-        region = os.getenv("AWS_REGION", "us-east-1")
-        cfg = {}
-        if v:
-            cfg["audio"] = {"voice": v}
-        return BidiNovaSonicModel(provider_config=cfg or None,
-                                  client_config={"region": region})
-
-    if provider in ("openai", "openai_realtime"):
-        from strands.experimental.bidi.models import BidiOpenAIRealtimeModel
-        cfg = {}
-        if v:
-            cfg["audio"] = {"voice": v}
-        kwargs = {"provider_config": cfg or None}
-        model_id = os.getenv("VOICE_MODEL")
-        if model_id:
-            kwargs["model_id"] = model_id
-        api_key = os.getenv("OPENAI_API_KEY")
-        if api_key:
-            kwargs["client_config"] = {"api_key": api_key}
-        return BidiOpenAIRealtimeModel(**kwargs)
-
-    if provider in ("gemini", "gemini_live"):
-        from strands.experimental.bidi.models import BidiGeminiLiveModel
-        cfg = {}
-        if v:
-            cfg["audio"] = {"voice": v}
-        kwargs = {"provider_config": cfg or None}
-        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        if api_key:
-            kwargs["client_config"] = {"api_key": api_key}
-        return BidiGeminiLiveModel(**kwargs)
-
-    raise ValueError(f"unknown voice provider: {provider}")
+# strands.bidi (strands-agents >= 1.58.1) requires model_id on every provider.
+_DEFAULT_MODELS = {
+    "openai":     "gpt-realtime",
+    "nova_sonic": "amazon.nova-sonic-v1:0",
+    "gemini":     "gemini-2.5-flash-native-audio-preview-09-2025",
+}
 
 
-def _patch_session_config(model, vad_threshold: float = 0.7,
-                          silence_duration_ms: int = 700):
-    """Patch session config to use interrupt_response=True + tuned VAD.
+def _openai_params(vad_threshold: float, silence_duration_ms: int) -> dict:
+    """Session overrides for OpenAI Realtime, merged recursively by the model
+    into its session config (OpenAIRealtimeModel._build_session_config).
 
-    DDS adds latency → conservative VAD prevents echo-triggered self-interrupts.
+    DDS adds latency → a conservative VAD keeps the speaker's own echo from
+    interrupting the model. interrupt_response / create_response stay True:
+    the model refuses a session config without them.
     """
-    if not hasattr(model, "_build_session_config"):
-        return
-    _orig = model._build_session_config
+    return {
+        "audio": {
+            "input": {
+                "turn_detection": {
+                    "type": "server_vad",
+                    "threshold": vad_threshold,
+                    "silence_duration_ms": silence_duration_ms,
+                    "create_response": True,
+                    "interrupt_response": True,
+                },
+            },
+        },
+    }
 
-    def _patched(*a, **kw):
-        sc = _orig(*a, **kw)
-        try:
-            sess = sc.get("session", sc)
-            td = sess.get("turn_detection")
-            if isinstance(td, dict):
-                td["interrupt_response"] = True
-                td["threshold"] = vad_threshold
-                td["silence_duration_ms"] = silence_duration_ms
-        except Exception:
-            pass
-        return sc
 
-    model._build_session_config = _patched
+def _build_bidi_model(provider: str, voice: Optional[str] = None, *,
+                      vad_threshold: float = 0.7, silence_duration_ms: int = 700):
+    """Return a strands.bidi model for the requested provider.
+
+    VOICE_MODEL overrides the provider's default model id. The old
+    provider_config / client_config kwargs are gone in 1.58: voice, api key and
+    region are plain keyword arguments, provider session knobs go in params.
+    """
+    provider = provider.lower()
+    if provider in ("nova_sonic", "novasonic", "nova"):
+        key = "nova_sonic"
+    elif provider in ("openai", "openai_realtime"):
+        key = "openai"
+    elif provider in ("gemini", "gemini_live"):
+        key = "gemini"
+    else:
+        raise ValueError(f"unknown voice provider: {provider}")
+    v = voice or _DEFAULT_VOICES[key]
+    model_id = os.getenv("VOICE_MODEL") or _DEFAULT_MODELS[key]
+
+    if key == "nova_sonic":
+        from strands.bidi.models.bedrock import BedrockNovaSonicModel
+        return BedrockNovaSonicModel(
+            region=os.getenv("AWS_REGION", "us-east-1"), voice=v, model_id=model_id)
+
+    if key == "openai":
+        from strands.bidi.models.openai import OpenAIRealtimeModel
+        return OpenAIRealtimeModel(
+            transcription_model_id=os.getenv("VOICE_TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe"),
+            api_key=os.getenv("OPENAI_API_KEY") or None,
+            voice=v,
+            model_id=model_id,
+            params=_openai_params(vad_threshold, silence_duration_ms),
+        )
+
+    from strands.bidi.models.google import GoogleGeminiLiveModel
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    return GoogleGeminiLiveModel(
+        client_args={"api_key": api_key} if api_key else None,
+        voice=v,
+        model_id=model_id,
+    )
 
 
 def build_voice_agent(
@@ -621,19 +628,19 @@ def build_voice_agent(
     vad_threshold: float = 0.7,
     silence_duration_ms: int = 700,
 ):
-    """Build a BidiAgent + G1BidiAudioIO for the voice persona.
+    """Build a strands.bidi BidiAgent + G1BidiAudioIO for the voice persona.
 
     Returns (BidiAgent, G1BidiAudioIO) — caller drives the run loop.
 
     The agent has the FULL G1 toolset wired in, plus telegram/memory/etc.,
     so it can perform robot actions while in conversation.
     """
-    from strands.experimental.bidi import BidiAgent
-    from strands.experimental.bidi.tools import stop_conversation
+    from strands.bidi import BidiAgent
+    from tools.stop_conversation import stop_conversation
     from tools.g1_bidi_audio import G1BidiAudioIO
 
-    model = _build_bidi_model(provider, voice)
-    _patch_session_config(model, vad_threshold, silence_duration_ms)
+    model = _build_bidi_model(provider, voice, vad_threshold=vad_threshold,
+                              silence_duration_ms=silence_duration_ms)
 
     tools = build_voice_tools(persona="voice") + [stop_conversation]
     agent = BidiAgent(model=model, tools=tools, system_prompt=_voice_prompt())

@@ -1,11 +1,10 @@
-"""Sanity import tests — stack loads without requiring DDS/pyaudio/strands.experimental.bidi.
+"""Sanity import tests — stack loads without requiring DDS/pyaudio/strands.bidi.
 
 Run with `python3 -m pytest tests/test_import_sanity.py -v`.
 
 What this CAN test:
   - tools.memory / agent_log / voice_bridge
-  - Side-effects of `import tools.vision` (OpenAI bidi patch is
-    try/except guarded, so it MUST not crash)
+  - `import tools.vision` has no bidi side effects any more
 
 What this CANNOT test (would need a robot):
   - tools.g1_state / g1_arm / g1_locomotion (DDS init)
@@ -85,9 +84,11 @@ def test_telegram_module_no_token():
     assert callable(listen)
 
 
-def test_vision_patch_idempotent():
-    """tools/vision applies an OpenAI bidi patch at import time. Importing
-    twice should be a no-op (idempotent guard via _image_patched attr)."""
+def test_vision_imports_without_the_experimental_bidi_package():
+    """tools/vision used to monkey-patch strands.experimental.bidi at import time;
+    with strands.bidi (1.58+) it imports nothing bidi-specific and patches nothing."""
     import tools.vision as v1
     import tools.vision as v2
     assert v1 is v2
+    assert not hasattr(v1, "_patch_openai_image_support")
+    assert "strands.experimental.bidi" not in sys.modules

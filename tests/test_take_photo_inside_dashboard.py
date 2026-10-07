@@ -25,7 +25,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 pytest.importorskip("strands")
-# strands.experimental.bidi imports pyaudio at module import; not needed here.
+# tools/__init__ pulls g1_speak -> g1_bidi_audio, which imports pyaudio; not needed here.
 if "pyaudio" not in sys.modules:
     try:
         import pyaudio  # noqa: F401
@@ -123,3 +123,41 @@ def test_take_photo_does_not_block_the_event_loop(dashboard_process, monkeypatch
     assert result["status"] == "success", result
     assert result["content"][1]["image"]["source"]["bytes"] == JPEG
     assert ticks >= 10, f"loop was starved during the capture (ticks={ticks})"
+
+
+class _VoiceAgent:
+    """What take_photo sees inside a strands.bidi session: an agent with .send."""
+
+    def __init__(self):
+        self.sent = []
+
+    async def send(self, data):
+        self.sent.append(data)
+
+
+def test_in_a_voice_session_the_frame_and_question_go_into_the_stream(dashboard_process, monkeypatch):
+    """strands.bidi (1.58+): one user message = [ImageBlock(jpeg), TextBlock(question)].
+    The experimental BidiImageInputEvent + OpenAI monkey-patch are gone."""
+    from strands.types.content import TextBlock
+    from strands.types.media import ImageBlock
+
+    monkeypatch.setattr(vision, "_capture_frame", lambda device=0: vision._capture_frame_dashboard())
+    fn = getattr(vision.take_photo, "original_function", None) or getattr(vision.take_photo, "_tool_func", None)
+    agent = _VoiceAgent()
+    ctx = types.SimpleNamespace(agent=agent)
+
+    result = asyncio.run(fn(tool_context=ctx, question="  who is there?  "))
+    assert result["status"] == "success", result
+    assert "content" not in result, "a voice session must not also return an image block"
+    assert len(agent.sent) == 1, "the image and the question are ONE message"
+    blocks = agent.sent[0]
+    assert isinstance(blocks, list) and len(blocks) == 2
+    assert isinstance(blocks[0], ImageBlock) and blocks[0].format == "jpeg"
+    assert blocks[0].source["bytes"] == JPEG
+    assert isinstance(blocks[1], TextBlock) and blocks[1].text == "who is there?"
+
+    # no question: the image alone, still a list the agent accepts
+    agent.sent.clear()
+    asyncio.run(fn(tool_context=ctx, question=""))
+    assert len(agent.sent) == 1 and [type(b) for b in agent.sent[0]] == [ImageBlock]
+    assert not hasattr(vision, "_patch_openai_image_support")

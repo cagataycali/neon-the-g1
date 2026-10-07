@@ -38,7 +38,7 @@ async def run_once():
     if not audio_io.start_speaker():
         print(f"⚠ G1 chest speaker init failed — check DDS / network_interface={NETWORK_IF}", file=sys.stderr)
         # Continue anyway — audio frames will be dropped silently
-    model_id = getattr(agent.model, "model_id", "default")
+    model_id = (agent.model.get_config() or {}).get("model_id", "default")
     print(f"🎙 NEON voice up "
           f"(provider={PROVIDER}, model={model_id}, "
           f"voice={VOICE or 'default'}, aec={'off' if NO_AEC else 'on'}, "

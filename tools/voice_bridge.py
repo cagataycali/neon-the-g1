@@ -2,7 +2,7 @@
 
 Other processes (watch_loop, telegram_listener, …) push one-line briefings
 into a SQLite table. The voice listener pulls them in its event loop and
-emits `BidiTextInputEvent` so the model speaks them out loud (or stays
+hands them to the model as a user `TextBlock` so it speaks them out loud (or stays
 silent, per persona policy).
 
 Why SQLite (not in-memory queue): the four daemons are separate processes.

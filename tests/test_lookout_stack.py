@@ -3,7 +3,7 @@
 These tests DO NOT require:
   - DDS / unitree_sdk2_python (g1 robot connection)
   - pyaudio / pywebrtc_audio (mic + AEC)
-  - strands.experimental.bidi (voice agent)
+  - strands.bidi (voice agent)
   - OPENAI_API_KEY / TELEGRAM_BOT_TOKEN
 
 They DO verify:
