@@ -161,3 +161,26 @@ def test_in_a_voice_session_the_frame_and_question_go_into_the_stream(dashboard_
     asyncio.run(fn(tool_context=ctx, question=""))
     assert len(agent.sent) == 1 and [type(b) for b in agent.sent[0]] == [ImageBlock]
     assert not hasattr(vision, "_patch_openai_image_support")
+
+
+def test_inside_the_dashboard_no_frame_means_an_error_not_a_raw_device_open(dashboard_process, monkeypatch):
+    """When the dashboard holds no frame, take_photo must NOT open pyrealsense2 in-process:
+    with a flapping USB bus that enumeration blocks while holding the GIL and froze the
+    whole dashboard (2026-10-07 18:38Z). It reports instead."""
+    dashboard_process.frames["realsense_color"] = None          # nothing captured yet
+    monkeypatch.setattr(vision, "platform", types.SimpleNamespace(system=lambda: "Linux"))
+
+    def never(*a, **k):
+        raise AssertionError("raw device capture must not run inside the dashboard")
+    monkeypatch.setattr(vision, "_capture_frame_linux", never)
+    with pytest.raises(RuntimeError, match="hold no frame"):
+        vision._capture_frame(device=0)
+
+
+def test_outside_the_dashboard_a_failed_snapshot_still_falls_back_to_the_device(monkeypatch):
+    monkeypatch.delitem(sys.modules, "docs.dashboard.camera_stream", raising=False)
+    monkeypatch.delitem(sys.modules, "camera_stream", raising=False)
+    monkeypatch.setattr(vision, "platform", types.SimpleNamespace(system=lambda: "Linux"))
+    monkeypatch.setattr(vision, "_capture_frame_dashboard", lambda **k: (_ for _ in ()).throw(OSError("dashboard down")))
+    monkeypatch.setattr(vision, "_capture_frame_linux", lambda device=0: Path("/tmp/raw.jpg"))
+    assert vision._capture_frame(device=0) == Path("/tmp/raw.jpg")
