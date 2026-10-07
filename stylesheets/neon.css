@@ -1,0 +1,429 @@
+/* neon docs, in the Strands design language (strands-labs/robots docs/stylesheets/extra.css): black or white surfaces, the Strands green, the pixel STRANDS wordmark, JetBrains Mono headings over Space Grotesk text, GitHub code colours. The first part mirrors extra.css; the neon section at the end restyles this site's own markup (hero, stat pills, terminal, tour, read badge) in the same tokens. */
+
+:root {
+  --sr-radius: 8px;
+  --sr-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sr-black: #000000;
+  --sr-charcoal-1: #28292a;
+  --sr-charcoal-2: #3d3c3c;
+  --md-code-font-family: var(--sr-mono);
+}
+
+/* Light: white page, black ink and outlines, the green deepened so it clears AA as text; GitHub Light code. */
+[data-md-color-scheme="paper"] {
+  /* Material sets these per scheme, which outranks :root; they must live here. */
+  --md-typeset-a-color: var(--sr-accent);
+  --md-accent-fg-color: var(--sr-accent);
+  --md-accent-fg-color--transparent: var(--sr-accent-soft);
+  --md-primary-fg-color: var(--md-default-bg-color);
+  --md-primary-bg-color: var(--sr-fg);
+  --sr-scheme: paper;
+  --sr-accent: #007a3d;
+  --sr-accent-bright: #02a435;
+  --sr-accent-soft: rgba(2, 164, 53, 0.12);
+  --sr-on-accent: #ffffff;
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: var(--sr-black);
+  --md-default-fg-color--light: var(--sr-charcoal-2);
+  --md-default-fg-color--lighter: #666464;
+  --md-default-fg-color--lightest: rgba(0, 0, 0, 0.15);
+  --md-code-bg-color: #f6f8fa;
+  --md-code-fg-color: #24292e;
+  --md-code-hl-color: rgba(2, 164, 53, 0.16);
+  --md-code-hl-keyword-color: #d73a49; --md-code-hl-operator-color: #d73a49; --md-code-hl-string-color: #032f62;
+  --md-code-hl-function-color: #6f42c1; --md-code-hl-number-color: #005cc5; --md-code-hl-constant-color: #005cc5;
+  --md-code-hl-special-color: #e36209; --md-code-hl-generic-color: #22863a; --md-code-hl-comment-color: #6a737d;
+  --md-code-hl-name-color: var(--md-code-fg-color); --md-code-hl-variable-color: var(--md-code-fg-color); --md-code-hl-punctuation-color: var(--md-code-fg-color);
+  --md-typeset-color: var(--sr-charcoal-2);
+  --md-typeset-kbd-color: #f4f4f4;
+  --md-admonition-bg-color: #ffffff;
+  --sr-fg: var(--sr-black);
+  --sr-hero-title: var(--sr-fg);
+  --sr-card-bg: #ffffff;
+  --sr-card-border: var(--sr-black);
+  --sr-muted: #767373;
+  --sr-chip-bg: #f4f4f4;
+  --sr-code-inline: #f4f4f4;
+  --sr-term-head: #eaeef2;
+  --sr-pill-bg: #ffffff;
+  --sr-pill-border: #999696;
+  --sr-dot: #9fd9b0;
+  --sr-surface-green: #e6f6e7;
+  --sr-viewer-bg: #f4f4f4;
+  --sr-grid-major: #b6b6b6;
+  /* Material renders mermaid fences itself; these tokens put the diagrams in ink on the page surface. */
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: #ffffff; --md-mermaid-node-fg-color: var(--sr-black);
+  --md-mermaid-edge-color: #666464;
+  --md-mermaid-label-bg-color: #ffffff; --md-mermaid-label-fg-color: var(--sr-black);
+  --md-mermaid-sequence-actor-bg-color: #ffffff; --md-mermaid-sequence-actor-border-color: var(--sr-black); --md-mermaid-sequence-actor-fg-color: var(--sr-black); --md-mermaid-sequence-actor-line-color: #666464;
+  --md-mermaid-sequence-actorman-bg-color: #ffffff; --md-mermaid-sequence-actorman-line-color: var(--sr-black);
+  --md-mermaid-sequence-message-line-color: var(--sr-black); --md-mermaid-sequence-message-fg-color: var(--sr-black);
+  --md-mermaid-sequence-note-bg-color: #f4f4f4; --md-mermaid-sequence-note-border-color: #666464; --md-mermaid-sequence-note-fg-color: var(--sr-black);
+  --md-mermaid-sequence-loop-bg-color: #ffffff; --md-mermaid-sequence-loop-border-color: #666464; --md-mermaid-sequence-loop-fg-color: var(--sr-black);
+  --md-mermaid-sequence-label-bg-color: #f4f4f4; --md-mermaid-sequence-label-fg-color: var(--sr-black);
+  --md-mermaid-sequence-number-bg-color: var(--sr-black); --md-mermaid-sequence-number-fg-color: #ffffff;
+  --md-mermaid-sequence-box-bg-color: #f4f4f4; --md-mermaid-sequence-box-fg-color: var(--sr-black);
+  --sr-grid-minor: #d9d9d9;
+}
+
+/* Dark: pure black chrome and page, white outlines, the full brand green; GitHub Dark code. */
+[data-md-color-scheme="slate"] {
+  /* Material sets these per scheme, which outranks :root; they must live here. */
+  --md-typeset-a-color: var(--sr-accent);
+  --md-accent-fg-color: var(--sr-accent);
+  --md-accent-fg-color--transparent: var(--sr-accent-soft);
+  --md-primary-fg-color: var(--md-default-bg-color);
+  --md-primary-bg-color: var(--sr-fg);
+  --sr-scheme: dark;
+  --sr-accent: #00cc60;
+  --sr-accent-bright: var(--sr-accent);
+  --sr-accent-soft: rgba(0, 204, 96, 0.14);
+  --sr-on-accent: var(--sr-black);
+  --md-default-bg-color: var(--sr-black);
+  --md-default-fg-color: #ffffff;
+  --md-default-fg-color--light: #b6b6b6;
+  --md-default-fg-color--lighter: #999696;
+  --md-default-fg-color--lightest: var(--sr-charcoal-1);
+  --md-code-bg-color: #24292e;
+  --md-code-fg-color: #e1e4e8;
+  --md-code-hl-color: rgba(0, 204, 96, 0.16);
+  --md-code-hl-keyword-color: #f97583; --md-code-hl-operator-color: #f97583; --md-code-hl-string-color: #9ecbff;
+  --md-code-hl-function-color: #b392f0; --md-code-hl-number-color: #79b8ff; --md-code-hl-constant-color: #79b8ff;
+  --md-code-hl-special-color: #ffab70; --md-code-hl-generic-color: #85e89d; --md-code-hl-comment-color: #8b949e; /* GitHub Dark comment grey lifted to 4.6:1 on #24292e */
+  --md-code-hl-name-color: var(--md-code-fg-color); --md-code-hl-variable-color: var(--md-code-fg-color); --md-code-hl-punctuation-color: var(--md-code-fg-color);
+  --md-typeset-color: #b6b6b6;
+  --md-typeset-kbd-color: var(--sr-charcoal-1);
+  --md-admonition-bg-color: var(--sr-black);
+  --sr-fg: #ffffff;
+  --sr-hero-title: var(--sr-accent);
+  --sr-card-bg: var(--sr-black);
+  --sr-card-border: #ffffff;
+  --sr-muted: #999696;
+  --sr-chip-bg: var(--sr-charcoal-1);
+  --sr-code-inline: var(--sr-charcoal-2);
+  --sr-term-head: #2f363d;
+  --sr-pill-bg: var(--sr-charcoal-1);
+  --sr-pill-border: var(--sr-charcoal-2);
+  --sr-dot: var(--sr-accent);
+  --sr-surface-green: color-mix(in srgb, var(--sr-accent) 74%, #000);
+  --sr-viewer-bg: #111213;
+  --sr-grid-major: #46505c;
+  /* Material renders mermaid fences itself; these tokens put the diagrams in ink on the page surface. */
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: var(--sr-black); --md-mermaid-node-fg-color: #ffffff;
+  --md-mermaid-edge-color: #999696;
+  --md-mermaid-label-bg-color: var(--sr-black); --md-mermaid-label-fg-color: #ffffff;
+  --md-mermaid-sequence-actor-bg-color: var(--sr-black); --md-mermaid-sequence-actor-border-color: #ffffff; --md-mermaid-sequence-actor-fg-color: #ffffff; --md-mermaid-sequence-actor-line-color: #999696;
+  --md-mermaid-sequence-actorman-bg-color: var(--sr-black); --md-mermaid-sequence-actorman-line-color: #ffffff;
+  --md-mermaid-sequence-message-line-color: #ffffff; --md-mermaid-sequence-message-fg-color: #ffffff;
+  --md-mermaid-sequence-note-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-note-border-color: #999696; --md-mermaid-sequence-note-fg-color: #ffffff;
+  --md-mermaid-sequence-loop-bg-color: var(--sr-black); --md-mermaid-sequence-loop-border-color: #999696; --md-mermaid-sequence-loop-fg-color: #ffffff;
+  --md-mermaid-sequence-label-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-label-fg-color: #ffffff;
+  --md-mermaid-sequence-number-bg-color: #ffffff; --md-mermaid-sequence-number-fg-color: var(--sr-black);
+  --md-mermaid-sequence-box-bg-color: var(--sr-charcoal-1); --md-mermaid-sequence-box-fg-color: #ffffff;
+  --sr-grid-minor: #303740;
+}
+
+/* Material's slate theme paints code and hl in its own tokens; keep them on our surfaces. */
+[data-md-color-scheme="slate"] .md-typeset .highlight, [data-md-color-scheme="slate"] .md-typeset pre > code { background: var(--md-code-bg-color); }
+.md-typeset .highlight span.filename { background: var(--sr-term-head); color: var(--md-code-fg-color); }
+
+/* Header: one row. Wordmark out to strandsagents.com, /robots home, the sections inline, then search, GitHub stars, Discord, theme. */
+.md-header { background: var(--md-default-bg-color); color: var(--sr-fg); box-shadow: none; border-bottom: 1px solid var(--md-default-fg-color--lightest); }
+.md-header__inner { height: 3.4rem; gap: 0.3rem; padding: 0 1.2rem; }
+/* Full width, as on strandsagents.com: the grid spans the window, the reading column keeps its measure. */
+.md-grid { max-width: none; }
+.md-main__inner { margin-top: 0; }
+.md-content__inner { padding-top: 1.6rem; }
+@media (min-width: 76.25em) {
+  .md-sidebar { top: 3.4rem; width: 14rem; }
+  .md-sidebar--primary { margin-left: 0.6rem; }
+  .md-content__inner > :not(.sr-pagehead), .sr-lede { max-width: 44rem; }
+  /* The home page hides both sidebars: its reading column is centred like strandsagents.com, not pinned to the left rule. */
+  .md-content:has(.hero) .md-content__inner > :not(.sr-pagehead) { margin-inline: auto; }
+  .md-content:has(.hero) .md-content__inner > .sr-wide { max-width: 58rem; }
+  /* Material wraps tables in a full-width scroll wrapper with its own max-width: keep it inside the centred column too. */
+  .md-content:has(.hero) .md-content__inner > .md-typeset__scrollwrap { max-width: 44rem; margin-inline: auto; }
+  }
+.sr-brand { display: flex; padding: 0.3rem 0.2rem; }
+.sr-wordmark svg { display: block; height: 1.15rem; width: auto; fill: var(--sr-accent); }
+.md-nav__button.md-logo .sr-wordmark svg { height: 0.9rem; }
+.sr-brand-project, .sr-project { font-family: var(--sr-mono); font-size: 0.85rem; font-weight: 600; color: var(--sr-fg); margin-left: 0.45rem; }
+.sr-nav { display: none; flex: 1; justify-content: center; gap: 1.8rem; list-style: none; margin: 0; padding: 0; }
+.sr-nav__link { font-family: var(--sr-mono); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em; color: var(--sr-fg); }
+.sr-nav__link:hover, .sr-nav__link--active { color: var(--sr-accent); }
+.md-search__form { height: 1.6rem; background-color: transparent; border: 1px solid var(--md-default-fg-color--lightest); border-radius: 999px; }
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form { border-radius: 0.6rem 0.6rem 0 0; background: var(--md-default-bg-color); }
+.md-search__input { font-size: 0.68rem; }
+.md-search__input::placeholder { color: var(--sr-muted); }
+.md-header__source { width: auto; margin-left: 0.6rem; }
+.md-source__repository { font-size: 0; max-width: none; }
+.md-source__facts { font-family: var(--sr-mono); font-size: 0.62rem; margin: 0; }
+.md-source__fact--version, .md-source__fact--forks { display: none; }
+.sr-menu { order: 99; margin-left: 0.2rem; }
+@media (min-width: 76.25em) {
+  .sr-nav { display: flex; }
+  .md-search__inner { width: 8rem; }
+  .sr-menu { display: none; }
+}
+@media (max-width: 76.234375em) { .sr-brand-project { display: none; } }
+@media (min-width: 60em) and (max-width: 76.234375em) { .md-search { margin-left: auto; } }
+@media (max-width: 59.984375em) { .md-header__button[for="__search"] { margin-left: auto; } }
+
+/* Sidebar: the section as /path in green mono and a search box on top, the current page on a green bar. */
+.md-nav { font-size: 0.7rem; }
+.sr-sidehead { display: none; }
+.md-nav--secondary .md-nav__title { color: var(--sr-fg); font-size: 0.8rem; }
+.md-nav--primary .md-nav__item--section > .md-nav__link, .md-nav--primary .md-nav__item--nested > .md-nav__link { font-weight: 500; }
+.md-nav--primary .md-nav__link--active { background: var(--sr-accent); color: var(--sr-on-accent); border-radius: 3px; padding: 0.15rem 0.4rem; margin-left: -0.4rem; font-weight: 500; }
+.md-nav--secondary .md-nav__link--active { color: var(--sr-accent); }
+@media (min-width: 76.25em) {
+  .sr-sidehead { display: block; padding: 0 0.6rem 0.8rem; }
+  .sr-sidehead__label { display: block; font-family: var(--sr-mono); font-size: 1.15rem; font-weight: 500; color: var(--sr-accent); margin-bottom: 0.7rem; }
+  .sr-sidehead__search { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; border: 1px solid var(--sr-pill-border); border-radius: 6px; color: var(--sr-muted); cursor: pointer; }
+  .sr-sidehead__search svg { width: 0.75rem; fill: currentColor; }
+  /* The lifted section's own title repeats the /path label above it. */
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link { display: none; }
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav > .md-nav__title { display: none; }
+  /* Full-height rules either side of the content column. */
+  .md-content { border-left: 1px solid var(--md-default-fg-color--lightest); border-right: 1px solid var(--md-default-fg-color--lightest); }
+  .md-content:has(.hero, .sr-404) { border: 0; }
+  .sr-pagehead { margin-inline: -1.2rem; padding-inline: 1.2rem; }
+}
+
+/* Type: mono headings; prose links green and underlined. */
+.md-typeset h1, .md-typeset h2, .md-typeset h3, .md-typeset h4 { font-family: var(--sr-mono); font-weight: 600; letter-spacing: 0.01em; color: var(--sr-fg); }
+.md-typeset h1 { font-size: 2.1em; line-height: 1.15; letter-spacing: 0.03em; margin-bottom: 0.4em; }
+.md-typeset h2 { font-size: 1.45em; margin-top: 2.2em; }
+.md-typeset :is(p, li, td, dd) > a:not(.sr-btn, .md-button) { text-decoration: underline; text-underline-offset: 0.18em; }
+.md-typeset a:hover { color: var(--sr-accent-bright); }
+.md-typeset code { border-radius: 3px; }
+.md-typeset :not(pre) > code { background: var(--sr-code-inline); }
+.md-typeset pre > code { border-radius: var(--sr-radius); }
+.md-typeset table:not([class]) { font-size: 0.72rem; border: 1px solid var(--md-default-fg-color--lightest); border-radius: var(--sr-radius); }
+.md-typeset table:not([class]) th { font-family: var(--sr-mono); font-weight: 600; color: var(--sr-fg); }
+.md-typeset .admonition, .md-typeset details { border-radius: var(--sr-radius); box-shadow: none; }
+/* Shell fences wear the terminal bar the harness docs give them. */
+.md-typeset :is(.language-bash, .language-sh, .language-shell, .language-console).highlight::before { content: "\2022\2022\2022"; display: block; margin-top: 1em; padding: 0.2rem 0.9rem; background: var(--sr-term-head); color: var(--sr-muted); letter-spacing: 0.15em; font-size: 0.7rem; border-radius: var(--sr-radius) var(--sr-radius) 0 0; }
+.md-typeset :is(.language-bash, .language-sh, .language-shell, .language-console).highlight > pre { margin-top: 0; }
+.md-typeset :is(.language-bash, .language-sh, .language-shell, .language-console).highlight > pre > code { border-radius: 0 0 var(--sr-radius) var(--sr-radius); }
+/* Content tabs: muted labels, the chosen one in ink over a green underline. */
+.md-typeset .tabbed-labels { --md-accent-fg-color: var(--sr-fg); box-shadow: 0 -1px var(--md-default-fg-color--lightest) inset; }
+.md-typeset .tabbed-labels > label { color: var(--sr-muted); font-weight: 500; }
+.js .md-typeset .tabbed-labels::before { background: var(--sr-accent); }
+
+/* Page head: lede and call to action under the title, then a rule across the column. */
+.sr-pagehead { border-bottom: 1px solid var(--md-default-fg-color--lightest); padding-bottom: 1.2rem; margin-bottom: 1.6rem; }
+.md-typeset .sr-lede { font-size: 0.95rem; color: var(--md-default-fg-color--light); margin: 0 0 1rem; }
+.sr-pagehead .sr-btn--primary { border-radius: 4px; background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-on-accent) !important; }
+.sr-prompt { display: flex; align-items: center; gap: 1rem; margin: 0 0 1.6rem; padding: 0.8rem 1rem; background: var(--sr-chip-bg); border: 1px solid var(--sr-pill-border); border-radius: var(--sr-radius); }
+.md-typeset .sr-prompt p { margin: 0; font-size: 0.72rem; }
+.sr-copy { font: inherit; font-family: var(--sr-mono); font-size: 0.62rem; padding: 0.3rem 0.8rem; border: 1px solid var(--sr-pill-border); border-radius: 999px; background: var(--sr-pill-bg); color: var(--sr-fg); white-space: nowrap; cursor: pointer; }
+.sr-copy:hover { border-color: var(--sr-accent); }
+
+/* End of page: an edit link, then outlined previous/next cards. */
+.md-typeset .sr-edit { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 3rem; color: var(--sr-muted); font-size: 0.7rem; }
+.sr-edit svg, .sr-pager__dir svg { width: 0.85rem; fill: currentColor; }
+.sr-pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin: 1rem 0 2rem; }
+.md-typeset .sr-pager__link { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.9rem 1.1rem; border: 1px solid var(--md-default-fg-color--lighter); border-radius: 6px; color: var(--sr-fg); }
+.md-typeset .sr-pager__link:hover { border-color: var(--sr-accent); color: var(--sr-fg); }
+.sr-pager__link--next { grid-column: 2; align-items: flex-end; text-align: right; }
+.sr-pager__dir { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.65rem; color: var(--sr-muted); }
+.sr-pager__title { font-size: 1.05rem; }
+
+/* Cards: outlined boxes on the page surface; the outline turns green on hover. */
+.sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.sr-card { position: relative; background: var(--sr-card-bg); border: 1px solid var(--sr-card-border); border-radius: var(--sr-radius); padding: 1.1rem 1.2rem; transition: border-color 120ms ease; }
+.sr-card:hover { border-color: var(--sr-accent); }
+.sr-card h3 { margin: 0 0 0.5rem; font-size: 1.1em; }
+.sr-card h3 a { color: var(--sr-accent); }
+.sr-card h3 a::before { content: "/"; }
+.sr-card h3 a::after { content: ""; position: absolute; inset: 0; }
+.sr-card p { margin: 0; color: var(--md-default-fg-color--light); font-size: 0.76rem; line-height: 1.55; }
+
+/* Chips are the homepage's outlined pills: the colour is the outline and the text, never a fill. */
+.sr-chip { font-size: 0.58rem; line-height: 1; padding: 0.22rem 0.45rem; border-radius: 999px; border: 1px solid var(--sr-pill-border); color: var(--md-default-fg-color--light); letter-spacing: 0.02em; }
+.sr-chip-sim { border-color: var(--sr-accent); color: var(--sr-accent); }
+.sr-chip-real { border-color: #946e00; color: #946e00; }
+[data-md-color-scheme="slate"] .sr-chip-real { border-color: #f6bc00; color: #f6bc00; }
+
+/* 404, as on strandsagents.com. */
+.md-typeset .sr-404 h1 { font-size: 3.4rem; margin: 2rem 0 0.8rem; }
+.md-typeset .sr-404 p { font-size: 0.95rem; color: var(--md-default-fg-color--light); }
+
+/* Images lazy and bounded */
+.md-typeset img { max-width: 100%; border-radius: var(--sr-radius); }
+
+/* Phones, tablets and touch. Grid tracks are minmax(0, 1fr) so a long fence line cannot widen the page; identifiers in generated tables never break mid-word (the table scrolls in Material's wrapper instead). */
+.md-typeset .md-typeset__scrollwrap { max-width: 100%; }
+.md-typeset table:not([class]) td > code:only-child { white-space: nowrap; word-break: normal; }
+@media (max-width: 60em) {
+  /* A floor keeps the prose column from collapsing to its longest word once the identifier columns take their width. */
+  .md-typeset table:not([class]):has(th:nth-child(3)) :is(th, td) { min-width: 4rem; }
+  .md-typeset table:not([class]):has(th:nth-child(3)) :is(th, td):last-child { min-width: 18rem; }
+}
+@media (min-width: 40.0625em) and (max-width: 60em) { .sr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40em) {
+  .sr-grid, .sr-pager { grid-template-columns: minmax(0, 1fr); }
+  .sr-pager__link--next { grid-column: 1; }
+  .sr-grid { gap: 0.8rem; }
+  .sr-prompt { flex-direction: column; align-items: flex-start; }
+  .md-typeset h1 { font-size: 1.7em; overflow-wrap: anywhere; }
+  .md-typeset h2 { font-size: 1.3em; margin-top: 1.8em; }
+}
+@media (pointer: coarse) {
+  .sr-btn, .md-typeset .md-button { min-height: 44px; }
+}
+
+/* Motion: arrival, state and causality only, on one scale (120 / 300 ms). Instant navigation swaps the content column,
+   which fades in; the proof numbers count up once; a copied pill says so; the "On this page" bar travels; the page
+   head's rule draws in. The reduced-motion block at the end turns every one of these into its end state. */
+.md-content__inner.sr-enter { animation: sr-enter 220ms ease-out both; }
+@keyframes sr-enter { from { opacity: 0; transform: translateY(6px); } }
+.md-typeset a { transition: color 150ms ease, text-decoration-color 150ms ease; }
+.sr-pagehead { border-bottom: 0; position: relative; }
+.sr-pagehead::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--md-default-fg-color--lightest); transform-origin: left; animation: sr-rule 300ms ease-out both; }
+@keyframes sr-rule { from { transform: scaleX(0); } }
+.stat-pill strong { font-variant-numeric: tabular-nums; }
+.sr-copy { transition: border-color 120ms ease, color 120ms ease; }
+.sr-copy.is-copied { border-color: var(--sr-accent); color: var(--sr-accent); }
+.md-nav--secondary { position: relative; }
+.md-nav--secondary::before { content: ""; position: absolute; left: 0; width: 2px; border-radius: 2px; background: var(--sr-accent); top: var(--sr-toc-y, 0); height: var(--sr-toc-h, 0); transition: top 200ms ease, height 200ms ease; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 250ms; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+}
+
+/* ============================================================================
+   neon: this site's own markup, in the tokens above. Nothing below adds a colour: ink, the greys, the green, and the warn amber for the one warning use.
+   ============================================================================ */
+[data-md-color-scheme="paper"], [data-md-color-scheme="slate"] { --muted: var(--sr-muted); --sr-warn: #946e00; }
+[data-md-color-scheme="slate"] { --sr-warn: #f6bc00; }
+.md-tabs { display: none; }
+:focus-visible { outline: 2px solid var(--sr-accent); outline-offset: 2px; }
+.md-typeset .md-button { font-family: var(--sr-mono); font-weight: 600; font-size: 0.74rem; border-radius: 999px; padding: 0.5rem 1.1rem; border: 1px solid var(--sr-pill-border); background: var(--sr-pill-bg); color: var(--sr-fg); transition: border-color 120ms ease; }
+.md-typeset .md-button:hover { border-color: var(--sr-accent); color: var(--sr-fg); background: var(--sr-pill-bg); }
+.md-typeset .md-button--primary { background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-on-accent); }
+.md-typeset .md-button--primary:hover { background: var(--sr-accent-bright); border-color: var(--sr-accent-bright); color: var(--sr-on-accent); }
+.md-typeset .md-button .twemoji { color: inherit; }
+
+/* Hero: the mark over a mono name and tagline, pill buttons, outlined stat pills on the page surface. */
+.hero { text-align: center; padding: 2.4rem 0 1rem; }
+.md-typeset .hero .logo { display: block; width: 4.4rem; height: 4.4rem; margin: 0 auto 1rem; border: 0; border-radius: 0; }
+.md-content:has(.hero) .md-content__inner > h1:first-of-type, .sr-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.md-typeset .hero .hero-title { font-family: var(--sr-mono); font-size: 2.6rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1; color: var(--sr-hero-title); margin: 0 0 0.8rem; }
+.md-typeset .hero .tagline { font-family: var(--sr-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--md-default-fg-color--light); margin: 0 0 1.6rem; }
+.hero .buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.6rem; }
+.md-typeset .hero .buttons .md-button { margin: 0; min-width: 9.5rem; }
+.stat-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 0 1.2rem; }
+.md-typeset .stat-pill { display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--sr-mono); font-size: 0.66rem; line-height: 1; padding: 0.4rem 0.7rem; border: 1px solid var(--sr-pill-border); border-radius: 999px; background: var(--sr-pill-bg); color: var(--md-default-fg-color--light); }
+.md-typeset .stat-pill strong { color: var(--sr-fg); font-weight: 600; }
+.dot, .neon-dot { display: inline-block; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--sr-accent); vertical-align: middle; animation: neon-pulse 2.4s ease-in-out infinite; }
+@keyframes neon-pulse { 50% { opacity: 0.35; } }
+
+/* Terminal and typing demo: the GitHub code surface with the terminal bar shell fences wear. */
+.md-typeset .terminal, .md-typeset .type-demo { position: relative; font-family: var(--sr-mono); font-size: 0.72rem; line-height: 1.7; margin: 1.2rem 0; padding: 2rem 1rem 0.9rem; background: var(--md-code-bg-color); color: var(--md-code-fg-color); border: 1px solid var(--md-default-fg-color--lightest); border-radius: var(--sr-radius); overflow-x: auto; }
+.md-typeset .terminal::before, .md-typeset .type-demo::before { content: "\2022\2022\2022"; position: absolute; top: 0; left: 0; right: 0; padding: 0.2rem 0.9rem; background: var(--sr-term-head); color: var(--sr-muted); letter-spacing: 0.15em; font-size: 0.7rem; line-height: 1.2; }
+.md-typeset .type-demo { max-width: 44rem; margin-inline: auto; white-space: pre-wrap; }
+.md-typeset .terminal p { margin: 0; }
+.md-typeset .type-demo .line { display: block; }
+.md-typeset .terminal .p, .md-typeset .type-demo .prompt { color: var(--sr-accent); font-weight: 600; }
+.md-typeset .type-demo .out { color: var(--md-default-fg-color--light); }
+.md-typeset .terminal .ok, .md-typeset .type-demo .ok { color: var(--sr-accent); }
+.md-typeset .type-demo .cur { display: inline-block; width: 0.5em; height: 1em; margin-left: 0.15em; vertical-align: text-bottom; background: var(--sr-accent); animation: neon-blink 1s steps(1) infinite; }
+@keyframes neon-blink { 50% { opacity: 0; } }
+
+/* The 3-minute tour: outlined steps, the number in mono green. */
+.tour { margin: 2rem 0; }
+.md-typeset .tour h2 { margin-top: 0; }
+.md-typeset .tour-step { position: relative; padding: 1rem 1.2rem 1rem 3.2rem; margin: 0.8rem 0; border: 1px solid var(--sr-card-border); border-radius: var(--sr-radius); background: var(--sr-card-bg); transition: border-color 120ms ease; }
+.md-typeset .tour-step:hover { border-color: var(--sr-accent); }
+.md-typeset .tour-step p { margin: 0; }
+.md-typeset .tour-num { position: absolute; left: 1rem; top: 1rem; font-family: var(--sr-mono); font-size: 0.8rem; font-weight: 600; color: var(--sr-accent); }
+.md-typeset .tour-num::before { content: "/"; }
+
+/* Read badge: a mono chip at the top of every page. */
+.md-typeset .sr-pagehead .read-badge { margin: 0; }
+.md-typeset .sr-pagehead p { margin: 0; }
+.md-typeset .read-badge { display: inline-block; font-family: var(--sr-mono); font-size: 0.62rem; line-height: 1; letter-spacing: 0.04em; padding: 0.3rem 0.6rem; border: 1px solid var(--sr-pill-border); border-radius: 999px; color: var(--md-default-fg-color--light); background: var(--sr-pill-bg); margin: 0 0 1rem; }
+
+/* Material grid cards and the motion legend in the outlined-card look. */
+.md-typeset .grid.cards > ul > li, .md-typeset .grid > .card { border: 1px solid var(--sr-card-border); border-radius: var(--sr-radius); background: var(--sr-card-bg); box-shadow: none; transition: border-color 120ms ease; }
+.md-typeset .grid.cards > ul > li:hover, .md-typeset .grid > .card:hover { border-color: var(--sr-accent); box-shadow: none; }
+.md-typeset .grid.cards > ul > li > hr { border-color: var(--md-default-fg-color--lightest); }
+.md-typeset .grid.cards .lg { color: var(--sr-accent); }
+.md-typeset .motion-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; font-family: var(--sr-mono); font-size: 0.66rem; color: var(--md-default-fg-color--light); margin: 0.6rem 0 1rem; }
+.md-typeset .motion-legend .dot { animation: none; }
+/* Safety classes: a dot before the heading and in legends. safe = green, motion = amber, danger = ink. */
+.md-typeset .dot.safe { background: var(--sr-accent); animation: none; }
+.md-typeset .dot.motion { background: var(--sr-warn); animation: none; }
+.md-typeset .dot.danger { background: var(--sr-fg); animation: none; }
+.md-typeset :is(h2, h3).safe::before, .md-typeset :is(h2, h3).motion::before, .md-typeset :is(h2, h3).danger::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; border-radius: 50%; margin-right: 0.45em; vertical-align: middle; background: var(--sr-accent); }
+.md-typeset :is(h2, h3).motion::before { background: var(--sr-warn); }
+.md-typeset :is(h2, h3).danger::before { background: var(--sr-fg); }
+
+/* Admonitions flat and outlined; the accent is the green except for warnings, which take the amber. */
+/* [class] lifts these to the specificity of Material's per-type rules (.admonition.note, .note > .admonition-title), so every type reads the same. */
+.md-typeset :is(.admonition, details)[class] { border: 1px solid var(--md-default-fg-color--lightest); border-left: 3px solid var(--sr-accent); font-size: 0.72rem; }
+.md-typeset [class] > :is(.admonition-title, summary) { background: var(--sr-chip-bg); font-family: var(--sr-mono); font-weight: 600; }
+.md-typeset [class] > :is(.admonition-title, summary)::before, .md-typeset [class] > summary::after { background-color: var(--sr-accent); }
+.md-typeset :is(.admonition, details):is(.warning, .danger, .failure, .bug, .caution, .attention)[class] { border-left-color: var(--sr-warn); }
+.md-typeset :is(.warning, .danger, .failure, .bug, .caution, .attention)[class] > :is(.admonition-title, summary)::before { background-color: var(--sr-warn); }
+
+/* Media, mermaid, tables, misc chrome. */
+.md-typeset img, .md-typeset video { border: 1px solid var(--md-default-fg-color--lightest); border-radius: var(--sr-radius); }
+.md-typeset .twemoji img, .md-typeset img.twemoji, .md-typeset .md-button img { border: 0; }
+.md-typeset .mermaid { display: flex; justify-content: center; margin: 1.2rem 0; padding: 1rem 0.5rem; border: 1px solid var(--md-default-fg-color--lightest); border-radius: var(--sr-radius); background: var(--md-default-bg-color); overflow-x: auto; }
+.md-typeset .mermaid svg { max-width: 100%; height: auto; }
+.md-typeset table:not([class]) td, .md-typeset table:not([class]) th { border-color: var(--md-default-fg-color--lightest); }
+.md-typeset .tasklist-control .task-list-indicator { background-color: var(--sr-accent); }
+.md-typeset mark { background: var(--sr-accent-soft); color: inherit; }
+.md-typeset kbd { font-family: var(--sr-mono); box-shadow: none; border: 1px solid var(--sr-pill-border); }
+.md-typeset blockquote { border-left: 3px solid var(--sr-accent); color: var(--md-default-fg-color--light); }
+.md-top { background: var(--sr-pill-bg); color: var(--sr-fg); border: 1px solid var(--sr-pill-border); box-shadow: none; }
+.md-top:hover { background: var(--sr-accent); color: var(--sr-on-accent); }
+.md-footer, .md-footer-meta { background: var(--md-default-bg-color); color: var(--sr-fg); border-top: 1px solid var(--md-default-fg-color--lightest); }
+.md-footer-meta .md-copyright, .md-footer-meta .md-copyright__highlight { font-family: var(--sr-mono); font-size: 0.6rem; color: var(--sr-muted); }
+.md-footer-meta .md-social__link { color: var(--sr-fg); }
+.md-banner { background: var(--sr-chip-bg); color: var(--sr-fg); }
+.md-clipboard { color: var(--sr-muted); }
+.md-clipboard:hover { color: var(--sr-accent); }
+.md-search-result .md-typeset mark, .md-search-result__link:focus, .md-search-result__link:hover { background: var(--sr-accent-soft); }
+.md-typeset .headerlink { color: var(--sr-muted); }
+.md-typeset .headerlink:hover, .md-typeset :target > .headerlink { color: var(--sr-accent); }
+.md-typeset .sr-404 { text-align: center; padding: 2rem 0; }
+.md-typeset .sr-404 .buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.6rem; }
+@media (max-width: 40em) {
+  .md-typeset .hero .hero-title { font-size: 2rem; }
+  .md-typeset .hero .buttons .md-button { flex: 1 1 0; min-width: 0; }
+  .md-typeset .terminal, .md-typeset .type-demo { font-size: 0.66rem; }
+}
+
+/* Dashboard screenshots: bordered frames on the viewer surface, mono captions, side by side when the column allows. */
+.md-typeset figure.shot { margin: 1.4rem 0; }
+.md-typeset figure.shot img { display: block; width: 100%; background: var(--sr-viewer-bg); }
+.md-typeset figure.shot figcaption { max-width: none; margin: 0.5rem 0 0; font-family: var(--sr-mono); font-size: 0.66rem; letter-spacing: 0.04em; color: var(--sr-muted); text-align: center; }
+.md-typeset .shot-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+.md-typeset .shot-row figure.shot { margin: 0; }
+.md-typeset .shot-row figure.shot img { height: auto; }
+
+/* Key/value tables (the home "at a glance"): fill the column, keys in mono, no empty header row. */
+.md-typeset .md-typeset__scrollwrap > .md-typeset__table { display: block; }
+.md-typeset .md-typeset__table > table:not([class]) { display: table; width: 100%; }
+.md-typeset table:not([class]) thead tr:not(:has(th:not(:empty))) { display: none; }
+.md-typeset table:not([class]) td:first-child > strong:only-child { font-family: var(--sr-mono); font-weight: 600; font-size: 0.68rem; letter-spacing: 0.04em; color: var(--sr-fg); }
+
+/* Mermaid fences (javascripts/mermaid.js): ink on the page surface, 8px corners, 1px strokes, dashed clusters, filled arrow heads. */
+.md-typeset .sr-mermaid { margin: 1.5rem auto; text-align: center; }
+.md-typeset .sr-mermaid svg { max-width: 100%; height: auto; font-family: var(--sr-mono); }
+.md-typeset .sr-mermaid svg :is(.node rect, .node polygon, .node path, .actor, rect.actor, .state-group rect, .statediagram-state rect, .note, .labelBox, .loopLine, .activation0, .activation1) { rx: 8px; ry: 8px; stroke-width: 1px !important; filter: none; }
+.md-typeset .sr-mermaid svg :is(.cluster rect, .cluster-label rect) { stroke: var(--sr-muted) !important; stroke-dasharray: 4 4; fill: var(--md-default-bg-color) !important; rx: 8px; ry: 8px; }
+.md-typeset .sr-mermaid svg :is(.edgePath path, .messageLine0, .messageLine1, .transition, .actor-line) { stroke-width: 1.5px !important; }
+.md-typeset .sr-mermaid svg :is(marker path, .arrowheadPath, .marker) { fill: var(--sr-fg) !important; stroke: var(--sr-fg) !important; }
+.md-typeset .sr-mermaid svg .messageLine1 { stroke-dasharray: 3 5; }
+.md-typeset .sr-mermaid svg .edgeLabel rect { fill: var(--md-default-bg-color); stroke: none; }
+.md-typeset .sr-mermaid svg .cluster-label text, .md-typeset .sr-mermaid svg .nodeLabel, .md-typeset .sr-mermaid svg .edgeLabel { font-family: var(--sr-mono); }
+.md-typeset .sr-mermaid[data-rendered="error"] { font-family: var(--sr-mono); font-size: 0.7rem; color: var(--sr-warn); border: 1px solid var(--sr-warn); border-radius: var(--sr-radius); padding: 0.8rem; }
+.md-typeset pre.sr-diagram { visibility: hidden; min-height: 2rem; }
