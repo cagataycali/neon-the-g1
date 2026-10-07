@@ -130,8 +130,6 @@ The tools every persona carries besides the robot ones (`G1_LOOKOUT_TOOLS`).
 | `voice_control(action, minutes, level)` | the agent on its own voice: mute, snooze, unmute, status, speaker volume |
 | `take_photo(question, hires)` | a frame from the dashboard camera into the model (audio reply in voice, image block elsewhere) |
 | `telegram(action, chat_id, text)` | send messages and photos to the owner's chat |
-| `dispatch(prompt, mode, tools)` | a background sub-agent that reports back through `voice_say` |
-| `phone(action, ...)` | an ADB-connected Android phone on the robot's back: status, unlock, open, screenshot, tap, swipe; the unlock PIN comes from `PHONE_PIN` and is never spoken or written |
 | `prompts` | read, override and reset a persona's own system prompt |
 | `manage_messages` / `manage_tools` | compact own history / load extra tools at runtime |
 | `make` | run a Makefile target from inside the agent |
@@ -144,8 +142,10 @@ so each call lands as a `tool` row in `agent_log`.
 
 | persona | list | contents |
 |---|---|---|
-| voice, REPL, dashboard chat | `build_voice_tools` | 12 cross-persona + 14 robot tools (state 2, posture 2, arm 3, locomotion 4, audio 2, `use_camera`) + Spotify, plus ADB when installed; small on purpose for realtime latency |
-| telegram, thinker | `build_tools` | 13 cross-persona + `telegram` + all {{facts:all_tools}} robot tools + GitHub / Spotify / ADB when installed |
+| voice, REPL, dashboard chat | `build_voice_tools` | 9 cross-persona + 14 robot tools (state 2, posture 2, arm 3, locomotion 4, audio 2, `use_camera`); small on purpose for realtime latency |
+| telegram, thinker | `build_tools` | 10 cross-persona + `telegram` + all {{facts:all_tools}} robot tools + GitHub when installed |
+
+Not carried any more (since 2026-10-07): `shell`, `dispatch`, `phone` / ADB and `use_spotify`. The modules are still in `tools/` and `manage_tools` can load one for a session when a person asks.
 | `neon-mcp --safe` | `G1_SAFE_TOOLS` | {{facts:safe_tools}} robot tools, no walking, no `kimodo` |
 
 Need lidar, SLAM or DDS by voice? The prompt says so: load them on demand with

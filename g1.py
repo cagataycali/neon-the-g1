@@ -24,7 +24,7 @@ MODEL_ID = os.getenv("NEON_MODEL_ID", "global.anthropic.claude-opus-4-8")
 NETWORK_INTERFACE = os.getenv("G1_NETWORK_INTERFACE", "eth0")
 
 from strands import Agent
-from strands_tools import shell, environment, image_reader
+from strands_tools import environment, image_reader
 
 # G1 robot toolset (FSM-safe wrappers)
 from tools import G1_ALL_TOOLS
@@ -34,11 +34,9 @@ from tools.memory import memory
 from tools.agent_log import format_for_prompt as _agent_log_block
 from tools.voice_bridge import voice_say
 from tools.telegram import telegram, format_history_for_prompt
-from tools.dispatch import dispatch
 from tools.manage_messages import manage_messages
 from tools.manage_tools import manage_tools as manage_tools_tool
 from tools.make import make
-from tools.phone import phone
 from tools.voice_control import voice_control
 from tools.prompts import prompts, get_override as _prompt_override
 from tools.vision import take_photo  # bidi-aware (OpenAI patch applied at import)
@@ -52,11 +50,11 @@ def _try_import(modpath: str, name: str):
         return None
 
 use_github   = _try_import("devduck.tools.use_github",   "use_github")
-# Prefer local tools/use_spotify.py; fall back to devduck's copy
-use_spotify  = _try_import("tools.use_spotify",          "use_spotify") \
-            or _try_import("devduck.tools.use_spotify",  "use_spotify")
-adb_tool     = _try_import("strands_adb",                "adb")        # 📱 Android control
-adb_recorder = _try_import("strands_adb",                "recorder")   # 📱 screen recorder
+
+# Removed on purpose (owner, 2026-10-07): shell (arbitrary commands on the
+# robot), dispatch (sub-agents), phone + strands-adb (the Pixel on the back),
+# use_spotify. NEON is a robot, not a terminal or a jukebox; manage_tools can
+# still load any of them for one session if a human asks.
 
 
 # canonical tool list
@@ -69,16 +67,16 @@ def build_tools(include_telegram: bool = True, include_robot: bool = True,
     NEON_PERSONA env var, else "shell").
     """
     t = [
-        memory, shell, environment, image_reader,
+        memory, environment, image_reader,
         prompts, manage_messages, manage_tools_tool, make,
-        voice_say, take_photo, dispatch, phone, voice_control,
+        voice_say, take_photo, voice_control,
     ]
     if include_telegram:
         t.append(telegram)
     if include_robot:
         t.extend(G1_ALL_TOOLS)
     # devduck-provided extras (only if importable)
-    for extra in (use_github, use_spotify, adb_tool, adb_recorder):
+    for extra in (use_github,):
         if extra is not None:
             t.append(extra)
     return _logged(t, persona)
@@ -119,8 +117,8 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
 
     tools = [
         # Cross-persona infrastructure (always-on)
-        memory, shell, prompts, manage_messages, manage_tools_tool, make,
-        voice_say, take_photo, dispatch, telegram, phone, voice_control,
+        memory, prompts, manage_messages, manage_tools_tool, make,
+        voice_say, take_photo, telegram, voice_control,
         # State
         g1_get_state, g1_read_lowstate,
         # Posture
@@ -133,15 +131,7 @@ def build_voice_tools(persona: Optional[str] = None) -> list:
         g1_speak, g1_play_wav,
         # Vision
         use_camera,
-        # Music
-        use_spotify,
     ]
-    # 📱 Android control (strands-adb).
-    # Optional deps: only append if importable.
-    if adb_tool is not None:
-        tools.append(adb_tool)
-    if adb_recorder is not None:
-        tools.append(adb_recorder)
     return _logged(tools, persona)
 
 
@@ -241,9 +231,6 @@ never say you moved unless the tool result says moved=true.
 - Use tools silently and only summarize results out loud in plain prose
 - For long lists, pick the top 1–3 items and read those
 
-- 📱 You can control a Pixel 10 Pro phone on the robot's back via `adb()`
-  and `recorder()`. Use it for rear vision, music, messages, web lookups.
-  Don't announce this aloud unless asked — just use it silently when needed.
 ## Gesture playbook (call simultaneously, not before/after speaking)
 - Greeting "hi"/"hello"            → g1_arm_action(action_id=26)  # high wave
 - Goodbye "see you"/"bye"          → g1_arm_action(action_id=25)  # face wave
@@ -521,7 +508,7 @@ def build_shell_agent() -> Agent:
     """REPL/shell agent: slim latency-tuned toolset + live-state header.
 
     This is what `agent.py` runs. Same slim tool list as the voice persona
-    (plus use_spotify) so the REPL and voice behave identically. The caller
+    so the REPL and voice behave identically. The caller
     refreshes ``agent.system_prompt = _shell_prompt()`` each turn to re-inject
     live state.
     """

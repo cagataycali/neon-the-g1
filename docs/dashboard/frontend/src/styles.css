@@ -281,7 +281,8 @@ select.gate-input { appearance: none; -webkit-appearance: none; background-image
 
 /* agent dock: floating message stream + fixed composer */
 .agent-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; pointer-events: none }
-.msg-stream { position: absolute; bottom: calc(74px + var(--safe-bot)); left: 50%; transform: translateX(-50%); width: min(680px, 94vw); max-height: 52vh; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 0 4px }
+.msg-stream { position: absolute; bottom: calc(74px + var(--safe-bot)); left: 50%; transform: translateX(-50%); width: min(680px, 94vw); max-height: 52vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; pointer-events: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 4px; scrollbar-width: thin }
+.msg-stream::-webkit-scrollbar { width: 6px } .msg-stream::-webkit-scrollbar-thumb { background: var(--sr-pill-border); border-radius: 3px }
 .fmsg { pointer-events: auto; max-width: 88%; padding: 10px 14px; border-radius: var(--sr-radius); background: var(--sr-card-bg); border: 1px solid var(--sr-card-border) }
 .fmsg.user { align-self: flex-end; background: var(--sr-accent); color: var(--sr-on-accent); border-color: var(--sr-accent) }
 .fmsg.assistant { align-self: flex-start }

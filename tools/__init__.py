@@ -11,7 +11,7 @@ Organizing principle (post-2026-05-13 cleanup):
       * Escape hatches           (g1_dds, use_unitree)
 
     from tools import G1_ALL_TOOLS
-    agent = Agent(tools=[*G1_ALL_TOOLS, shell, ...])
+    agent = Agent(tools=[*G1_ALL_TOOLS, ...])
 """
 # Composed / FSM-safe robot control tools
 from .g1_state import g1_get_state, g1_read_lowstate, g1_list_fsm_states
@@ -156,7 +156,6 @@ from .voice_bridge import (
     flush_stale as voice_bridge_flush_stale,
     stats as voice_bridge_stats,
 )
-from .dispatch import dispatch
 from .telegram import (
     telegram,
     record_message as telegram_record_message,
@@ -169,12 +168,12 @@ from .prompts import prompts
 from .manage_messages import manage_messages
 from .manage_tools import manage_tools
 from .make import make
-from .phone import phone
 from .voice_control import voice_control
 
-# Curated bundle for callers
+# Curated bundle for callers. dispatch and phone are no longer part of it
+# (owner, 2026-10-07); the modules stay importable for manage_tools.
 G1_LOOKOUT_TOOLS = [
-    memory, voice_say, dispatch, telegram, take_photo,
-    prompts, manage_messages, manage_tools, make, kimodo, phone, voice_control,
+    memory, voice_say, telegram, take_photo,
+    prompts, manage_messages, manage_tools, make, kimodo, voice_control,
 ]
 

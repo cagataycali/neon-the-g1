@@ -18,8 +18,8 @@ Architectural note (vs the original g1_speak.py):
   the voice persona couldn't actually DO anything (no robot control, no
   memory, no telegram, nothing).
 - The NEW g1_speak delegates to `g1.build_voice_agent()` which wires in
-  G1_ALL_TOOLS + telegram + memory + voice_say + take_photo + dispatch +
-  use_github + use_spotify. The voice persona is a FULL participant.
+  G1_ALL_TOOLS + telegram + memory + voice_say + take_photo.
+  The voice persona is a FULL participant.
 - It also adds the briefing channel (telegram → bidi mid-conversation)
   and the log channel (transcripts → unified agent_log).
 """
@@ -170,8 +170,8 @@ def g1_speak(
     The bidi voice agent uses: Brio mic → AEC → bidi model → G1 chest speaker (DDS).
 
     It has the FULL G1 toolset wired in (FSM-gated robot control, telegram,
-    memory, take_photo with bidi image injection, voice_say, dispatch,
-    use_github, use_spotify, etc.). The voice persona is a full participant
+    memory, take_photo with bidi image injection, voice_say, etc.).
+    The voice persona is a full participant
     in the cross-persona log + briefing system.
 
     Args:
