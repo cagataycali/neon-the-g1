@@ -168,11 +168,11 @@ def scan(rescan=True):
     return parse_scan(out, hide=(AP_SSID,))
 
 
-def save_network(ssid, psk):
-    """Create/refresh a client profile named after the SSID. Returns the profile name."""
-    name = ssid
-    existing = {k["name"] for k in known_networks()}
-    if name not in existing:
+def save_network(ssid, psk, is_open=False):
+    """Create/refresh a client profile. Blank psk on a saved network keeps its password."""
+    by_ssid = {k["ssid"]: k["name"] for k in known_networks()}
+    name = by_ssid.get(ssid, ssid)
+    if name not in by_ssid.values():
         rc, _, err = nmcli("con", "add", "type", "wifi", "ifname", IFACE,
                            "con-name", name, "ssid", ssid)
         if rc != 0:
@@ -184,7 +184,7 @@ def save_network(ssid, psk):
     rc, _, err = nmcli("con", "modify", name, *mods)
     if rc != 0:
         raise RuntimeError(err.strip() or "could not save the profile")
-    if not psk:  # open network: drop any old security block
+    if not psk and is_open:  # open network: drop any old security block
         nmcli("con", "modify", name, "remove", "802-11-wireless-security")
     return name
 
@@ -335,7 +335,9 @@ class Wifi:
         with self.lock:
             self.busy = "connecting to %s" % ssid
             try:
-                name = save_network(ssid, psk)
+                is_open = any(n["ssid"] == ssid and n["security"] == "open"
+                              for n in self.networks)
+                name = save_network(ssid, psk, is_open)
                 nmcli("con", "modify", name, "connection.autoconnect-priority",
                       str(SAVED_PRIORITY))
                 time.sleep(2)  # let the reply reach the phone
