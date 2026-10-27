@@ -1,0 +1,21 @@
+[Unit]
+Description=NEON Wi-Fi — saved networks first (neon_net built in), NEON setup hotspot when offline
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+Environment=NEON_WIFI_IFACE=wlan0
+Environment=NEON_HOME_SSID=neon_net
+Environment=NEON_HOME_PSK=cagatay4321
+Environment=NEON_AP_SSID=NEON
+Environment=NEON_AP_PSK=cagatay4321
+Environment=NEON_PORTAL_PORT=8099
+Environment=NEON_GRACE_S=60
+Environment=NEON_RETRY_S=180
+ExecStart=/usr/bin/python3 /home/unitree/neon-the-g1/scripts/neon_wifi.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

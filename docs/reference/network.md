@@ -58,11 +58,32 @@ Change the factory password on first login.
 
 `make wifi` (interactive) or `make wifi SSID=x PASS=y`; `make wifi-status`,
 `make wifi-scan`; the dashboard Configuration drawer has the same picker. The
-hostname `ubuntu.local` follows the robot across networks. When `wlan0` loses
-every known network the `neon-wifi-watchdog.timer` (every minute) connects the
-low-priority fallback profile `neon_net`: create a hotspot with that name on
-your phone and the robot comes back reachable. `scripts/change-ip.txt` has the
-manual `nmcli` steps.
+hostname `ubuntu.local` follows the robot across networks.
+
+`neon-wifi.service` (`scripts/neon_wifi.py`, system unit) keeps it online with
+no laptop:
+
+1. **Saved networks first.** Every Wi-Fi profile NetworkManager has saved is
+   tried, highest priority then strongest signal. `neon_net` / `cagatay4321`
+   is always kept, so a phone hotspot with that name brings NEON online.
+2. **No internet for 60 s → the `NEON` hotspot** (password `cagatay4321`).
+   Join it from a phone: the captive sheet opens the picker (or open
+   `http://10.42.0.1`). Tap a network, type its password, Join. NEON saves it
+   (priority 50) and switches; if it can't join, the hotspot comes back within
+   a minute with the reason on the page. *Scan again* drops the hotspot ~15 s
+   (one radio can't scan and host at once).
+3. With no phone on the hotspot, every 3 minutes it retries the saved networks.
+
+```bash
+sudo cp scripts/systemd/neon-wifi.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now neon-wifi
+journalctl -u neon-wifi -f
+```
+
+The portal listens on `:8099` and answers hotspot clients only (`10.42.0.x`);
+port 80 belongs to Unitree's upgrade server, so hotspot traffic to 80 is
+redirected while the hotspot is up. `scripts/change-ip.txt` has the manual
+`nmcli` steps.
 
 ### mac ethernet setup (dev)
 

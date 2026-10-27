@@ -11,7 +11,7 @@ What runs at boot on the Jetson, and the one-command shortcut.
 | `neon-compose.service` | user, `scripts/systemd/` | `docker compose up -d`: agent, dashboard, telegram, thinker |
 | `neon-voice.service` | system, `scripts/systemd/` | `g1_speech_listener.py` in the host venv: USB mic and ALSA need the host |
 | `neon-ctl.service` | user, `scripts/systemd/` | `scripts/neon_ctl.py`: the dashboard's host channel (recreate containers, restart voice, refresh the camera token); its sudoers file allows exactly `systemctl restart/status/is-active neon-voice` |
-| `neon-wifi-watchdog.timer` | system, `scripts/systemd/` | every minute, falls back to the `neon_net` hotspot profile when `wlan0` has no known network |
+| `neon-wifi.service` | system, `scripts/systemd/` | `scripts/neon_wifi.py`: saved networks first (`neon_net` built in), the `NEON` setup hotspot + picker when there is no internet ([network](../reference/network.md#wifi)) |
 | `neon-docker.service` | system, repo root | what `make setup` installs: `docker compose up --build -d`, the compose stack alone |
 
 `neon-compose` and `neon-voice` are ordered `After=time-sync.target`: the Jetson
@@ -24,6 +24,7 @@ cp scripts/systemd/neon-compose.service scripts/systemd/neon-ctl.service ~/.conf
 loginctl enable-linger "$USER"
 systemctl --user daemon-reload && systemctl --user enable --now neon-compose neon-ctl
 sudo cp scripts/systemd/neon-voice.service /etc/systemd/system/ && sudo systemctl enable --now neon-voice
+sudo cp scripts/systemd/neon-wifi.service /etc/systemd/system/ && sudo systemctl enable --now neon-wifi
 sudo install -m 0440 scripts/systemd/neon-ctl.sudoers /etc/sudoers.d/neon-ctl && sudo visudo -c
 ```
 

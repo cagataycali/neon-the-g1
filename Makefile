@@ -355,6 +355,14 @@ wifi-status: ## show the current WiFi connection
 wifi-scan: ## list nearby WiFi networks
 	@bash scripts/wifi.sh --scan
 
+.PHONY: wifi-install
+wifi-install: ## install neon-wifi.service: saved nets (neon_net built in), NEON hotspot + picker when offline
+	@sudo systemctl disable --now neon-wifi-watchdog.timer 2>/dev/null || true
+	@sudo rm -f /etc/systemd/system/neon-wifi-watchdog.service /etc/systemd/system/neon-wifi-watchdog.timer
+	@sed "s#/home/unitree/neon-the-g1#$(CURDIR)#g" scripts/systemd/neon-wifi.service | sudo tee /etc/systemd/system/neon-wifi.service >/dev/null
+	@sudo systemctl daemon-reload && sudo systemctl enable --now neon-wifi
+	@echo "✅ neon-wifi running — journalctl -u neon-wifi -f"
+
 # ─── Auth (WebAuthn passkey store) ────────────────────────────────────────
 
 AUTH_STORE ?= .memory/.neon_auth.json
