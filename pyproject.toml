@@ -37,6 +37,10 @@ mesh    = ["strands-robots[mesh]"]
 robot   = ["pyrealsense2", "ultralytics"]
 # WebXR teleop bridge (Quest 3 → G1). IK/DDS stack via xr_teleoperate (see docs).
 teleop  = ["websockets>=12.0", "numpy"]
+# Agents++ authorization probe (ABXAGNTS-911 shadow phase; see
+# tools/agentspp_authz.py). Private repo — pip needs a GitHub token, or
+# install from a local checkout: pip install -e /path/to/agentspp-strands-tools
+agentspp = ["agentspp-strands-tools @ git+https://github.com/abaxxlabs/agentspp-strands-tools.git"]
 # Everything for a dev box
 # MCP server — expose the full NEON toolset over Model Context Protocol
 mcp     = ["strands-mcp-server>=0.1.4"]

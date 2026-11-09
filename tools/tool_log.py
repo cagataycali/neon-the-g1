@@ -149,7 +149,21 @@ class LoggedTool(AgentTool):
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Direct calls (``g1_get_state(network_interface=...)``) still work."""
+        self._authz_probe(self.tool_name, kwargs)
         return self._inner(*args, **kwargs)  # type: ignore[operator]
+
+    def _authz_probe(self, name: str, args: Any, tool_use_id: Optional[str] = None) -> None:
+        """Shadow authorization probe (ABXAGNTS-911).
+
+        No-op unless NEON_AUTHZ_MODE is shadow/enforce and the operation is
+        mapped to a capability. Must never raise: the authz path must not
+        take a tool path down.
+        """
+        try:
+            from . import agentspp_authz
+            agentspp_authz.probe(name, args, self._persona, tool_use_id=tool_use_id)
+        except Exception:
+            pass
 
     def __getattr__(self, name: str) -> Any:
         # Anything else (original_function, _metadata, ...) comes from the inner tool.
@@ -160,6 +174,7 @@ class LoggedTool(AgentTool):
         name = self.tool_name
         args = _mask((tool_use or {}).get("input"))
         tid = (tool_use or {}).get("toolUseId")
+        self._authz_probe(name, args, tid)
         t0 = time.monotonic()
         last: Any = None
         logged = False

@@ -129,6 +129,28 @@ make help                         # every target
 
 [The eight gates](https://cagataycali.github.io/neon-the-g1/guide/safety/).
 
+## authorization (Agents++ shadow probe)
+
+Optional telemetry layer (ABXAGNTS-911): before mapped high-risk operations
+(locomotion, FSM change, raw DDS publish, arm gestures) execute, NEON asks an
+[Agents++](https://github.com/abaxxlabs/agentspp-strands-tools) instance
+`/authorization/decide` and logs the ALLOW/DENY + `decision_id` to the journal
+and the Activity Log (role `authz`). **Shadow mode never blocks a tool.**
+
+```bash
+pip install -e .[agentspp]   # or: pip install -e /path/to/agentspp-strands-tools
+export NEON_AUTHZ_MODE=shadow          # off (default) | shadow | enforce
+export AGENTSPP_BASE_URL=http://localhost:3100
+# dev: mock human identity. prod: OIDC bearer token.
+export NEON_AUTHZ_HUMAN_DID=did:web:neon-dev   # or AGENTSPP_BEARER_TOKEN=...
+# optional: narrow the issued capabilities to observe DENY outcomes
+export NEON_AUTHZ_VC_CAPABILITIES=robot.motion.walk,robot.dds.publish.raw
+```
+
+The probe is a no-op (zero overhead) unless `NEON_AUTHZ_MODE` is set and the
+operation is mapped in `tools/agentspp_authz.py` — add a row there to grow the
+enforcement scope in later phases.
+
 ## MCP server
 
 ```bash

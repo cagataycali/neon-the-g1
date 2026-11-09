@@ -92,6 +92,9 @@ def format_for_prompt(limit: int = DEFAULT_LIMIT,
     cross-persona awareness.
     """
     rows = recent(limit)
+    # role="authz" rows (Agents++ shadow decisions) are audit telemetry,
+    # not reasoning context: keep them out of the prompt block.
+    rows = [r for r in rows if r["role"] != "authz"]
     if exclude_persona:
         rows = [r for r in rows if r["persona"] != exclude_persona]
     if not rows:
